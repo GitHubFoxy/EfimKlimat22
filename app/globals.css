@@ -3,7 +3,17 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@theme {
+  --color-light-orange: #F5AD3E
+  --color-dark-orange: #E09118
+  --color-light-gray: #F1F1F1
+  --color-dark-gray: #D5D5D5
+  --color-blackish: #2F2F2F
+  --color-redish: #C81919
+}
+
 @theme inline {
+  --font-inter: var(--font-inter);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
@@ -41,6 +51,7 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --font-bokor: var(--font-bokor);
 }
 
 :root {

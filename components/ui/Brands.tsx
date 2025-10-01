@@ -2,12 +2,12 @@ import Image from "next/image";
 export const Brands = () => {
   return (
     <section id="partners">
-      <h2>Бренды</h2>
-      <p>
+      <h2 className="text-center py-4 text-3xl font-bold ">Бренды</h2>
+      <p className="text-center py-2 mb-6 text-xl">
         Сотрудничаем с надёжными партнёрами в области строительства и
         производства климатического оборудования.
       </p>
-      <div className="grid grid-cols-5 gap-4">
+      <div className="grid grid-cols-5 gap-4 items-center">
         <Image
           width={160}
           height={34}
