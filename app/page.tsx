@@ -1,4 +1,4 @@
-import { Header } from "@/components/Header";
+import { Header } from "@/components/Header/Header";
 import { Brands } from "@/components/ui/Brands";
 import { Footer } from "@/components/ui/Footer";
 import FreeConsultmant from "@/components/ui/FreeConsultmant";

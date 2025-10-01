@@ -1,42 +1,42 @@
 "use client";
-import { Header } from '@/components/Header';
-import { Footer } from '@/components/ui/Footer';
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { Header } from "@/components/Header/Header";
+import { Footer } from "@/components/ui/Footer";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 
 const Order = () => {
   const [cart, setCart] = useState([]);
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    address: ''
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
   });
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    const savedCart = localStorage.getItem('cart');
+    const savedCart = localStorage.getItem("cart");
     if (savedCart) {
       setCart(JSON.parse(savedCart));
     }
   }, []);
 
-  const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     // Mock submit - in real app, send to backend
-    console.log('Order submitted:', { formData, total });
+    console.log("Order submitted:", { formData, total });
     setSubmitted(true);
     // Clear cart
-    localStorage.removeItem('cart');
+    localStorage.removeItem("cart");
     setCart([]);
   };
 
@@ -44,14 +44,19 @@ const Order = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
       <main className="container mx-auto px-4 py-12">
-        <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">Оформление заказа</h1>
+        <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">
+          Оформление заказа
+        </h1>
         {submitted ? (
           <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
             Заказ успешно отправлен! Спасибо за покупку.
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-md space-y-4">
+            <form
+              onSubmit={handleSubmit}
+              className="bg-white p-6 rounded-lg shadow-md space-y-4"
+            >
               <h2 className="text-xl font-semibold mb-4">Ваши данные</h2>
               <input
                 type="text"
@@ -99,13 +104,25 @@ const Order = () => {
             <div className="bg-white p-6 rounded-lg shadow-md">
               <h2 className="text-xl font-semibold mb-4">Ваш заказ</h2>
               {cart.length === 0 ? (
-                <p>Корзина пуста. <Link href="/catalog" className="text-primary hover:underline">Вернуться к каталогу</Link></p>
+                <p>
+                  Корзина пуста.{" "}
+                  <Link
+                    href="/catalog"
+                    className="text-primary hover:underline"
+                  >
+                    Вернуться к каталогу
+                  </Link>
+                </p>
               ) : (
                 <div className="space-y-3">
                   {cart.map((item) => (
                     <div key={item.id} className="flex justify-between">
-                      <span>{item.name} x{item.quantity}</span>
-                      <span>{(item.price * item.quantity).toLocaleString()} ₽</span>
+                      <span>
+                        {item.name} x{item.quantity}
+                      </span>
+                      <span>
+                        {(item.price * item.quantity).toLocaleString()} ₽
+                      </span>
                     </div>
                   ))}
                   <div className="border-t pt-3">
