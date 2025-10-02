@@ -27,7 +27,7 @@ export const Header = () => {
   ];
 
   return (
-    <header className="flex-col flex  max-w-6xl mx-auto ">
+    <header className="flex-col flex ">
       <div className="flex flex-row justify-between items-center py-4 border-b-2">
         <HeaderSearch />
         <div className="flex gap-6 items-center">
@@ -59,21 +59,23 @@ export const Header = () => {
       </div>
       <div className="flex items-center justify-between">
         <Image alt="Company logo" src={"/logo_.jpg"} height={80} width={180} />
-        <div className="flex gap-9">
-          {Categorys.map((category, index) => {
-            return (
-              <Link
-                className="relative no-underline  transition-colors duration-300
-             before:content-[''] before:absolute before:w-1 before:h-0.5 before:bg-blackish
-             before:bottom-0 before:left-0 before:opacity-0 
-             hover:before:w-full hover:before:opacity-100 before:transition-all before:duration-300"
-                key={index}
-                href={category.link}
-              >
-                {category.name}
-              </Link>
-            );
-          })}
+        <div className="absolute left-1/2 transform -translate-x-1/2">
+          <div className="flex gap-9">
+            {Categorys.map((category, index) => {
+              return (
+                <Link
+                  className="relative no-underline  transition-colors duration-300
+               before:content-[''] before:absolute before:w-1 before:h-0.5 before:bg-blackish
+               before:bottom-0 before:left-0 before:opacity-0
+               hover:before:w-full hover:before:opacity-100 before:transition-all before:duration-300"
+                  key={index}
+                  href={category.link}
+                >
+                  {category.name}
+                </Link>
+              );
+            })}
+          </div>
         </div>
         <Cart />
       </div>

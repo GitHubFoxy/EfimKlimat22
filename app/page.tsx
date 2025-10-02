@@ -7,11 +7,15 @@ import { Hero } from "@/components/ui/Hero";
 export default function Home() {
   return (
     <>
-      <Header />
-      <Hero />
-      <Brands />
-      <FreeConsultmant />
-      <Footer />
+      <div className="max-w-6xl mx-auto ">
+        <div className="flex flex-col gap-9">
+          <Header />
+          <Hero />
+        </div>
+        <Brands />
+        <FreeConsultmant />
+        <Footer />
+      </div>
     </>
   );
 }
