@@ -14,7 +14,7 @@ export const Hero = () => {
           </h2>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-4">
           <Button className="font-inter font-[500] text-lg rounded-4xl text-white bg-light-orange  cursor-pointer py-4 px-9 h-14">
             Выбрать товары
           </Button>
