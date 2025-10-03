@@ -1,12 +1,29 @@
+"use client";
+import MediaQuery from "react-responsive";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
 import { MapPin, Phone } from "lucide-react";
 import { Phone as PhoneNumber } from "@/lib/consts";
 import { Button } from "../ui/button";
 import Image from "next/image";
 import Link from "next/link";
-import Cart from "./HeaderCart";
 import HeaderSearch from "./HeaderSearch";
+import Cart from "./HeaderCart";
 
-export const Header = () => {
+export default function Header() {
+  return (
+    <>
+      <MediaQuery maxWidth={729}>
+        <MobileHeader />
+      </MediaQuery>
+      <MediaQuery minWidth={730}>
+        <DesktopHeader />
+      </MediaQuery>
+    </>
+  );
+}
+
+export const DesktopHeader = () => {
   const Categorys = [
     {
       name: "Главная",
@@ -59,7 +76,7 @@ export const Header = () => {
       </div>
       <div className="flex items-center justify-between">
         <Image alt="Company logo" src={"/logo_.jpg"} height={80} width={180} />
-        <div className="absolute left-1/2 transform -translate-x-1/2">
+        <div className="lg:absolute lg:left-1/2 lg:transform lg:-translate-x-1/2">
           <div className="flex gap-9">
             {Categorys.map((category, index) => {
               return (
@@ -82,3 +99,89 @@ export const Header = () => {
     </header>
   );
 };
+
+export function MobileHeader() {
+  const Categorys = [
+    {
+      name: "Главная",
+      link: "/catalog",
+    },
+    {
+      name: "Почему мы",
+      link: "/catalog",
+    },
+    {
+      name: "Популярное",
+      link: "/catalog",
+    },
+    {
+      name: "Партнеры",
+      link: "/catalog",
+    },
+    {
+      name: "Каталог",
+      link: "/catalog",
+    },
+  ];
+  const [isOpen, setIsOpen] = useState(false);
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex justify-between">
+        <Image src={"/logo_.jpg"} alt=" Company logo" height={40} width={72} />
+        <Image
+          src={"/burger.svg"}
+          alt="Burger menu"
+          height={24}
+          width={24}
+          onClick={() => setIsOpen(true)}
+        />
+      </div>
+      <div
+        className={cn(
+          isOpen
+            ? "absolute left-0 top-0 bg-blackish/80 z-10 w-full h-full flex justify-end"
+            : "hidden",
+        )}
+        onClick={() => setIsOpen(false)}
+      >
+        <div className="flex flex-col gap-6 bg-white w-2/3 p-4">
+          <div className="flex flex-col gap-2">
+            {Categorys.map((e, index) => {
+              return (
+                <Link key={index} className="font-[400]" href={e.link}>
+                  {e.name}
+                </Link>
+              );
+            })}
+          </div>
+          <div className="flex gap-2">
+            <Image
+              alt="telegram-logo"
+              src={"/telegram-icon.svg"}
+              width={33}
+              height={33}
+              className="cursor-pointer"
+            />
+            <Image
+              alt="whatsapp-logo"
+              src={"/whatsapp-icon.svg"}
+              width={33}
+              height={33}
+              className="cursor-pointer"
+            />
+          </div>
+          <Button className="bg-blackish hover:bg-blackish rounded-full cursor-pointer">
+            <Phone />
+            {PhoneNumber}{" "}
+          </Button>
+        </div>
+      </div>
+      <div>
+        <div className="flex items-center justify-between gap-2">
+          <HeaderSearch className="" />
+          <Cart className="w-8 h-8" />
+        </div>
+      </div>
+    </div>
+  );
+}
