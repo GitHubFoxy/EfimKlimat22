@@ -1,5 +1,5 @@
 "use client";
-import MediaQuery from "react-responsive";
+import MediaQuery, { useMediaQuery } from "react-responsive";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { MapPin, Phone } from "lucide-react";
@@ -11,15 +11,9 @@ import HeaderSearch from "./HeaderSearch";
 import Cart from "./HeaderCart";
 
 export default function Header() {
+  const phone = useMediaQuery({ query: "(max-width: 729px)" });
   return (
-    <>
-      <MediaQuery maxWidth={729}>
-        <MobileHeader />
-      </MediaQuery>
-      <MediaQuery minWidth={730}>
-        <DesktopHeader />
-      </MediaQuery>
-    </>
+    <div className="mb-6">{phone ? <MobileHeader /> : <DesktopHeader />}</div>
   );
 }
 

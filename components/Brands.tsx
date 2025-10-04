@@ -38,7 +38,7 @@ export const Brands = () => {
           производства климатического оборудования
         </p>
       </div>
-      <div className="grid grid-cols-5 gap-4 items-center">
+      <div className="flex flex-col md:grid md:grid-cols-5 gap-4  items-center grid-cols-1">
         {brands.map((e, index) => {
           return (
             <div
