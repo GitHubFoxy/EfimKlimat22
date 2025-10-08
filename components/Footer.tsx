@@ -91,8 +91,8 @@ export const Footer = () => {
             <div>
               <h3 className="font-[500] text-xl">Контакты</h3>
               <div className="flex flex-col gap-2 break-words">
-                {Contacts.map((contact, index) => (
-                  <p className="break-words" key={index}>
+                {Contacts.map((contact, index: number) => (
+                  <p className="break-words text-sm" key={index}>
                     {contact}
                   </p>
                 ))}
@@ -104,10 +104,10 @@ export const Footer = () => {
           <Link href={"#"}>Пользовательское соглашение</Link>
           <Link href={"#"}>Политика конфиденциальности</Link>
         </div>
-        <div className="flex items-center mb-4">
-          <div className="">
+        <div className="flex items-center mb-4 justify-center">
+          <div className="flex items-center justify-center">
             <iframe
-              className="w-[390px] h-[260px] rounded-xl"
+              className="h-[260px] rounded-xl self-center"
               src="https://yandex.ru/map-widget/v1/?um=constructor%3Ab57356a7883ee85d673978b787538bb1a0fc9325d417456173c7d9a6a6c9b740&amp;source=constructor"
             ></iframe>
           </div>

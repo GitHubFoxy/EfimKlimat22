@@ -1,5 +1,4 @@
 import { Star } from "lucide-react";
-import { clsx } from "clsx";
 
 export default function Stars(props: any) {
   return (

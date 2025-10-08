@@ -1,6 +1,7 @@
 "use client";
-import { useState } from "react";
-import { Button } from "./button";
+
+import { Label } from "./ui/label";
+import { Button } from "./ui/button";
 import {
   DialogHeader,
   DialogFooter,
@@ -9,9 +10,8 @@ import {
   DialogDescription,
   DialogTitle,
   DialogTrigger,
-} from "./dialog";
-import { Input } from "./input";
-import { Label } from "./label";
+} from "./ui/dialog";
+import { Input } from "./ui/input";
 
 export const FormaObratnoySvyzi = () => {
   return (

@@ -3,7 +3,7 @@ import { Button } from "../ui/button";
 
 export const Hero = () => {
   return (
-    <main className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-[24px] md:mb-[120px]">
+    <main className="grid grid-cols-1 md:grid-cols-5 gap-4 ">
       <div className="flex flex-col gap-4 p-6 md:px-9 bg-light-gray rounded-[30px] md:col-span-3 md:gap-9">
         <div className="flex flex-col gap-2 md:pt-[72px] md:gap-[24px]">
           <h1 className="text-base font-[500] w-[25ch] md:text-4xl">

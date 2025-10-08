@@ -1,5 +1,5 @@
 "use client";
-import MediaQuery, { useMediaQuery } from "react-responsive";
+import { useMediaQuery } from "react-responsive";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { MapPin, Phone } from "lucide-react";
@@ -8,7 +8,7 @@ import { Button } from "../ui/button";
 import Image from "next/image";
 import Link from "next/link";
 import HeaderSearch from "./HeaderSearch";
-import Cart from "./HeaderCart";
+import Cart from "../Cart/HeaderCart";
 
 export default function Header() {
   const phone = useMediaQuery({ query: "(max-width: 729px)" });
@@ -21,19 +21,19 @@ export const DesktopHeader = () => {
   const Categorys = [
     {
       name: "Главная",
-      link: "#",
+      link: "/",
     },
     {
       name: "Почему мы",
-      link: "#",
+      link: "#whyus",
     },
     {
       name: "Популярное",
-      link: "#",
+      link: "#best-deals",
     },
     {
       name: "Партнеры",
-      link: "#",
+      link: "#partners",
     },
   ];
 
