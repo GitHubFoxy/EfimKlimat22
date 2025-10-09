@@ -19,7 +19,7 @@ export default function Cart({ className }: { className?: string }) {
   const [items, setItems] = useState([
     {
       name: "Электрокотел Куппер Спутник-12 (2.0) черный",
-      price: "21 970 руб.",
+      price: "21970",
       quantity: 1,
       img: "/kotel.png",
     },
@@ -63,38 +63,61 @@ export default function Cart({ className }: { className?: string }) {
           {items && items.length > 0 ? (
             <div>
               {items.map((item, index) => (
-                <div className="grid grid-cols-3" key={index}>
-                  <div className="w-[43px] h-[89px] px-1 py-5 rounded relative  place-self-center  col-span-1">
-                    <Image src={item.img} alt={item.name} fill />
-                  </div>
-                  <div className="col-span-2 flex gap-2 flex-col">
-                    <p>{item.name}</p>
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center flex-row-reverse">
-                        <div
-                          onClick={() => inc(index)}
-                          className="border border-blackish/20 border-l-0 w-8 h-8 grid place-content-center rounded-r-xl"
-                        >
-                          <Plus size={14} />
+                <div>
+                  <div className="grid grid-cols-3" key={index}>
+                    <div className="w-[43px] h-[89px] px-1 py-5 rounded relative  place-self-center  col-span-1">
+                      <Image src={item.img} alt={item.name} fill />
+                    </div>
+                    <div className="col-span-2 flex gap-2 flex-col">
+                      <p>{item.name}</p>
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center flex-row-reverse">
+                          <div
+                            onClick={() => inc(index)}
+                            className="border border-blackish/20 border-l-0 w-8 h-8 grid place-content-center rounded-r-xl"
+                          >
+                            <Plus size={14} />
+                          </div>
+                          <Input
+                            value={item.quantity}
+                            className="w-8 h-8 p-1 text-center rounded-none border-blackish/20 spin"
+                            autoFocus={false}
+                          />
+                          <div
+                            onClick={() => dec(index)}
+                            className="border border-blackish/20 border-r-0 w-8 h-8 grid place-content-center rounded-l-xl"
+                          >
+                            <Minus size={14} />
+                          </div>
                         </div>
-                        <Input
-                          type="number"
-                          value={item.quantity}
-                          className="w-8 h-8 p-1 items-center text-center rounded-none border-blackish/20"
-                          autoFocus={false}
-                        />
-                        <div
-                          onClick={() => dec(index)}
-                          className="border border-blackish/20 border-r-0 w-8 h-8 grid place-content-center rounded-l-xl"
-                        >
-                          <Minus size={14} />
+                        <div className="flex gap-2">
+                          Удалить <Trash2 />
                         </div>
                       </div>
-                      <div className="flex gap-2">
-                        Удалить <Trash2 />
+                      <div className="text-right">
+                        {parseFloat(item.price).toLocaleString()} руб.
                       </div>
                     </div>
-                    <div>{item.price}</div>
+                  </div>
+                  <hr className="my-4" />
+                  <div className="flex justify-between">
+                    <div className="flex flex-col gap-2">
+                      <p>Итого к оплате:</p>
+                      <p>
+                        {items.reduce(
+                          (acc, cur) =>
+                            acc + cur.quantity * parseFloat(cur.price),
+                          0,
+                        )}{" "}
+                        руб.
+                      </p>
+                    </div>
+                    <div
+                      className="flex gap-2 cursor-pointer"
+                      onClick={() => setItems([])}
+                    >
+                      Очистить корзину <Trash2 />
+                    </div>
                   </div>
                 </div>
               ))}
@@ -104,6 +127,7 @@ export default function Cart({ className }: { className?: string }) {
           )}
         </div>
         <hr />
+
         <DialogFooter>
           <DialogClose asChild>
             <Button

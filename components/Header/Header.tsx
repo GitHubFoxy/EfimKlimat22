@@ -13,7 +13,14 @@ import Cart from "../Cart/HeaderCart";
 export default function Header() {
   const phone = useMediaQuery({ query: "(max-width: 729px)" });
   return (
-    <div className="mb-6">{phone ? <MobileHeader /> : <DesktopHeader />}</div>
+    <div className="mb-6">
+      <div className="block min-[730px]:hidden">
+        <MobileHeader />
+      </div>
+      <div className="hidden min-[730px]:block">
+        <DesktopHeader />
+      </div>
+    </div>
   );
 }
 
