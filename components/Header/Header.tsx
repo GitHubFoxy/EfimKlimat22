@@ -105,19 +105,19 @@ export function MobileHeader() {
   const Categorys = [
     {
       name: "Главная",
-      link: "/catalog",
+      link: "/",
     },
     {
       name: "Почему мы",
-      link: "/catalog",
+      link: "whyus",
     },
     {
       name: "Популярное",
-      link: "/catalog",
+      link: "/#best-deals",
     },
     {
       name: "Партнеры",
-      link: "/catalog",
+      link: "/partners",
     },
     {
       name: "Каталог",

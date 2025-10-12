@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { Button } from "../ui/button";
+import Link from "next/link";
 
 export const Hero = () => {
   return (
@@ -15,14 +16,18 @@ export const Hero = () => {
         </div>
 
         <div className="flex flex-col gap-2  md:flex-row md:w-full">
-          <Button className="bg-light-orange h-[36px] rounded-full md:h-[57px]">
-            Выбрать товары
+          <Button
+            className="bg-light-orange h-[36px] rounded-full md:h-[57px]"
+            asChild
+          >
+            <Link href={"/catalog"}>Выбрать товары</Link>
           </Button>
           <Button
-            className="bg-transparent border border-blackish h-[36px] rounded-full md:h-[57px]"
+            asChild
+            className="cursor-pointer bg-transparent border border-blackish h-[36px] rounded-full md:h-[57px]"
             variant={"outline"}
           >
-            Заказать консультацию
+            <Link href={"#free-consultant"}>Заказать консультацию</Link>
           </Button>
         </div>
       </div>

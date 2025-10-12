@@ -7,19 +7,19 @@ export const Footer = () => {
   const categorys = [
     {
       name: "Каталог",
-      link: "#",
+      link: "/catalog",
     },
     {
       name: "Почему выбирают нас",
-      link: "#",
+      link: "#whyus",
     },
     {
       name: "Популярное",
-      link: "#",
+      link: "#best-deals",
     },
     {
       name: "Партнеры",
-      link: "#",
+      link: "#partners",
     },
   ];
   return (

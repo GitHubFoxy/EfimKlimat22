@@ -16,12 +16,19 @@ import Image from "next/image";
 import { Input } from "../ui/input";
 
 export default function Cart({ className }: { className?: string }) {
-  const [items, setItems] = useState([
+  const [items, setItems] = useState<
     {
-      name: "Электрокотел Куппер Спутник-12 (2.0) черный",
-      price: "21970",
+      name: string;
+      price: string;
+      quantity: number;
+      img: string;
+    }[]
+  >([
+    {
+      name: "Тестовый товар",
+      price: "1000",
       quantity: 1,
-      img: "/kotel.png",
+      img: "/kotel.jpg",
     },
   ]);
 
