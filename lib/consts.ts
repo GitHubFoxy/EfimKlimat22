@@ -7,3 +7,10 @@ export const Phone = "8 (993) 399-99-63";
 export const Email = "klimat_brn@mail.ru";
 export const FullAdress =
   "г. Барнаул, Ленинский район, ул. Эмилии Алексеевой, 107";
+
+// Catalog filter options used across the app
+export const FILTERS = [
+  "Хиты продаж",
+  "Новинки",
+  "Со скидкой",
+] as const;

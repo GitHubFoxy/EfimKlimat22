@@ -1,0 +1,132 @@
+import { v } from "convex/values";
+import { internalMutation, query } from "./_generated/server";
+import { paginationOptsValidator } from "convex/server";
+
+export const addItems = internalMutation({
+  args: {
+    name: v.string(),
+    image: v.string(),
+    quantity: v.number(),
+    price: v.number(),
+    description: v.string(),
+    rating: v.optional(v.number()),
+    orders: v.optional(v.number()),
+    category: v.optional(v.id("categorys")),
+    sale: v.optional(v.number()),
+  },
+  handler: async (
+    ctx,
+    {
+      name,
+      image = "/not-found.jpg",
+      quantity = 1,
+      price,
+      description = "",
+      rating = 0,
+      orders = 0,
+      category,
+      sale = 0,
+    },
+  ) => {
+    await ctx.db.insert("items", {
+      name,
+      image,
+      quantity,
+      description,
+      price,
+      rating,
+      orders,
+      category,
+      sale,
+    });
+    return { status: 200, message: "Item added" };
+  },
+});
+
+export const show_all_items = query({
+  handler: async (ctx) => {
+    const items = await ctx.db.query("items").collect();
+    return { items, status: 200 };
+  },
+});
+
+export const main_page_most_orders = query({
+  handler: async (ctx) => {
+    const items = await ctx.db
+      .query("items")
+      .withIndex("by_orders")
+      .order("desc")
+      .take(3);
+
+    return { items, status: 200 };
+  },
+});
+
+export const main_page_on_sale = query({
+  handler: async (ctx) => {
+    const items = await ctx.db
+      .query("items")
+      .withIndex("by_sale")
+      .order("desc")
+      .take(3);
+
+    return { items, status: 200 };
+  },
+});
+
+export const main_page_new_comers = query({
+  handler: async (ctx) => {
+    const items = await ctx.db.query("items").order("desc").take(3);
+
+    return { items, status: 200 };
+  },
+});
+
+export const catalog_query_based_on_category_and_filter = query({
+  args: {
+    category: v.id("categorys"),
+    filter: v.union(
+      v.literal("Хиты продаж"),
+      v.literal("Новинки"),
+      v.literal("Со скидкой"),
+    ),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, { category, filter, paginationOpts }) => {
+    if (filter === "Хиты продаж") {
+      return await ctx.db
+        .query("items")
+        .withIndex("by_category_orders", (q) => q.eq("category", category))
+        .order("desc")
+        .paginate(paginationOpts);
+    }
+    if (filter === "Новинки") {
+      return await ctx.db
+        .query("items")
+        .withIndex("by_category", (q) => q.eq("category", category))
+        .order("desc")
+        .paginate(paginationOpts);
+    }
+    // "Со скидкой"
+    return await ctx.db
+      .query("items")
+      .withIndex("by_category_sale", (q) => q.eq("category", category))
+      .order("desc")
+      .paginate(paginationOpts);
+  },
+});
+
+export const addCategory = internalMutation({
+  args: { name: v.string() },
+  handler: async (ctx, { name }) => {
+    await ctx.db.insert("categorys", { name });
+    return { status: 200, message: "Category added" };
+  },
+});
+
+export const show_all_categories = query({
+  handler: async (ctx) => {
+    const categories = await ctx.db.query("categorys").collect();
+    return { categories, status: 200 };
+  },
+});

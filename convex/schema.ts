@@ -8,9 +8,22 @@ export default defineSchema({
   }),
   items: defineTable({
     name: v.string(),
+    image: v.string(),
     quantity: v.number(),
     price: v.number(),
     description: v.string(),
+    rating: v.optional(v.number()),
+    orders: v.optional(v.number()),
+    category: v.optional(v.id("categorys")),
+    sale: v.optional(v.number()),
+  })
+    .index("by_orders", ["orders"])
+    .index("by_category", ["category"])
+    .index("by_sale", ["sale"])
+    .index("by_category_orders", ["category", "orders"])
+    .index("by_category_sale", ["category", "sale"]),
+  categorys: defineTable({
+    name: v.string(),
   }),
   cart: defineTable({
     userId: v.id("users"),
