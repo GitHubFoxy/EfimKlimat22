@@ -24,8 +24,8 @@ export const Footer = () => {
   ];
   return (
     <div>
-      <footer className="border-t md:grid-cols-4 grid-cols-2 hidden md:grid">
-        <div className="flex flex-col gap-5 px-4 py-[80px] border-r">
+      <footer className="border-t grid grid-cols-1 md:grid-cols-4 gap-6 max-w-7xl mx-auto px-4  py-8 md:py-20">
+        <div className="flex flex-col gap-5 px-2 md:px-4 py-6 md:py-[80px] md:border-r">
           <Image src="/logo_.jpg" alt="logo" width={180} height={80} />
           <div className="flex flex-col gap-4">
             <p className="text-sm font-[400]">
@@ -38,7 +38,7 @@ export const Footer = () => {
             </p>
           </div>
         </div>
-        <div className="flex flex-col gap-4 px-4 py-[80px] border-r">
+        <div className="flex flex-col gap-4 px-2 md:px-4 py-6 md:py-[80px] md:border-r">
           <h3 className="font-[500] text-xl">Покупателям</h3>
           <div className="flex flex-col gap-2">
             {categorys.map((cat, index) => (
@@ -48,7 +48,7 @@ export const Footer = () => {
             ))}
           </div>
         </div>
-        <div className="flex flex-col gap-4 px-4 py-[80px] border-r">
+        <div className="flex flex-col gap-4 px-2 md:px-4 py-6 md:py-[80px] md:border-r">
           <h3 className="font-[500] text-xl">Контакты</h3>
           <div className="flex flex-col gap-2">
             {Contacts.map((contact, index) => (
@@ -60,67 +60,17 @@ export const Footer = () => {
             <Link href={"#"}>Политика конфиденциальности</Link>
           </div>
         </div>
-        <div className="flex items-center pl-6">
-          <div className="">
-            <iframe
-              className="w-[390px] h-[260px] rounded-xl"
-              src="https://yandex.ru/map-widget/v1/?um=constructor%3Ab57356a7883ee85d673978b787538bb1a0fc9325d417456173c7d9a6a6c9b740&amp;source=constructor"
-              width="500"
-              height="400"
-            ></iframe>
-          </div>
-        </div>
-      </footer>
 
-      <footer className="md:hidden border-t pt-6 grid grid-rows-[auto_auto_auto_auto]">
-        <div className="flex items-center justify-center mb-4">
-          <Image src="/logo_.jpg" alt="logo" width={72} height={40} />
-        </div>
-        <div className="flex flex-row gap-4 mb-4">
-          <div>
-            <h3 className="font-[500] text-xl">Покупателям</h3>
-            <div className="flex flex-col  gap-2">
-              {categorys.map((cat, index) => (
-                <Link key={index} href={cat.link}>
-                  {cat.name}
-                </Link>
-              ))}
-            </div>
-          </div>
-          <div className="flex flex-col gap-4">
-            <div>
-              <h3 className="font-[500] text-xl">Контакты</h3>
-              <div className="flex flex-col gap-2 break-words">
-                {Contacts.map((contact, index: number) => (
-                  <p className="break-words text-sm" key={index}>
-                    {contact}
-                  </p>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="flex flex-col gap-2 pt-4 mb-4">
-          <Link href={"#"}>Пользовательское соглашение</Link>
-          <Link href={"#"}>Политика конфиденциальности</Link>
-        </div>
-        <div className="flex items-center mb-4 justify-center">
-          <div className="flex items-center justify-center">
+        <div className="flex items-center justify-center px-0 md:px-0">
+          <div className="w-full max-w-[390px] overflow-hidden">
             <iframe
-              className="h-[260px] rounded-xl self-center"
+              className="w-full h-[260px] rounded-xl"
               src="https://yandex.ru/map-widget/v1/?um=constructor%3Ab57356a7883ee85d673978b787538bb1a0fc9325d417456173c7d9a6a6c9b740&amp;source=constructor"
+              title="Карта расположения компании"
+              loading="lazy"
+              style={{ border: 0 }}
             ></iframe>
           </div>
-        </div>
-        <div className="flex flex-col gap-4">
-          <p className="text-sm font-[400]">
-            Все материалы на сайте являются авторским уникальным контентом.
-            Копирование материалов с сайта преследуется по закону.
-          </p>
-          <p className="text-sm font-[400]">
-            Данный ресурс не является публичной офертой и носит исключительно
-            информационный характер.
-          </p>
         </div>
       </footer>
     </div>

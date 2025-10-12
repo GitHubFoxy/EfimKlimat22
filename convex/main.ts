@@ -1,11 +1,12 @@
 import { v } from "convex/values";
-import { internalMutation, query } from "./_generated/server";
+import { internalMutation, query, mutation } from "./_generated/server";
 import { paginationOptsValidator } from "convex/server";
 
 export const addItems = internalMutation({
   args: {
     name: v.string(),
-    image: v.string(),
+    image: v.optional(v.string()),
+    imageStorageId: v.optional(v.id("_storage")),
     quantity: v.number(),
     price: v.number(),
     description: v.string(),
@@ -19,6 +20,7 @@ export const addItems = internalMutation({
     {
       name,
       image = "/not-found.jpg",
+      imageStorageId,
       quantity = 1,
       price,
       description = "",
@@ -28,9 +30,70 @@ export const addItems = internalMutation({
       sale = 0,
     },
   ) => {
+    let imageUrl = image;
+    if (imageStorageId) {
+      const url = await ctx.storage.getUrl(imageStorageId);
+      imageUrl = url ?? "/not-found.jpg";
+    }
     await ctx.db.insert("items", {
       name,
-      image,
+      image: imageUrl,
+      imageStorageId,
+      quantity,
+      description,
+      price,
+      rating,
+      orders,
+      category,
+      sale,
+    });
+    return { status: 200, message: "Item added" };
+  },
+});
+
+export const generateUploadUrl = mutation({
+  handler: async (ctx) => {
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
+export const addItemsPublic = mutation({
+  args: {
+    name: v.string(),
+    image: v.optional(v.string()),
+    imageStorageId: v.optional(v.id("_storage")),
+    quantity: v.number(),
+    price: v.number(),
+    description: v.string(),
+    rating: v.optional(v.number()),
+    orders: v.optional(v.number()),
+    category: v.optional(v.id("categorys")),
+    sale: v.optional(v.number()),
+  },
+  handler: async (
+    ctx,
+    {
+      name,
+      image = "/not-found.jpg",
+      imageStorageId,
+      quantity = 1,
+      price,
+      description = "",
+      rating = 0,
+      orders = 0,
+      category,
+      sale = 0,
+    },
+  ) => {
+    let imageUrl = image;
+    if (imageStorageId) {
+      const url = await ctx.storage.getUrl(imageStorageId);
+      imageUrl = url ?? "/not-found.jpg";
+    }
+    await ctx.db.insert("items", {
+      name,
+      image: imageUrl,
+      imageStorageId,
       quantity,
       description,
       price,
@@ -47,6 +110,19 @@ export const show_all_items = query({
   handler: async (ctx) => {
     const items = await ctx.db.query("items").collect();
     return { items, status: 200 };
+  },
+});
+
+//delete image also
+export const deleteItem = mutation({
+  args: { id: v.id("items") },
+  handler: async (ctx, { id }) => {
+    const doc = await ctx.db.get(id);
+    if (doc?.imageStorageId) {
+      await ctx.storage.delete(doc.imageStorageId);
+    }
+    await ctx.db.delete(id);
+    return { status: 200, message: "Item deleted" };
   },
 });
 

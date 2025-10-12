@@ -9,6 +9,7 @@ export default defineSchema({
   items: defineTable({
     name: v.string(),
     image: v.string(),
+    imageStorageId: v.optional(v.id("_storage")),
     quantity: v.number(),
     price: v.number(),
     description: v.string(),
