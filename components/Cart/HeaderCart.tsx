@@ -70,8 +70,8 @@ export default function Cart({ className }: { className?: string }) {
           {items && items.length > 0 ? (
             <div>
               {items.map((item, index) => (
-                <div>
-                  <div className="grid grid-cols-3" key={index}>
+                <div key={index}>
+                  <div className="grid grid-cols-3">
                     <div className="w-[43px] h-[89px] px-1 py-5 rounded relative  place-self-center  col-span-1">
                       <Image src={item.img} alt={item.name} fill />
                     </div>

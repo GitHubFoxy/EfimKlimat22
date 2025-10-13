@@ -28,13 +28,32 @@ export default defineSchema({
   categorys: defineTable({
     name: v.string(),
   }),
-  cart: defineTable({
-    userId: v.id("users"),
+  carts: defineTable({
+    owner: v.optional(v.id("users")),
+    sessionId: v.optional(v.string()),
+    currency: v.string(),
+    status: v.union(
+      v.literal("active"),
+      v.literal("ordered"),
+      v.literal("abandoned"),
+    ),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_owner", ["owner"])
+    .index("by_sessionId", ["sessionId"]),
+  cart_items: defineTable({
+    cartId: v.id("carts"),
     itemId: v.id("items"),
+    name: v.string(),
+    image: v.optional(v.string()),
+    price: v.number(),
     quantity: v.number(),
-  }),
+    variant: v.optional(v.string()),
+    updatedAt: v.optional(v.number()),
+  }).index("by_cartId", ["cartId"]),
   orders: defineTable({
     userId: v.id("users"),
+    updatedAt: v.optional(v.number()),
     itemId: v.array(v.id("items")),
     status: v.union(
       v.literal("pending"),
