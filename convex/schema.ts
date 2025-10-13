@@ -8,6 +8,7 @@ export default defineSchema({
   }),
   items: defineTable({
     name: v.string(),
+    lowerCaseName: v.string(),
     image: v.string(),
     imageStorageId: v.optional(v.id("_storage")),
     quantity: v.number(),
@@ -22,7 +23,8 @@ export default defineSchema({
     .index("by_category", ["category"])
     .index("by_sale", ["sale"])
     .index("by_category_orders", ["category", "orders"])
-    .index("by_category_sale", ["category", "sale"]),
+    .index("by_category_sale", ["category", "sale"])
+    .index("by_lowercase_name", ["lowerCaseName"]),
   categorys: defineTable({
     name: v.string(),
   }),

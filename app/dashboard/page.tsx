@@ -204,90 +204,14 @@ export default function Dashboard() {
           </form>
         </div>
 
-        {/* Right: Items list */}
-        <div className="w-full md:justify-self-start">
-          <h2 className="text-lg font-semibold mb-4">Все товары</h2>
-          <div className="mb-4">
-            <Label htmlFor="filterCategory">Фильтр по категории</Label>
-            <Select
-              value={filterCategory === "" ? "none" : filterCategory}
-              onValueChange={(value) =>
-                setFilterCategory(value === "none" ? "" : value)
-              }
-            >
-              <SelectTrigger className="mt-2 w-full">
-                <SelectValue placeholder="Все категории" />
-              </SelectTrigger>
-              <SelectContent>
-                {categoriesRes?.categories?.map((c) => (
-                  <SelectItem key={c._id} value={String(c._id)}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-                <SelectItem value="none">Все категории</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {!items && (
-            <p className="text-sm text-gray-500">Загрузка товаров...</p>
-          )}
-          {items &&
-            (filterCategory
-              ? items.items.filter((i) => String(i.category) === filterCategory)
-                  .length
-              : items.items.length) === 0 && (
-              <p className="text-sm text-gray-500">Товары отсутствуют</p>
-            )}
-          {items &&
-            (filterCategory
-              ? items.items.filter((i) => String(i.category) === filterCategory)
-                  .length > 0
-              : items.items.length > 0) && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                {(filterCategory
-                  ? items.items.filter(
-                      (i) => String(i.category) === filterCategory,
-                    )
-                  : items.items
-                ).map((item) => (
-                  <div
-                    key={item._id}
-                    className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100"
-                  >
-                    <div className="p-4">
-                      <div className="w-full h-40 bg-gray-100 rounded-2xl mb-3 flex items-center justify-center">
-                        <img
-                          src={item.image}
-                          alt={item.name}
-                          className="max-h-32 object-contain"
-                        />
-                      </div>
-                      <h3 className="text-sm font-medium text-gray-800 mb-1">
-                        {item.name}
-                      </h3>
-                      <p className="text-sm text-gray-800">
-                        {Number(item.price).toLocaleString("ru-RU")} руб.
-                      </p>
-                      <div className="mt-3 flex justify-between items-center">
-                        <Button
-                          variant="destructive"
-                          onClick={() =>
-                            setDeleteConfirm({
-                              open: true,
-                              itemId: item._id,
-                              itemName: item.name,
-                            })
-                          }
-                        >
-                          Удалить
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-        </div>
+        {/* Right: Items list extracted into component */}
+        <DashboardItemsPanel
+          items={items}
+          categories={categoriesRes?.categories ?? []}
+          onDelete={(item) =>
+            setDeleteConfirm({ open: true, itemId: item._id, itemName: item.name })
+          }
+        />
       </div>
 
       {/* Delete confirmation dialog */}
@@ -340,6 +264,99 @@ export default function Dashboard() {
           </div>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+type ItemsPanelProps = {
+  items: { items: Array<any>; status: number } | undefined;
+  categories: Array<{ _id: string; name: string }>;
+  onDelete: (item: any) => void;
+};
+
+function DashboardItemsPanel({ items, categories, onDelete }: ItemsPanelProps) {
+  const [filterCategory, setFilterCategory] = useState<string>("");
+  const [search, setSearch] = useState<string>("");
+
+  const filtered = (items?.items ?? [])
+    .filter((i) =>
+      filterCategory ? String(i.category) === filterCategory : true,
+    )
+    .filter((i) =>
+      search
+        ? i.name?.toLowerCase().includes(search.trim().toLowerCase())
+        : true,
+    );
+
+  return (
+    <div className="w-full md:justify-self-start">
+      <h2 className="text-lg font-semibold mb-4">Все товары</h2>
+
+      {/* Search input */}
+      <div className="mb-4">
+        <Label htmlFor="search">Поиск по названию</Label>
+        <Input
+          id="search"
+          placeholder="Введите название товара"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="mt-2"
+        />
+      </div>
+
+      {/* Category filter */}
+      <div className="mb-4">
+        <Label htmlFor="filterCategory">Фильтр по категории</Label>
+        <Select
+          value={filterCategory === "" ? "none" : filterCategory}
+          onValueChange={(value) =>
+            setFilterCategory(value === "none" ? "" : value)
+          }
+        >
+          <SelectTrigger className="mt-2 w-full">
+            <SelectValue placeholder="Все категории" />
+          </SelectTrigger>
+          <SelectContent>
+            {categories.map((c) => (
+              <SelectItem key={c._id} value={String(c._id)}>
+                {c.name}
+              </SelectItem>
+            ))}
+            <SelectItem value="none">Все категории</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {!items && <p className="text-sm text-gray-500">Загрузка товаров...</p>}
+      {items && filtered.length === 0 && (
+        <p className="text-sm text-gray-500">Товары отсутствуют</p>
+      )}
+
+      {items && filtered.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+          {filtered.map((item) => (
+            <div
+              key={item._id}
+              className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100"
+            >
+              <div className="p-4">
+                <div className="w-full h-40 bg-gray-100 rounded-2xl mb-3 flex items-center justify-center">
+                  <img src={item.image} alt={item.name} className="max-h-32 object-contain" />
+                </div>
+                <h3 className="text-sm font-medium text-gray-800 mb-1">{item.name}</h3>
+                <p className="text-sm text-gray-800">
+                  {Number(item.price).toLocaleString("ru-RU")} руб.
+                </p>
+                <div className="mt-3 flex justify-between items-center">
+                  <Button variant="destructive" onClick={() => onDelete(item)}>
+                    Удалить
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { useMediaQuery } from "react-responsive";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { MapPin, Phone } from "lucide-react";
-import { Phone as PhoneNumber } from "@/lib/consts";
+import { Phone as PhoneNumber, telegramLink, whatsappLink } from "@/lib/consts";
 import { Button } from "../ui/button";
 import Image from "next/image";
 import Link from "next/link";
@@ -43,35 +43,56 @@ export const DesktopHeader = () => {
       link: "#partners",
     },
   ];
+  const [copied, setCopied] = useState(false);
 
   return (
     <header className="flex-col flex ">
       <div className="flex flex-row justify-between items-center py-4 border-b-2">
         <HeaderSearch />
         <div className="flex gap-6 items-center">
-          <div className="flex gap-2 hover:cursor-pointer">
-            <MapPin />
-            <p className="font-inter font-normal">Барнаул</p>
-          </div>
+          <Link href={"https://yandex.ru/maps/-/CLRjzI5Q"} target="_blank">
+            <div className="flex gap-2 hover:cursor-pointer">
+              <MapPin />
+              <p className="font-inter font-normal">Барнаул</p>
+            </div>
+          </Link>
+
           <div className="flex gap-2">
-            <Image
-              alt="telegram-logo"
-              src={"/telegram-icon.svg"}
-              width={33}
-              height={33}
-              className="cursor-pointer"
-            />
-            <Image
-              alt="whatsapp-logo"
-              src={"/whatsapp-icon.svg"}
-              width={33}
-              height={33}
-              className="cursor-pointer"
-            />
+            <Link href={telegramLink}>
+              <Image
+                alt="telegram-logo"
+                src={"/telegram-icon.svg"}
+                width={33}
+                height={33}
+                className="cursor-pointer"
+              />
+            </Link>
+            <Link href={whatsappLink}>
+              <Image
+                alt="whatsapp-logo"
+                src={"/whatsapp-icon.svg"}
+                width={33}
+                height={33}
+                className="cursor-pointer"
+              />
+            </Link>
           </div>
-          <Button className="bg-blackish hover:bg-blackish rounded-full cursor-pointer">
+          <Button
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(PhoneNumber);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1500);
+              } catch {}
+            }}
+            aria-live="polite"
+            title="Скопировать номер"
+            className="bg-blackish hover:bg-blackish rounded-full cursor-pointer"
+          >
             <Phone />
-            {PhoneNumber}
+            <span className="ml-1">
+              {copied ? "Скопировано!" : PhoneNumber}
+            </span>
           </Button>
         </div>
       </div>
@@ -109,15 +130,15 @@ export function MobileHeader() {
     },
     {
       name: "Почему мы",
-      link: "whyus",
+      link: "#whyus",
     },
     {
       name: "Популярное",
-      link: "/#best-deals",
+      link: "#best-deals",
     },
     {
       name: "Партнеры",
-      link: "/partners",
+      link: "#partners",
     },
     {
       name: "Каталог",
@@ -156,24 +177,33 @@ export function MobileHeader() {
             })}
           </div>
           <div className="flex gap-2">
-            <Image
-              alt="telegram-logo"
-              src={"/telegram-icon.svg"}
-              width={33}
-              height={33}
-              className="cursor-pointer"
-            />
-            <Image
-              alt="whatsapp-logo"
-              src={"/whatsapp-icon.svg"}
-              width={33}
-              height={33}
-              className="cursor-pointer"
-            />
+            <Link href={telegramLink}>
+              <Image
+                alt="telegram-logo"
+                src={"/telegram-icon.svg"}
+                width={33}
+                height={33}
+                className="cursor-pointer"
+              />
+            </Link>
+            <Link href={whatsappLink}>
+              <Image
+                alt="whatsapp-logo"
+                src={"/whatsapp-icon.svg"}
+                width={33}
+                height={33}
+                className="cursor-pointer"
+              />
+            </Link>
           </div>
-          <Button className="bg-blackish hover:bg-blackish rounded-full cursor-pointer">
-            <Phone />
-            {PhoneNumber}{" "}
+          <Button
+            asChild
+            className="bg-blackish hover:bg-blackish rounded-full cursor-pointer"
+          >
+            <a href={`tel:${PhoneNumber}`} aria-label="Позвонить">
+              <Phone />
+              {PhoneNumber}
+            </a>
           </Button>
         </div>
       </div>

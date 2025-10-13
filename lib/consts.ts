@@ -9,8 +9,18 @@ export const FullAdress =
   "г. Барнаул, Ленинский район, ул. Эмилии Алексеевой, 107";
 
 // Catalog filter options used across the app
-export const FILTERS = [
-  "Хиты продаж",
-  "Новинки",
-  "Со скидкой",
-] as const;
+export const FILTERS = ["Хиты продаж", "Новинки", "Со скидкой"] as const;
+
+export const links = [
+  {
+    name: "Telegram",
+    link: "https://t.me/fi_maaa",
+  },
+  {
+    name: "WhatsApp",
+    link: "https://wa.me/79933999963",
+  },
+];
+
+export const telegramLink = links[0].link;
+export const whatsappLink = links[1].link;
