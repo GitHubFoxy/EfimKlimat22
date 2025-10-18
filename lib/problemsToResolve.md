@@ -10,11 +10,14 @@ Main Page
 - Header links
   - fixed
 - Cart
+  - done
 
 Catalog
 
 - Fix Catalog layout
+  - fixed
 - Catalog cart
+  - done
 
 Each item page
 

@@ -14,14 +14,13 @@ const filters = [
   "Скидки",
 ] as const satisfies FilterType[];
 
-function BestDealsContent({
-  dataByFilter,
-}: {
-  dataByFilter: Record<FilterType, { items: any[] } | undefined>;
-}) {
+function BestDealsContent() {
   const [activeIndex, setActiveIndex] = useState(0);
-  const activeFilter = filters[activeIndex];
-  const data = dataByFilter[activeFilter];
+  // Query each filter once; select between them without triggering refetches
+  const hits = useQuery(api.main.main_page_by_filter, { filter: "Хиты продаж" });
+  const newItems = useQuery(api.main.main_page_by_filter, { filter: "Новинки" });
+  const sales = useQuery(api.main.main_page_by_filter, { filter: "Скидки" });
+  const data = activeIndex === 0 ? hits : activeIndex === 1 ? newItems : sales;
 
   return (
     <section id="best-deals">
@@ -83,31 +82,5 @@ function BestDealsContent({
 }
 
 export default function BestDeals() {
-  // Parent container: fetch all filters concurrently once
-  const hits = useQuery(api.main.main_page_by_filter, {
-    filter: "Хиты продаж",
-  });
-  const novinki = useQuery(api.main.main_page_by_filter, { filter: "Новинки" });
-  const skidki = useQuery(api.main.main_page_by_filter, { filter: "Скидки" });
-
-  if (!hits) {
-    return (
-      <section id="best-deals">
-        <div className="flex flex-col mb-32">
-          <h1 className="text-[12px] md:text-3xl font-[500] text-center md:mb-6 mb-2">
-            Выгодные предложения
-          </h1>
-          <div className="w-full text-center py-8">Загрузка...</div>
-        </div>
-      </section>
-    );
-  }
-
-  const dataByFilter: Record<FilterType, { items: any[] } | undefined> = {
-    "Хиты продаж": hits,
-    Новинки: novinki,
-    Скидки: skidki,
-  };
-
-  return <BestDealsContent dataByFilter={dataByFilter} />;
+  return <BestDealsContent />;
 }

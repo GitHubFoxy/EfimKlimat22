@@ -1,7 +1,7 @@
 "use client";
 import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import { Button } from "../ui/button";
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { twMerge } from "tailwind-merge";
 import {
   Dialog,
@@ -14,36 +14,44 @@ import {
 } from "../ui/dialog";
 import Image from "next/image";
 import { Input } from "../ui/input";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { useCartSessionId } from "@/hooks/useCartSession";
+import { Id } from "@/convex/_generated/dataModel";
 
 export default function Cart({ className }: { className?: string }) {
-  const [items, setItems] = useState<
-    {
-      name: string;
-      price: string;
-      quantity: number;
-      img: string;
-    }[]
-  >([
-    {
-      name: "Тестовый товар",
-      price: "1000",
-      quantity: 1,
-      img: "/kotel.jpg",
-    },
-  ]);
+  const sessionId = useCartSessionId();
 
-  const inc = (index: number) =>
-    setItems((prev) =>
-      prev.map((it, i) =>
-        i === index ? { ...it, quantity: it.quantity + 1 } : it,
-      ),
-    );
-  const dec = (index: number) =>
-    setItems((prev) =>
-      prev.map((it, i) =>
-        i === index ? { ...it, quantity: it.quantity - 1 } : it,
-      ),
-    );
+  const itemsData = useQuery(api.cart.listItems, { sessionId });
+  const summary = useQuery(api.cart.get, { sessionId });
+
+  const updateQty = useMutation(api.cart.updateQty);
+  // TODO: optimistic UI updates for quantity can be re-added here later
+
+  const removeItem = useMutation(api.cart.removeItem);
+  // TODO: optimistic UI updates for item removal can be re-added here later
+
+  const clear = useMutation(api.cart.clear);
+  // TODO: optimistic UI updates for clearing cart can be re-added here later
+
+  // Debounce map per cart item
+  const debounceTimers = useRef<Record<string, any>>({});
+
+  const inc = (cartItemId: Id<"cart_items">, quantity: number) => {
+    updateQty({ cartItemId, quantity: quantity + 1 });
+  };
+  const dec = (cartItemId: Id<"cart_items">, quantity: number) => {
+    updateQty({ cartItemId, quantity: quantity - 1 });
+  };
+  const onQtyChange = (cartItemId: Id<"cart_items">, value: string) => {
+    const q = Math.max(0, Math.min(99, parseInt(value || "0", 10) || 0));
+    if (debounceTimers.current[cartItemId]) {
+      clearTimeout(debounceTimers.current[cartItemId]);
+    }
+    debounceTimers.current[cartItemId] = setTimeout(() => {
+      updateQty({ cartItemId, quantity: q });
+    }, 300);
+  };
 
   return (
     <Dialog>
@@ -55,9 +63,9 @@ export default function Cart({ className }: { className?: string }) {
           )}
         >
           <ShoppingCart />
-          {items && items.length > 0 && (
+          {itemsData && itemsData.count > 0 && (
             <p className="top-0 right-0 absolute w-3 h-3 rounded-full bg-white border-dark-gray text-black flex items-center justify-center text-xs">
-              {items.length}
+              {itemsData.count}
             </p>
           )}
         </Button>
@@ -67,20 +75,30 @@ export default function Cart({ className }: { className?: string }) {
           <DialogTitle>Корзина</DialogTitle>
         </DialogHeader>
         <div>
-          {items && items.length > 0 ? (
+          {!itemsData ? (
+            <div className="space-y-4">
+              <div className="animate-pulse h-6 bg-blackish/10 rounded" />
+              <div className="animate-pulse h-6 bg-blackish/10 rounded" />
+              <div className="animate-pulse h-6 bg-blackish/10 rounded" />
+            </div>
+          ) : itemsData.items && itemsData.items.length > 0 ? (
             <div>
-              {items.map((item, index) => (
-                <div key={index}>
+              {itemsData.items.map((item: any) => (
+                <div key={item._id}>
                   <div className="grid grid-cols-3">
                     <div className="w-[43px] h-[89px] px-1 py-5 rounded relative  place-self-center  col-span-1">
-                      <Image src={item.img} alt={item.name} fill />
+                      <Image
+                        src={item.image ?? "/kotel.jpg"}
+                        alt={item.name}
+                        fill
+                      />
                     </div>
                     <div className="col-span-2 flex gap-2 flex-col">
                       <p>{item.name}</p>
                       <div className="flex justify-between items-center">
                         <div className="flex items-center flex-row-reverse">
                           <div
-                            onClick={() => inc(index)}
+                            onClick={() => inc(item._id, item.quantity)}
                             className="border border-blackish/20 border-l-0 w-8 h-8 grid place-content-center rounded-r-xl"
                           >
                             <Plus size={14} />
@@ -89,20 +107,28 @@ export default function Cart({ className }: { className?: string }) {
                             value={item.quantity}
                             className="w-8 h-8 p-1 text-center rounded-none border-blackish/20 spin"
                             autoFocus={false}
+                            onChange={(e) =>
+                              onQtyChange(item._id, e.target.value)
+                            }
                           />
                           <div
-                            onClick={() => dec(index)}
+                            onClick={() => dec(item._id, item.quantity)}
                             className="border border-blackish/20 border-r-0 w-8 h-8 grid place-content-center rounded-l-xl"
                           >
                             <Minus size={14} />
                           </div>
                         </div>
                         <div className="flex gap-2">
-                          Удалить <Trash2 />
+                          <button
+                            className="flex gap-2"
+                            onClick={() => removeItem({ cartItemId: item._id })}
+                          >
+                            Удалить <Trash2 />
+                          </button>
                         </div>
                       </div>
                       <div className="text-right">
-                        {parseFloat(item.price).toLocaleString()} руб.
+                        {Number(item.price).toLocaleString("ru-RU")} руб.
                       </div>
                     </div>
                   </div>
@@ -110,18 +136,11 @@ export default function Cart({ className }: { className?: string }) {
                   <div className="flex justify-between">
                     <div className="flex flex-col gap-2">
                       <p>Итого к оплате:</p>
-                      <p>
-                        {items.reduce(
-                          (acc, cur) =>
-                            acc + cur.quantity * parseFloat(cur.price),
-                          0,
-                        )}{" "}
-                        руб.
-                      </p>
+                      <p>{itemsData.subtotal.toLocaleString("ru-RU")} руб.</p>
                     </div>
                     <div
                       className="flex gap-2 cursor-pointer"
-                      onClick={() => setItems([])}
+                      onClick={() => sessionId && clear({ sessionId })}
                     >
                       Очистить корзину <Trash2 />
                     </div>
@@ -141,7 +160,7 @@ export default function Cart({ className }: { className?: string }) {
               variant={"outline"}
               className="border-blackish rounded-full h-12"
             >
-              {items && items.length > 0
+              {itemsData && itemsData.count > 0
                 ? "Перейти к оформлению"
                 : "Вернуться к покупкам"}
             </Button>

@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
 // Helpers
+// Write-capable helper: ONLY use inside mutations
 async function getOrCreateActiveCartBySession(ctx: any, sessionId: string) {
   const now = Date.now();
   let cart = await ctx.db
@@ -19,6 +20,14 @@ async function getOrCreateActiveCartBySession(ctx: any, sessionId: string) {
     cart = await ctx.db.get(cartId);
   }
   return cart;
+}
+
+// Read-only helper: safe to use inside queries
+async function getActiveCartBySession(ctx: any, sessionId: string) {
+  return await ctx.db
+    .query("carts")
+    .withIndex("by_sessionId", (q: any) => q.eq("sessionId", sessionId))
+    .first();
 }
 
 async function getActiveCartByOwner(ctx: any, owner: string) {
@@ -43,7 +52,7 @@ export const listItems = query({
     if (owner) {
       cart = await getActiveCartByOwner(ctx, owner);
     } else if (sessionId) {
-      cart = await getOrCreateActiveCartBySession(ctx, sessionId);
+      cart = await getActiveCartBySession(ctx, sessionId);
     }
     if (!cart) return { items: [], subtotal: 0, count: 0 };
     const items = await ctx.db
@@ -66,7 +75,7 @@ export const get = query({
     if (owner) {
       cart = await getActiveCartByOwner(ctx, owner);
     } else if (sessionId) {
-      cart = await getOrCreateActiveCartBySession(ctx, sessionId);
+      cart = await getActiveCartBySession(ctx, sessionId);
     }
     if (!cart)
       return {

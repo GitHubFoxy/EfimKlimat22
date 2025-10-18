@@ -7,6 +7,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectTrigger,
@@ -20,39 +21,66 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 
 export default function Dashboard() {
-  const generateUploadUrl = useMutation(api.main.generateUploadUrl);
-  const addItem = useMutation(api.main.addItemsPublic);
-  const deleteItem = useMutation(api.main.deleteItem);
-  const items = useQuery(api.main.show_all_items);
-  const categoriesRes = useQuery(api.main.show_all_categories);
+  const generateUploadUrl = useMutation(api.dashboard.generateUploadUrl);
+  const addItem = useMutation(api.dashboard.addItemsPublic);
+  const deleteItem = useMutation(api.dashboard.deleteItem);
+  const items = useQuery(api.dashboard.show_all_items);
+  const categoriesRes = useQuery(api.dashboard.show_all_categories);
 
   const [form, setForm] = useState({
+    brand: "",
+    color: "",
     name: "",
     price: "",
     quantity: "1",
     description: "",
     sale: "0",
+    variant: "",
     category: "",
+    subcategory: "",
   });
   const [file, setFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [filterCategory, setFilterCategory] = useState<string>("");
   const [deleteConfirm, setDeleteConfirm] = useState<{
     open: boolean;
     itemId: Id<"items"> | null;
     itemName?: string;
   }>({ open: false, itemId: null, itemName: undefined });
 
+  // Load subcategories for the selected category
+  const subcategoriesRes = useQuery(
+    api.dashboard.show_subcategories_by_category,
+    form.category
+      ? ({ parent: form.category as Id<"categorys"> } as any)
+      : undefined,
+  );
+
   const onChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target as HTMLInputElement;
     setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Price formatting: keep raw digits in state, show formatted value in input
+  const formatPriceDisplay = (raw: string) => {
+    if (!raw) return "";
+    const num = Number(raw);
+    if (Number.isNaN(num)) return "";
+    return num.toLocaleString("ru-RU");
+  };
+
+  const onPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target.value;
+    // keep only digits
+    const digitsOnly = input.replace(/[^\d]/g, "");
+    setForm((prev) => ({ ...prev, price: digitsOnly }));
   };
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -73,24 +101,31 @@ export default function Dashboard() {
       }
 
       await addItem({
+        brand: form.brand ? form.brand : undefined,
         name: form.name,
         price: Number(form.price),
         quantity: Number(form.quantity),
         description: form.description,
         sale: Number(form.sale),
+        variant: form.variant ? form.variant : undefined,
         imageStorageId,
         category: form.category
           ? (form.category as Id<"categorys">)
           : undefined,
+        subcategory: form.subcategory ? form.subcategory : undefined,
       });
       setMessage("Товар добавлен");
       setForm({
+        brand: "",
         name: "",
         price: "",
         quantity: "1",
         description: "",
         sale: "0",
-        category: "",
+        variant: "",
+        category: form.category,
+        subcategory: form.subcategory,
+        color: "",
       });
       setFile(null);
       if (fileInputRef.current) {
@@ -111,6 +146,60 @@ export default function Dashboard() {
         <div className="max-w-xl w-full p-6 border rounded-2xl bg-white  md:justify-self-center mx-auto">
           <h1 className="text-lg font-semibold mb-4">Добавить товар</h1>
           <form onSubmit={onSubmit} className="space-y-4">
+            <div className="space-y-4">
+              <div className="space-y-4">
+                <Label htmlFor="category">Категория</Label>
+                <Select
+                  value={form.category === "" ? "none" : form.category}
+                  onValueChange={(value) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      category: value === "none" ? "" : value,
+                      // Reset subcategory when category changes
+                      subcategory: "",
+                    }))
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Выберите категорию" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Без категории</SelectItem>
+                    {categoriesRes?.categories?.map((c) => (
+                      <SelectItem key={c._id} value={String(c._id)}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="subcategory">Подкатегория</Label>
+                <Select
+                  value={form.subcategory === "" ? "none" : form.subcategory}
+                  onValueChange={(value) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      subcategory: value === "none" ? "" : value,
+                    }))
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Выберите подкатегорию" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Без подкатегории</SelectItem>
+                    {subcategoriesRes?.subcategories.map((sc: any) => (
+                      <SelectItem key={sc._id} value={String(sc.name)}>
+                        {sc.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <BrandSelection value={form.brand} onChange={(value) => setForm((prev) => ({ ...prev, brand: value }))} />
             <div className="space-y-2">
               <Label htmlFor="name">Название</Label>
               <Input
@@ -122,14 +211,13 @@ export default function Dashboard() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="price">Цена</Label>
+              <Label htmlFor="variant">Мощность</Label>
               <Input
-                id="price"
-                name="price"
-                type="number"
-                value={form.price}
+                id="variant"
+                name="variant"
+                value={form.variant}
                 onChange={onChange}
-                required
+                placeholder="Опционально"
               />
             </div>
             <div className="space-y-2">
@@ -144,48 +232,38 @@ export default function Dashboard() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="sale">Скидка (%)</Label>
+              <Label htmlFor="price">Цена</Label>
               <Input
-                id="sale"
-                name="sale"
-                type="number"
-                value={form.sale}
+                id="price"
+                name="price"
+                type="text"
+                inputMode="numeric"
+                value={formatPriceDisplay(form.price)}
+                onChange={onPriceChange}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sale">Цвет</Label>
+              <Input
+                id="color"
+                name="color"
+                type="text"
+                value={form.color}
                 onChange={onChange}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="description">Описание</Label>
-              <Input
+              <Textarea
                 id="description"
                 name="description"
                 value={form.description}
                 onChange={onChange}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="category">Категория</Label>
-              <Select
-                value={form.category === "" ? "none" : form.category}
-                onValueChange={(value) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    category: value === "none" ? "" : value,
-                  }))
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Выберите категорию" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Без категории</SelectItem>
-                  {categoriesRes?.categories?.map((c) => (
-                    <SelectItem key={c._id} value={String(c._id)}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+
             <div className="space-y-2">
               <Label htmlFor="image">Изображение</Label>
               <Input
@@ -209,7 +287,11 @@ export default function Dashboard() {
           items={items}
           categories={categoriesRes?.categories ?? []}
           onDelete={(item) =>
-            setDeleteConfirm({ open: true, itemId: item._id, itemName: item.name })
+            setDeleteConfirm({
+              open: true,
+              itemId: item._id,
+              itemName: `${item.brand} ${item.name} ${item.variant} кВт`,
+            })
           }
         />
       </div>
@@ -224,7 +306,7 @@ export default function Dashboard() {
             <DialogTitle>Удалить товар?</DialogTitle>
             <DialogDescription>
               {deleteConfirm.itemName
-                ? `Вы уверены, что хотите удалить "${deleteConfirm.itemName}"? Это действие необратимо.`
+                ? `Вы уверены, что хотите удалить ${deleteConfirm.itemName}? Это действие необратимо.`
                 : "Вы уверены, что хотите удалить этот товар? Это действие необратимо."}
             </DialogDescription>
           </DialogHeader>
@@ -317,12 +399,12 @@ function DashboardItemsPanel({ items, categories, onDelete }: ItemsPanelProps) {
             <SelectValue placeholder="Все категории" />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="none">Все категории</SelectItem>
             {categories.map((c) => (
               <SelectItem key={c._id} value={String(c._id)}>
                 {c.name}
               </SelectItem>
             ))}
-            <SelectItem value="none">Все категории</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -333,7 +415,7 @@ function DashboardItemsPanel({ items, categories, onDelete }: ItemsPanelProps) {
       )}
 
       {items && filtered.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
           {filtered.map((item) => (
             <div
               key={item._id}
@@ -341,9 +423,15 @@ function DashboardItemsPanel({ items, categories, onDelete }: ItemsPanelProps) {
             >
               <div className="p-4">
                 <div className="w-full h-40 bg-gray-100 rounded-2xl mb-3 flex items-center justify-center">
-                  <img src={item.image} alt={item.name} className="max-h-32 object-contain" />
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    className="max-h-32 object-contain"
+                  />
                 </div>
-                <h3 className="text-sm font-medium text-gray-800 mb-1">{item.name}</h3>
+                <h3 className="text-sm font-medium text-gray-800 mb-1 truncate">
+                  {`${item.brand} ${item.name} ${item.variant} кВт`}
+                </h3>
                 <p className="text-sm text-gray-800">
                   {Number(item.price).toLocaleString("ru-RU")} руб.
                 </p>
@@ -360,3 +448,81 @@ function DashboardItemsPanel({ items, categories, onDelete }: ItemsPanelProps) {
     </div>
   );
 }
+
+export const BrandSelection = ({ value, onChange }: { value: string; onChange: (value: string) => void }) => {
+  const brands = useQuery(api.dashboard.show_all_brands);
+  const addBrand = useMutation(api.dashboard.add_brand);
+  const [brandSearch, setBrandSearch] = useState("");
+  const [newBrandName, setNewBrandName] = useState("");
+
+  return (
+    <div className="space-y-2">
+      <Label htmlFor="brand">Бренд</Label>
+      <Select value={value || undefined} onValueChange={onChange}>
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder="Выберите бренд" />
+        </SelectTrigger>
+        <SelectContent>
+          <Input
+            placeholder="Поиск бренда"
+            value={brandSearch}
+            onChange={(e) => setBrandSearch(e.target.value)}
+          />
+          <div className="py-2">
+            {(
+              brands?.filter((b: any) =>
+                b.name.toLowerCase().includes(brandSearch.trim().toLowerCase()),
+              ) ?? []
+            ).map((b: any) => (
+              <SelectItem key={b._id} value={String(b.name)}>
+                {b.name}
+              </SelectItem>
+            ))}
+          </div>
+
+          <Dialog>
+            <DialogTrigger asChild>
+              <div className="flex justify-center">
+                <Button className="" type="button">
+                  Добавить бренд
+                </Button>
+              </div>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Добавить бренд</DialogTitle>
+                <DialogDescription>
+                  Введите название бренда и нажмите "Сохранить".
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-2">
+                <Label htmlFor="newBrandName">Название бренда</Label>
+                <Input
+                  id="newBrandName"
+                  placeholder="Например, BAXI"
+                  value={newBrandName}
+                  onChange={(e) => setNewBrandName(e.target.value)}
+                />
+              </div>
+              <div className="flex justify-end gap-2 mt-4">
+                <Button variant="outline" type="button">
+                  Отмена
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    addBrand({ name: newBrandName });
+                    onChange(newBrandName);
+                    setNewBrandName("");
+                  }}
+                >
+                  Сохранить
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+};

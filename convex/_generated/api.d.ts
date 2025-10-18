@@ -14,6 +14,8 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as cart from "../cart.js";
+import type * as catalog from "../catalog.js";
+import type * as dashboard from "../dashboard.js";
 import type * as dev from "../dev.js";
 import type * as main from "../main.js";
 
@@ -27,6 +29,8 @@ import type * as main from "../main.js";
  */
 declare const fullApi: ApiFromModules<{
   cart: typeof cart;
+  catalog: typeof catalog;
+  dashboard: typeof dashboard;
   dev: typeof dev;
   main: typeof main;
 }>;
