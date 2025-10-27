@@ -45,6 +45,58 @@ export const createIfMissing = mutation({
   },
 });
 
+export const addItem = mutation({
+  args: {
+    sessionId: v.string(),
+    itemId: v.id("items"),
+    quantity: v.optional(v.number()),
+    variant: v.optional(v.string()),
+  },
+  handler: async (ctx, { sessionId, itemId, quantity = 1, variant }) => {
+    const now = Date.now();
+    const cart = await getOrCreateActiveCartBySession(ctx, sessionId);
+    if (!cart) throw new Error("Failed to create cart");
+
+    // Fetch item details
+    const item = await ctx.db.get(itemId);
+    if (!item) throw new Error("Item not found");
+
+    // Check if item already exists in cart
+    const existingItems = await ctx.db
+      .query("cart_items")
+      .withIndex("by_cartId", (q: any) => q.eq("cartId", cart._id))
+      .collect();
+
+    const existingItem = existingItems.find(
+      (ci: any) =>
+        ci.itemId === itemId &&
+        (variant ? ci.variant === variant : !ci.variant),
+    );
+
+    if (existingItem) {
+      // Update quantity
+      await ctx.db.patch(existingItem._id, {
+        quantity: existingItem.quantity + quantity,
+        updatedAt: now,
+      });
+      return { status: 200, cartItemId: existingItem._id };
+    } else {
+      // Create new cart item
+      const cartItemId = await ctx.db.insert("cart_items", {
+        cartId: cart._id,
+        itemId,
+        name: item.name || "",
+        image: item.imagesUrls?.[0] || undefined,
+        price: item.price || 0,
+        quantity,
+        variant,
+        updatedAt: now,
+      });
+      return { status: 200, cartItemId };
+    }
+  },
+});
+
 export const listItems = query({
   args: { sessionId: v.optional(v.string()), owner: v.optional(v.id("users")) },
   handler: async (ctx, { sessionId, owner }) => {

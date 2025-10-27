@@ -1,5 +1,5 @@
 import { Footer } from "@/components/Footer";
-import Header from "@/components/Header/header";
+import Header from "@/components/Header/Header";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 

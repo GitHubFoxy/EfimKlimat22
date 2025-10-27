@@ -2,7 +2,7 @@ import BestDeals from "@/components/BestDeals";
 import { Brands } from "@/components/Brands";
 import { Footer } from "@/components/Footer";
 import FreeConsultmant from "@/components/FreeConsultmant";
-import Header from "@/components/Header/header";
+import Header from "@/components/Header/Header";
 import { Hero } from "@/components/Main/Hero";
 import WhyUs from "@/components/WhyUs";
 

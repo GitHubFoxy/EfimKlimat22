@@ -2,13 +2,16 @@
 
 import { Footer } from "@/components/Footer";
 import FreeConsultmant from "@/components/FreeConsultmant";
-import Header from "@/components/Header/header";
+import Header from "@/components/Header/Header";
 import ItemCard from "@/components/ItemCard";
 import { usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Doc, Id } from "@/convex/_generated/dataModel";
+import { useCartSessionId } from "@/hooks/useCartSession";
+import { Button } from "@/components/ui/button";
+import { ShoppingCart } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -64,8 +67,16 @@ function CatalogResults({
 }
 
 export default function Catalog() {
+  const router = useRouter();
   const params = useSearchParams();
   const query = useMemo(() => params.get("query") ?? "", [params]);
+  const sessionId = useCartSessionId();
+
+  // Cart data for floating button
+  const itemsData = useQuery(
+    api.cart.listItems,
+    sessionId ? { sessionId } : "skip"
+  );
 
   // Search results (from header search link)
   const searchResults = useQuery(api.main.search_items, { query }) ?? [];
@@ -139,11 +150,10 @@ export default function Catalog() {
           {["Новинки", "Хиты продаж", "Со скидкой"].map((f) => (
             <button
               key={f}
-              className={`px-3 py-2 rounded-md border text-sm transition ${
-                selectedFilter === f
-                  ? "bg-gray-900 text-white border-gray-900"
-                  : "bg-white hover:bg-gray-50"
-              }`}
+              className={`px-3 py-2 rounded-md border text-sm transition ${selectedFilter === f
+                ? "bg-gray-900 text-white border-gray-900"
+                : "bg-white hover:bg-gray-50"
+                }`}
               onClick={() => setSelectedFilter(f as any)}
             >
               {f}
@@ -165,6 +175,24 @@ export default function Catalog() {
 
       <FreeConsultmant />
       <Footer />
+
+      {/* Floating Checkout Button */}
+      {itemsData && itemsData.count > 0 && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <Button
+            onClick={() => router.push("/checkout")}
+            className="bg-light-orange hover:bg-amber-500 rounded-full h-14 px-6 shadow-lg flex items-center gap-3"
+          >
+            <ShoppingCart className="w-5 h-5" />
+            <span className="font-medium">
+              Оформить заказ ({itemsData.count})
+            </span>
+            <span className="bg-white/20 px-3 py-1 rounded-full text-sm">
+              {itemsData.subtotal.toLocaleString("ru-RU")} ₽
+            </span>
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

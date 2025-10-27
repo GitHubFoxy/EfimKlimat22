@@ -127,3 +127,12 @@ export const add_brand = mutation({
     return { status: 200, message: "Brand added" };
   },
 });
+
+// New: fetch a single item by Convex id. Returns the doc or null if not found.
+export const show_item = query({
+  args: { id: v.id("items") },
+  handler: async (ctx, { id }) => {
+    const doc = await ctx.db.get(id);
+    return doc ?? null;
+  },
+});

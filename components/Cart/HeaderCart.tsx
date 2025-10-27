@@ -3,6 +3,7 @@ import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { useMemo, useRef, useState } from "react";
 import { twMerge } from "tailwind-merge";
+import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogClose,
@@ -20,6 +21,7 @@ import { useCartSessionId } from "@/hooks/useCartSession";
 import { Id } from "@/convex/_generated/dataModel";
 
 export default function Cart({ className }: { className?: string }) {
+  const router = useRouter();
   const sessionId = useCartSessionId();
 
   const itemsData = useQuery(api.cart.listItems, { sessionId });
@@ -155,16 +157,21 @@ export default function Cart({ className }: { className?: string }) {
         <hr />
 
         <DialogFooter>
-          <DialogClose asChild>
-            <Button
-              variant={"outline"}
-              className="border-blackish rounded-full h-12"
-            >
-              {itemsData && itemsData.count > 0
-                ? "Перейти к оформлению"
-                : "Вернуться к покупкам"}
-            </Button>
-          </DialogClose>
+          <Button
+            variant={"outline"}
+            className="border-blackish rounded-full h-12"
+            onClick={() => {
+              if (itemsData && itemsData.count > 0) {
+                router.push("/checkout");
+              } else {
+                router.push("/catalog");
+              }
+            }}
+          >
+            {itemsData && itemsData.count > 0
+              ? "Перейти к оформлению"
+              : "Вернуться к покупкам"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

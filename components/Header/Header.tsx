@@ -32,15 +32,15 @@ export const DesktopHeader = () => {
     },
     {
       name: "Почему мы",
-      link: "#whyus",
+      link: "/#whyus",
     },
     {
       name: "Популярное",
-      link: "#best-deals",
+      link: "/#best-deals",
     },
     {
       name: "Партнеры",
-      link: "#partners",
+      link: "/#partners",
     },
   ];
   const [copied, setCopied] = useState(false);
@@ -83,7 +83,7 @@ export const DesktopHeader = () => {
                 await navigator.clipboard.writeText(PhoneNumber);
                 setCopied(true);
                 setTimeout(() => setCopied(false), 1500);
-              } catch {}
+              } catch { }
             }}
             aria-live="polite"
             title="Скопировать номер"
@@ -97,7 +97,9 @@ export const DesktopHeader = () => {
         </div>
       </div>
       <div className="flex items-center justify-between">
-        <Image alt="Company logo" src={"/logo_.jpg"} height={80} width={180} />
+        <Link href="/">
+          <Image alt="Company logo" src={"/logo_.jpg"} height={80} width={180} />
+        </Link>
         <div className="lg:absolute lg:left-1/2 lg:transform lg:-translate-x-1/2">
           <div className="flex gap-9">
             {Categorys.map((category, index) => {
