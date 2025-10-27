@@ -109,48 +109,6 @@ export const get = query({
   },
 });
 
-export const addItem = mutation({
-  args: {
-    sessionId: v.string(),
-    itemId: v.id("items"),
-    quantity: v.optional(v.number()),
-    variant: v.optional(v.string()),
-  },
-  handler: async (ctx, { sessionId, itemId, quantity = 1, variant }) => {
-    const cart = await getOrCreateActiveCartBySession(ctx, sessionId);
-    const item = await ctx.db.get(itemId);
-    if (!item) throw new Error("Item not found");
-    const now = Date.now();
-    // Upsert: if already in cart with same variant, increment
-    const existing = await ctx.db
-      .query("cart_items")
-      .withIndex("by_cartId", (q: any) => q.eq("cartId", cart._id))
-      .collect();
-    const match = existing.find(
-      (ci: any) => ci.itemId === itemId && ci.variant === variant,
-    );
-    if (match) {
-      await ctx.db.patch(match._id, {
-        quantity: match.quantity + quantity,
-        updatedAt: now,
-      });
-      return { status: 200 };
-    }
-    await ctx.db.insert("cart_items", {
-      cartId: cart._id,
-      itemId,
-      name: item.name,
-      image: item.image,
-      price: item.price,
-      quantity,
-      variant,
-      updatedAt: now,
-    });
-    await ctx.db.patch(cart._id, { updatedAt: now });
-    return { status: 200 };
-  },
-});
-
 export const updateQty = mutation({
   args: { cartItemId: v.id("cart_items"), quantity: v.number() },
   handler: async (ctx, { cartItemId, quantity }) => {

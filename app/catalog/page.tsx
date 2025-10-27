@@ -3,12 +3,12 @@
 import { Footer } from "@/components/Footer";
 import FreeConsultmant from "@/components/FreeConsultmant";
 import Header from "@/components/Header/header";
-import Card from "@/components/ItemCard";
+import ItemCard from "@/components/ItemCard";
 import { usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Id } from "@/convex/_generated/dataModel";
+import { Doc, Id } from "@/convex/_generated/dataModel";
 import {
   Select,
   SelectContent,
@@ -29,6 +29,9 @@ function CatalogResults({
     { category: categoryId, filter },
     { initialNumItems: 12 },
   );
+  useEffect(() => {
+    console.log(status);
+  }, [status]);
 
   return (
     <div className="px-4 mb-8">
@@ -36,25 +39,26 @@ function CatalogResults({
         <div className="text-center py-8">Загрузка...</div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-          {results.map((e: any, index: number) => (
+          {results.map((e, index: number) => (
             <div
               key={e._id?.toString?.() ?? index}
-              className="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 p-4 md:p-5"
+              className="flex flex-col items-center bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 p-4 md:p-5"
             >
-              <Card e={e} />
+              <ItemCard e={e} />
             </div>
           ))}
         </div>
       )}
-      <div className="flex justify-center mt-6">
-        <button
-          className="px-4 py-2 rounded-md border bg-white hover:bg-gray-50 disabled:opacity-50"
-          onClick={() => loadMore(12)}
-          disabled={status !== "CanLoadMore"}
-        >
-          Показать еще
-        </button>
-      </div>
+      {status !== "Exhausted" && (
+        <div className="flex justify-center mt-6">
+          <button
+            className="px-4 py-2 rounded-md border  disabled:opacity-50"
+            onClick={() => loadMore(12)}
+          >
+            Показать еще
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -102,7 +106,7 @@ export default function Catalog() {
                   key={e._id?.toString?.() ?? index}
                   className="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 p-4 md:p-5"
                 >
-                  <Card e={e} />
+                  <ItemCard e={e} />
                 </div>
               ))
             )}

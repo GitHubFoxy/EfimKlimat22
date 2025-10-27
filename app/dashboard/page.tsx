@@ -1,6 +1,6 @@
 "use client";
-
-import { useState, useRef } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { useState, useRef, useEffect } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -23,6 +23,19 @@ import {
   DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Dropzone,
+  DropzoneContent,
+  DropzoneEmptyState,
+} from "@/components/ui/shadcn-io/dropzone";
+import {
+  Carousel,
+  CarouselApi,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 export default function Dashboard() {
   const generateUploadUrl = useMutation(api.dashboard.generateUploadUrl);
@@ -43,7 +56,7 @@ export default function Dashboard() {
     category: "",
     subcategory: "",
   });
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[] | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -52,6 +65,14 @@ export default function Dashboard() {
     itemId: Id<"items"> | null;
     itemName?: string;
   }>({ open: false, itemId: null, itemName: undefined });
+
+  useEffect(() => {
+    if (message) {
+      setTimeout(() => {
+        setMessage(null);
+      }, 3000);
+    }
+  }, [message]);
 
   // Load subcategories for the selected category
   const subcategoriesRes = useQuery(
@@ -88,16 +109,23 @@ export default function Dashboard() {
     setSubmitting(true);
     setMessage(null);
     try {
-      let imageStorageId: Id<"_storage"> | undefined = undefined;
-      if (file) {
-        const url = await generateUploadUrl();
-        const res = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": file.type },
-          body: file,
-        });
-        const json = await res.json();
-        imageStorageId = json.storageId as Id<"_storage">;
+      let imageStorageIds: Id<"_storage">[] | undefined = undefined;
+
+      // Upload all selected files and collect their storage IDs
+      if (files?.length) {
+        const ids = await Promise.all(
+          files.map(async (f) => {
+            const url = await generateUploadUrl();
+            const res = await fetch(url, {
+              method: "POST",
+              headers: { "Content-Type": f.type },
+              body: f,
+            });
+            const json = await res.json();
+            return json.storageId as Id<"_storage">;
+          }),
+        );
+        imageStorageIds = ids;
       }
 
       await addItem({
@@ -108,7 +136,7 @@ export default function Dashboard() {
         description: form.description,
         sale: Number(form.sale),
         variant: form.variant ? form.variant : undefined,
-        imageStorageId,
+        imageStorageIds: imageStorageIds,
         category: form.category
           ? (form.category as Id<"categorys">)
           : undefined,
@@ -116,7 +144,7 @@ export default function Dashboard() {
       });
       setMessage("Товар добавлен");
       setForm({
-        brand: "",
+        brand: form.brand,
         name: "",
         price: "",
         quantity: "1",
@@ -127,7 +155,7 @@ export default function Dashboard() {
         subcategory: form.subcategory,
         color: "",
       });
-      setFile(null);
+      setFiles(undefined);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -137,6 +165,10 @@ export default function Dashboard() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleDrop = (files: File[]) => {
+    setFiles(files);
   };
 
   return (
@@ -199,7 +231,12 @@ export default function Dashboard() {
                 </Select>
               </div>
             </div>
-            <BrandSelection value={form.brand} onChange={(value) => setForm((prev) => ({ ...prev, brand: value }))} />
+            <BrandSelection
+              value={form.brand}
+              onChange={(value) =>
+                setForm((prev) => ({ ...prev, brand: value }))
+              }
+            />
             <div className="space-y-2">
               <Label htmlFor="name">Название</Label>
               <Input
@@ -266,14 +303,18 @@ export default function Dashboard() {
 
             <div className="space-y-2">
               <Label htmlFor="image">Изображение</Label>
-              <Input
-                id="image"
-                name="image"
-                type="file"
-                accept="image/*"
-                ref={fileInputRef}
-                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              />
+              <Dropzone
+                accept={{ "image/*": [] }}
+                maxFiles={10}
+                maxSize={1024 * 1024 * 10}
+                minSize={1024}
+                onDrop={handleDrop}
+                onError={console.error}
+                src={files}
+              >
+                <DropzoneEmptyState />
+                <DropzoneContent />
+              </Dropzone>
             </div>
             <Button type="submit" disabled={submitting}>
               {submitting ? "Сохранение..." : "Добавить"}
@@ -350,10 +391,35 @@ export default function Dashboard() {
   );
 }
 
+type ItemDoc = {
+  _id: Id<"items">;
+  _creationTime: number;
+  color?: string | undefined;
+  brand?: string | undefined;
+  variant?: string | undefined;
+  imagesUrls?: string[] | undefined;
+  imageStorageIds?: Id<"_storage">[] | undefined;
+  rating?: number | undefined;
+  orders?: number | undefined;
+  category?: Id<"categorys"> | undefined;
+  sale?: number | undefined;
+  subcategory?: string | undefined;
+  name: string;
+  price: number;
+  lowerCaseName: string;
+  quantity: number;
+  description: string;
+};
+
 type ItemsPanelProps = {
-  items: { items: Array<any>; status: number } | undefined;
+  items:
+    | {
+        items: ItemDoc[];
+        status: number;
+      }
+    | undefined;
   categories: Array<{ _id: string; name: string }>;
-  onDelete: (item: any) => void;
+  onDelete: (item: ItemDoc) => void;
 };
 
 function DashboardItemsPanel({ items, categories, onDelete }: ItemsPanelProps) {
@@ -417,31 +483,7 @@ function DashboardItemsPanel({ items, categories, onDelete }: ItemsPanelProps) {
       {items && filtered.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
           {filtered.map((item) => (
-            <div
-              key={item._id}
-              className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100"
-            >
-              <div className="p-4">
-                <div className="w-full h-40 bg-gray-100 rounded-2xl mb-3 flex items-center justify-center">
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    className="max-h-32 object-contain"
-                  />
-                </div>
-                <h3 className="text-sm font-medium text-gray-800 mb-1 truncate">
-                  {`${item.brand} ${item.name} ${item.variant} кВт`}
-                </h3>
-                <p className="text-sm text-gray-800">
-                  {Number(item.price).toLocaleString("ru-RU")} руб.
-                </p>
-                <div className="mt-3 flex justify-between items-center">
-                  <Button variant="destructive" onClick={() => onDelete(item)}>
-                    Удалить
-                  </Button>
-                </div>
-              </div>
-            </div>
+            <ItemCard key={item._id} item={item} onDelete={onDelete} />
           ))}
         </div>
       )}
@@ -449,7 +491,78 @@ function DashboardItemsPanel({ items, categories, onDelete }: ItemsPanelProps) {
   );
 }
 
-export const BrandSelection = ({ value, onChange }: { value: string; onChange: (value: string) => void }) => {
+export const ItemCard = ({
+  item,
+  onDelete,
+}: {
+  item: ItemDoc;
+  onDelete: (item: ItemDoc) => void;
+}) => {
+  const [api, setApi] = useState<CarouselApi>();
+  const [current, setCurrent] = useState(0);
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (!api) {
+      return;
+    }
+    setCount(api.scrollSnapList().length);
+    setCurrent(api.selectedScrollSnap() + 1);
+    api.on("select", () => {
+      setCurrent(api.selectedScrollSnap() + 1);
+    });
+  }, [api]);
+  return (
+    <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100">
+      <div>
+        <Carousel className="w-full   rounded-2xl  flex items-center justify-center">
+          <CarouselContent>
+            {(item.imagesUrls && item.imagesUrls.length > 0
+              ? item.imagesUrls
+              : ["/not-found.jpg"]
+            ).map((img, index) => (
+              <CarouselItem key={index}>
+                <div className="p-1">
+                  <Card className="border-none shadow-none">
+                    <CardContent className="flex aspect-square items-center justify-center ">
+                      <img
+                        src={img ?? "/not-found.jpg"}
+                        alt={`${item.brand} ${item.name} ${item.variant} кВт`}
+                        className="w-full h-full object-cover rounded-2xl"
+                      />
+                    </CardContent>
+                  </Card>
+                </div>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious className="translate-x-[130px] translate-y-[110px] " />
+          <CarouselNext className="-translate-x-[130px] translate-y-[110px] " />
+        </Carousel>
+        <div className="p-4">
+          <h3 className="text-sm font-medium text-gray-800 mb-1 truncate">
+            {`${item.brand} ${item.name} ${item.variant} кВт`}
+          </h3>
+          <p className="text-sm text-gray-800">
+            {Number(item.price).toLocaleString("ru-RU")} руб.
+          </p>
+          <div className="mt-3 flex justify-between items-center">
+            <Button variant="destructive" onClick={() => onDelete(item)}>
+              Удалить
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const BrandSelection = ({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) => {
   const brands = useQuery(api.dashboard.show_all_brands);
   const addBrand = useMutation(api.dashboard.add_brand);
   const [brandSearch, setBrandSearch] = useState("");

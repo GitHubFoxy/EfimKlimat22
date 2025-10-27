@@ -1,43 +1,62 @@
 "use client";
 import Stars from "./stars";
 import { Button } from "./ui/button";
-import Image from "next/image";
-import { useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
 import { useCartSessionId } from "@/hooks/useCartSession";
-import { Id } from "@/convex/_generated/dataModel";
+import { Card, CardContent } from "./ui/card";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselPrevious,
+  CarouselNext,
+} from "./ui/carousel";
+import { Doc } from "@/convex/_generated/dataModel";
 
-type Item = {
-  _id: string;
-  name: string;
-  image?: string;
-  price: number;
-  rating?: number;
-};
+// Strong type for catalog item documents
+type Item = Doc<"items">;
 
-export const Card = ({ e }: { e: Item }) => {
+export const ItemCard = ({ e }: { e: Item }) => {
   const sessionId = useCartSessionId();
-  const addItem = useMutation(api.cart.addItem).withOptimisticUpdate(() => {
-    // Later: update a local cart badge count.
-  });
 
   const onAdd = async () => {
     if (!sessionId) return;
     try {
-      await addItem({ sessionId, itemId: e._id as Id<"items">, quantity: 1 });
     } catch (err) {
       console.error("Failed to add to cart", err);
     }
   };
   return (
     <>
-      <div className="cursor-pointer hover:bg-dark-gray mb-4 bg-light-gray rounded-lg w-full h-[350px] flex items-center justify-center">
-        <Image src={e.image!} alt={e.name} width={163} height={340} />
+      <div className="cursor-pointer  rounded-lg w-full h-[350px] flex items-center justify-center">
+        <Carousel className="w-full   rounded-2xl  flex items-center justify-center">
+          <CarouselContent>
+            {(e.imagesUrls && e.imagesUrls.length > 0
+              ? e.imagesUrls
+              : ["/not-found.jpg"]
+            ).map((img: string, index: number) => (
+              <CarouselItem key={index}>
+                <div className="p-1">
+                  <Card className="border-none shadow-none">
+                    <CardContent className="flex aspect-square items-center justify-center ">
+                      <img
+                        src={img ?? "/not-found.jpg"}
+                        alt={`${e.brand ?? ""} ${e.name} ${e.variant ?? ""} кВт`}
+                        className="w-full h-full object-cover rounded-2xl"
+                      />
+                    </CardContent>
+                  </Card>
+                </div>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious className="translate-x-[150px] translate-y-[130px] " />
+          <CarouselNext className="-translate-x-[150px] translate-y-[130px] " />
+        </Carousel>
       </div>
       <Stars stars={String(e.rating ?? 0)} />
-      <div className="flex justify-between w-full items-start gap-3 mb-9 min-h-[48px]">
+      <div className="flex justify-between w-full items-start gap-3 min-h-[48px]">
         <p className="text-base leading-6 line-clamp-2 break-words flex-1 max-h-[48px] overflow-hidden">
-          {e.name}
+          {e.brand ?? ""} "{e.name}" {e.variant ?? ""} кВт
         </p>
         <p className="font-[500] whitespace-nowrap shrink-0 text-right">
           {e.price} руб.
@@ -53,4 +72,4 @@ export const Card = ({ e }: { e: Item }) => {
     </>
   );
 };
-export default Card;
+export default ItemCard;
