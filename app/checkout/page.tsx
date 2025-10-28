@@ -23,6 +23,7 @@ export default function CheckoutPage() {
     sessionId ? { sessionId } : "skip"
   );
   const clear = useMutation(api.cart.clear);
+  const createOrder = useMutation(api.cart.createOrder);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -52,11 +53,17 @@ export default function CheckoutPage() {
     setIsSubmitting(true);
 
     try {
-      // Here you would typically send the order to your backend
-      // For now, we'll simulate a successful order
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Create order in backend (Convex)
+      const res = await createOrder({
+        sessionId,
+        name: formData.name,
+        phone: formData.phone,
+        email: formData.email || undefined,
+        address: formData.address || undefined,
+        comment: formData.comment || undefined,
+      });
 
-      // Clear the cart
+      // Optionally ensure local cart state clears
       await clear({ sessionId });
 
       setOrderComplete(true);

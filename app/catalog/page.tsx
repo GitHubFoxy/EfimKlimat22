@@ -75,7 +75,7 @@ export default function Catalog() {
   // Cart data for floating button
   const itemsData = useQuery(
     api.cart.listItems,
-    sessionId ? { sessionId } : "skip"
+    sessionId ? { sessionId } : "skip",
   );
 
   // Search results (from header search link)
@@ -150,10 +150,11 @@ export default function Catalog() {
           {["Новинки", "Хиты продаж", "Со скидкой"].map((f) => (
             <button
               key={f}
-              className={`px-3 py-2 rounded-md border text-sm transition ${selectedFilter === f
-                ? "bg-gray-900 text-white border-gray-900"
-                : "bg-white hover:bg-gray-50"
-                }`}
+              className={`px-3 py-2 rounded-md border text-sm transition ${
+                selectedFilter === f
+                  ? "bg-gray-900 text-white border-gray-900"
+                  : "bg-white hover:bg-gray-50"
+              }`}
               onClick={() => setSelectedFilter(f as any)}
             >
               {f}

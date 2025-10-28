@@ -173,6 +173,10 @@ export default function Dashboard() {
 
   return (
     <div className="px-6 py-6 md:px-12 lg:px-28 xl:max-w-[1280px] xl:mx-auto h-screen">
+      <div className="mb-4 flex items-center justify-between">
+        <h1 className="text-xl font-semibold">Панель управления</h1>
+        <a href="/manager" className="text-sm underline">Менеджер заказов</a>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:justify-items-center">
         {/* Left: Form */}
         <div className="max-w-xl w-full p-6 border rounded-2xl bg-white  md:justify-self-center mx-auto">

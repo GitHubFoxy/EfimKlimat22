@@ -5,7 +5,11 @@ export default defineSchema({
   users: defineTable({
     name: v.string(),
     phone: v.string(),
-  }),
+    password: v.optional(v.string()),
+    role: v.union(v.literal("user"), v.literal("manager"), v.literal("admin")),
+  })
+    .index("by_role", ["role"]) 
+    .index("by_phone", ["phone"]),
   brands: defineTable({
     name: v.string(),
   }),
@@ -73,6 +77,7 @@ export default defineSchema({
   orders: defineTable({
     userId: v.id("users"),
     updatedAt: v.optional(v.number()),
+    assignedManager: v.optional(v.id("users")),
     itemId: v.array(v.id("items")),
     status: v.union(
       v.literal("pending"),
@@ -80,5 +85,24 @@ export default defineSchema({
       v.literal("done"),
     ),
     total: v.number(),
-  }),
+  })
+    .index("by_status", ["status"]) 
+    .index("by_status_and_updatedAt", ["status", "updatedAt"]) 
+    .index("by_assignedManager", ["assignedManager"]) 
+    .index("by_assignedManager_status_updatedAt", ["assignedManager", "status", "updatedAt"]),
+  consultants: defineTable({
+    name: v.string(),
+    phone: v.string(),
+    message: v.optional(v.string()),
+    status: v.union(
+      v.literal("new"),
+      v.literal("processing"),
+      v.literal("done"),
+    ),
+    assignedManager: v.optional(v.id("users")),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_status", ["status"]) 
+    .index("by_assignedManager", ["assignedManager"]) 
+    .index("by_assignedManager_status_updatedAt", ["assignedManager", "status", "updatedAt"]),
 });

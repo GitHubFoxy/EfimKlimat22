@@ -5,6 +5,8 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { useState } from "react";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 export default function FreeConsultmant() {
   const [isChecked, setIsChecked] = useState(false);
@@ -14,8 +16,10 @@ export default function FreeConsultmant() {
   const [showNameError, setShowNameError] = useState(false);
   const [showPhoneError, setShowPhoneError] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const submitConsultant = useMutation(api.consultants.submit_consultant_request);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     let hasErrors = false;
@@ -45,9 +49,19 @@ export default function FreeConsultmant() {
       return;
     }
 
-    // Your form submission logic here
-    console.log("Form submitted successfully!");
-    setShowDialog(true);
+    try {
+      setSubmitting(true);
+      await submitConsultant({ name, phone });
+      setShowDialog(true);
+      setName("");
+      setPhone("");
+      setIsChecked(false);
+    } catch (err) {
+      console.error("Failed to submit consultant request:", err);
+      alert("Не удалось отправить заявку. Попробуйте позже.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleCheckboxChange = (checked: boolean) => {
@@ -119,7 +133,7 @@ export default function FreeConsultmant() {
                 Нажимая кнопку Вы соглашаетесь с Политикой конфиденциальности
               </Label>
             </div>
-            <Button className="bg-light-orange h-[58px] rounded-full mt-4 cursor-pointer">
+            <Button disabled={submitting} className="bg-light-orange h-[58px] rounded-full mt-4 cursor-pointer">
               Отправить
             </Button>
           </form>

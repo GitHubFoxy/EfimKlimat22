@@ -197,6 +197,72 @@ export const clear = mutation({
   },
 });
 
+// Create an order from the current cart (by sessionId) and clear the cart
+export const createOrder = mutation({
+  args: {
+    sessionId: v.string(),
+    name: v.string(),
+    phone: v.string(),
+    email: v.optional(v.string()),
+    address: v.optional(v.string()),
+    comment: v.optional(v.string()),
+  },
+  returns: v.object({ orderId: v.id("orders") }),
+  handler: async (ctx, { sessionId, name, phone }) => {
+    const now = Date.now();
+    // Ensure cart exists and load items
+    const cart = await getOrCreateActiveCartBySession(ctx, sessionId);
+    const items = await ctx.db
+      .query("cart_items")
+      .withIndex("by_cartId", (q: any) => q.eq("cartId", cart._id))
+      .collect();
+
+    if (!items || items.length === 0) {
+      throw new Error("Cart is empty");
+    }
+
+    // Find or create user by phone
+    let user = await ctx.db
+      .query("users")
+      .withIndex("by_phone", (q: any) => q.eq("phone", phone))
+      .first();
+    if (!user) {
+      const userId = await ctx.db.insert("users", {
+        name,
+        phone,
+        password: undefined,
+        role: "user",
+      });
+      user = await ctx.db.get(userId);
+    }
+
+    // Compute total and item ids
+    const itemIds = items.map((it: any) => it.itemId);
+    const total = items.reduce(
+      (sum: number, it: any) => sum + it.price * it.quantity,
+      0,
+    );
+
+    // Create order in "pending" status
+    const orderId = await ctx.db.insert("orders", {
+      userId: user!._id,
+      updatedAt: now,
+      assignedManager: undefined,
+      itemId: itemIds,
+      status: "pending",
+      total,
+    });
+
+    // Clear cart items and mark cart as ordered
+    for (const it of items) {
+      await ctx.db.delete(it._id);
+    }
+    await ctx.db.patch(cart._id, { status: "ordered", updatedAt: now });
+
+    return { orderId };
+  },
+});
+
 export const mergeAnonymousIntoUserCart = mutation({
   args: { sessionId: v.string(), userId: v.id("users") },
   handler: async (ctx, { sessionId, userId }) => {
