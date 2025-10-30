@@ -45,6 +45,8 @@ export const create_item = mutation({
     price: v.number(),
     variant: v.string(),
     sale: v.optional(v.number()),
+    // Optional part number support
+    partNumber: v.optional(v.string()),
   },
   returns: v.object({ status: v.number(), itemId: v.id("items") }),
   handler: async (ctx, args) => {
@@ -64,6 +66,8 @@ export const update_item = mutation({
     price: v.optional(v.number()),
     variant: v.optional(v.string()),
     sale: v.optional(v.number()),
+    // Allow updating part number
+    partNumber: v.optional(v.string()),
   },
   returns: v.object({ status: v.number() }),
   handler: async (ctx, { itemId, ...patch }) => {

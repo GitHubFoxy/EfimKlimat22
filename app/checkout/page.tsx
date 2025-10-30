@@ -16,12 +16,11 @@ import { Label } from "@/components/ui/label";
 export default function CheckoutPage() {
   const router = useRouter();
   const sessionId = useCartSessionId();
-  const itemsData = useQuery(api.cart.listItems,
-    sessionId ? { sessionId } : "skip"
+  const itemsData = useQuery(
+    api.cart.listItems,
+    sessionId ? { sessionId } : "skip",
   );
-  const summary = useQuery(api.cart.get,
-    sessionId ? { sessionId } : "skip"
-  );
+  const summary = useQuery(api.cart.get, sessionId ? { sessionId } : "skip");
   const clear = useMutation(api.cart.clear);
   const createOrder = useMutation(api.cart.createOrder);
 
@@ -37,7 +36,7 @@ export default function CheckoutPage() {
   const [orderComplete, setOrderComplete] = useState(false);
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -101,7 +100,9 @@ export default function CheckoutPage() {
         <div className="min-h-[400px] flex items-center justify-center">
           <div className="text-center">
             <h1 className="text-2xl font-semibold mb-4">Корзина пуста</h1>
-            <p className="mb-6">Добавьте товары в корзину перед оформлением заказа</p>
+            <p className="mb-6">
+              Добавьте товары в корзину перед оформлением заказа
+            </p>
             <Button
               onClick={() => router.push("/catalog")}
               className="bg-light-orange hover:bg-amber-500 rounded-full px-8"
@@ -139,7 +140,8 @@ export default function CheckoutPage() {
             <h1 className="text-3xl font-semibold mb-4">Заказ оформлен!</h1>
             <p className="text-lg mb-2">Спасибо за ваш заказ!</p>
             <p className="text-gray-600 mb-6">
-              Наш менеджер свяжется с вами в ближайшее время для подтверждения заказа.
+              Наш менеджер свяжется с вами в ближайшее время для подтверждения
+              заказа.
             </p>
             <p className="text-sm text-gray-500">
               Перенаправление на главную страницу...
@@ -158,9 +160,68 @@ export default function CheckoutPage() {
       <div className="max-w-6xl mx-auto my-12">
         <h1 className="text-3xl font-semibold mb-8">Оформление заказа</h1>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 grid-rows-2 lg:grid-cols-2 lg:grid-rows-1 gap-8">
+          {/* Order Summary */}
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 h-fit row-start-1 lg:row-start-auto">
+            <h2 className="text-xl font-semibold mb-6">Ваш заказ</h2>
+
+            <div className="space-y-4 mb-6 ">
+              {itemsData.items.map((item: any) => (
+                <div key={item._id} className="flex gap-4">
+                  <div className="relative w-20 h-20 rounded-lg overflow-hidden shrink-0 bg-gray-50">
+                    <Image
+                      src={item.image ?? "/kotel.jpg"}
+                      alt={item.name}
+                      fill
+                      className="object-contain"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-sm mb-1">{item.name}</p>
+                    <p className="text-sm text-gray-600">
+                      Количество: {item.quantity} шт.
+                    </p>
+                    <p className="text-sm font-semibold mt-1">
+                      {(item.price * item.quantity).toLocaleString("ru-RU")}{" "}
+                      руб.
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <hr className="my-6" />
+
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Товаров:</span>
+                <span>{itemsData.count} шт.</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Сумма:</span>
+                <span>{itemsData.subtotal.toLocaleString("ru-RU")} руб.</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Доставка:</span>
+                <span className="text-green-600">Уточняется</span>
+              </div>
+              <hr />
+              <div className="flex justify-between text-lg font-semibold">
+                <span>Итого:</span>
+                <span>{itemsData.subtotal.toLocaleString("ru-RU")} руб.</span>
+              </div>
+            </div>
+
+            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-900">
+                <strong>Обратите внимание:</strong> Стоимость доставки будет
+                рассчитана менеджером и сообщена вам при подтверждении заказа.
+              </p>
+            </div>
+          </div>
+
           {/* Order Form */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 row-start-2 lg:row-start-auto">
             <h2 className="text-xl font-semibold mb-6">Контактные данные</h2>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -240,64 +301,6 @@ export default function CheckoutPage() {
                 {isSubmitting ? "Оформление..." : "Оформить заказ"}
               </Button>
             </form>
-          </div>
-
-          {/* Order Summary */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 h-fit">
-            <h2 className="text-xl font-semibold mb-6">Ваш заказ</h2>
-
-            <div className="space-y-4 mb-6">
-              {itemsData.items.map((item: any) => (
-                <div key={item._id} className="flex gap-4">
-                  <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gray-50">
-                    <Image
-                      src={item.image ?? "/kotel.jpg"}
-                      alt={item.name}
-                      fill
-                      className="object-contain"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-sm mb-1">{item.name}</p>
-                    <p className="text-sm text-gray-600">
-                      Количество: {item.quantity} шт.
-                    </p>
-                    <p className="text-sm font-semibold mt-1">
-                      {(item.price * item.quantity).toLocaleString("ru-RU")} руб.
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <hr className="my-6" />
-
-            <div className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Товаров:</span>
-                <span>{itemsData.count} шт.</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Сумма:</span>
-                <span>{itemsData.subtotal.toLocaleString("ru-RU")} руб.</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Доставка:</span>
-                <span className="text-green-600">Уточняется</span>
-              </div>
-              <hr />
-              <div className="flex justify-between text-lg font-semibold">
-                <span>Итого:</span>
-                <span>{itemsData.subtotal.toLocaleString("ru-RU")} руб.</span>
-              </div>
-            </div>
-
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-              <p className="text-sm text-blue-900">
-                <strong>Обратите внимание:</strong> Стоимость доставки будет рассчитана
-                менеджером и сообщена вам при подтверждении заказа.
-              </p>
-            </div>
           </div>
         </div>
       </div>

@@ -55,6 +55,8 @@ export default function Dashboard() {
     variant: "",
     category: "",
     subcategory: "",
+    // New optional Part Number field
+    partNumber: "",
   });
   const [files, setFiles] = useState<File[] | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -141,6 +143,7 @@ export default function Dashboard() {
           ? (form.category as Id<"categorys">)
           : undefined,
         subcategory: form.subcategory ? form.subcategory : undefined,
+        partNumber: form.partNumber.trim() ? form.partNumber.trim() : undefined,
       });
       setMessage("Товар добавлен");
       setForm({
@@ -154,6 +157,7 @@ export default function Dashboard() {
         category: form.category,
         subcategory: form.subcategory,
         color: "",
+        partNumber: "",
       });
       setFiles(undefined);
       if (fileInputRef.current) {
@@ -257,6 +261,17 @@ export default function Dashboard() {
                 id="variant"
                 name="variant"
                 value={form.variant}
+                onChange={onChange}
+                placeholder="Опционально"
+              />
+            </div>
+            {/* New: Part Number input (optional) */}
+            <div className="space-y-2">
+              <Label htmlFor="partNumber">Артикул</Label>
+              <Input
+                id="partNumber"
+                name="partNumber"
+                value={form.partNumber}
                 onChange={onChange}
                 placeholder="Опционально"
               />
@@ -413,6 +428,8 @@ type ItemDoc = {
   lowerCaseName: string;
   quantity: number;
   description: string;
+  // New optional part number
+  partNumber?: string | undefined;
 };
 
 type ItemsPanelProps = {
@@ -429,6 +446,7 @@ type ItemsPanelProps = {
 function DashboardItemsPanel({ items, categories, onDelete }: ItemsPanelProps) {
   const [filterCategory, setFilterCategory] = useState<string>("");
   const [search, setSearch] = useState<string>("");
+  const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
 
   const filtered = (items?.items ?? [])
     .filter((i) =>
@@ -439,6 +457,12 @@ function DashboardItemsPanel({ items, categories, onDelete }: ItemsPanelProps) {
         ? i.name?.toLowerCase().includes(search.trim().toLowerCase())
         : true,
     );
+
+  const sorted = [...filtered].sort((a, b) =>
+    sortOrder === "desc"
+      ? b._creationTime - a._creationTime
+      : a._creationTime - b._creationTime,
+  );
 
   return (
     <div className="w-full md:justify-self-start">
@@ -479,14 +503,33 @@ function DashboardItemsPanel({ items, categories, onDelete }: ItemsPanelProps) {
         </Select>
       </div>
 
+      {/* Sort control */}
+      <div className="mb-4">
+        <Label htmlFor="sortOrder">Сортировка</Label>
+        <Select
+          value={sortOrder}
+          onValueChange={(value) =>
+            setSortOrder(value === "asc" || value === "desc" ? value : "desc")
+          }
+        >
+          <SelectTrigger className="mt-2 w-full">
+            <SelectValue placeholder="Сначала новые" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="desc">Сначала новые</SelectItem>
+            <SelectItem value="asc">Сначала старые</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       {!items && <p className="text-sm text-gray-500">Загрузка товаров...</p>}
       {items && filtered.length === 0 && (
         <p className="text-sm text-gray-500">Товары отсутствуют</p>
       )}
 
-      {items && filtered.length > 0 && (
+      {items && sorted.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
-          {filtered.map((item) => (
+          {sorted.map((item) => (
             <ItemCard key={item._id} item={item} onDelete={onDelete} />
           ))}
         </div>
@@ -495,7 +538,7 @@ function DashboardItemsPanel({ items, categories, onDelete }: ItemsPanelProps) {
   );
 }
 
-export const ItemCard = ({
+const ItemCard = ({
   item,
   onDelete,
 }: {
@@ -546,6 +589,9 @@ export const ItemCard = ({
           <h3 className="text-sm font-medium text-gray-800 mb-1 truncate">
             {`${item.brand} ${item.name} ${item.variant} кВт`}
           </h3>
+          {item.partNumber && (
+            <p className="text-xs text-gray-500">Артикул: {item.partNumber}</p>
+          )}
           <p className="text-sm text-gray-800">
             {Number(item.price).toLocaleString("ru-RU")} руб.
           </p>
@@ -560,7 +606,7 @@ export const ItemCard = ({
   );
 };
 
-export const BrandSelection = ({
+const BrandSelection = ({
   value,
   onChange,
 }: {

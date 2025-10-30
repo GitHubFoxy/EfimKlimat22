@@ -15,6 +15,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 // Strong type for catalog item documents
 type Item = Doc<"items">;
@@ -22,6 +24,7 @@ type Item = Doc<"items">;
 export const ItemCard = ({ e }: { e: Item }) => {
   const sessionId = useCartSessionId();
   const addItem = useMutation(api.cart.addItem);
+  const router = useRouter();
 
   const onAdd = async (event: React.MouseEvent) => {
     event.preventDefault();
@@ -33,8 +36,21 @@ export const ItemCard = ({ e }: { e: Item }) => {
         itemId: e._id,
         quantity: 1,
       });
+
+      toast.success("Товар добавлен в корзину", {
+        description: `${e.brand ?? ""} "${e.name}" ${e.variant ?? ""}`,
+        action: {
+          label: "Перейти в корзину",
+          onClick: () => router.push("/checkout"),
+        },
+        duration: 4000,
+      });
     } catch (err) {
       console.error("Failed to add to cart", err);
+      toast.error("Ошибка", {
+        description: "Не удалось добавить товар в корзину",
+        duration: 6000,
+      });
     }
   };
 

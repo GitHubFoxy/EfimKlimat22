@@ -20,6 +20,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+// Ensure this page renders dynamically to avoid prerender errors during production builds
+export const dynamic = "force-dynamic";
+
 function CatalogResults({
   categoryId,
   filter,

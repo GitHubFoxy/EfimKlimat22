@@ -63,6 +63,8 @@ export const addItemsPublic = mutation({
     brand: v.optional(v.string()),
     variant: v.optional(v.string()),
     subcategory: v.optional(v.string()),
+    // New optional part number for items
+    partNumber: v.optional(v.string()),
   },
   handler: async (
     ctx,
@@ -79,6 +81,7 @@ export const addItemsPublic = mutation({
       brand = "no brand",
       variant = "",
       subcategory,
+      partNumber,
     },
   ) => {
     const imageUrls = [];
@@ -108,6 +111,8 @@ export const addItemsPublic = mutation({
       sale,
       variant,
       subcategory,
+      // Persist optional part number
+      partNumber: partNumber ?? undefined,
     });
     return { status: 200, message: "Item added" };
   },
