@@ -47,3 +47,56 @@ export const list_users_by_role = query({
       .collect();
   },
 });
+
+// Fetch a single user document by id
+export const get_user_by_id = query({
+  args: { id: v.id("users") },
+  returns: v.union(
+    v.object({
+      _id: v.id("users"),
+      _creationTime: v.number(),
+      name: v.string(),
+      phone: v.string(),
+      password: v.optional(v.string()),
+      role: v.union(
+        v.literal("user"),
+        v.literal("manager"),
+        v.literal("admin"),
+      ),
+    }),
+    v.null(),
+  ),
+  handler: async (ctx, { id }) => {
+    const doc = await ctx.db.get(id);
+    return doc ?? null;
+  },
+});
+
+// Update user fields (admin only usage in UI)
+export const update_user = mutation({
+  args: {
+    id: v.id("users"),
+    name: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    role: v.optional(
+      v.union(v.literal("user"), v.literal("manager"), v.literal("admin")),
+    ),
+  },
+  returns: v.object({ status: v.number() }),
+  handler: async (ctx, { id, ...patch }) => {
+    const existing = await ctx.db.get(id);
+    if (!existing) throw new Error("User not found");
+    await ctx.db.patch(id, patch);
+    return { status: 200 };
+  },
+});
+
+// Delete user (admin only)
+export const delete_user = mutation({
+  args: { id: v.id("users") },
+  returns: v.object({ status: v.number() }),
+  handler: async (ctx, { id }) => {
+    await ctx.db.delete(id);
+    return { status: 200 };
+  },
+});

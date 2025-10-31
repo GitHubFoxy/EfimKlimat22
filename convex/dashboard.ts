@@ -141,3 +141,48 @@ export const show_item = query({
     return doc ?? null;
   },
 });
+
+// Update only the images of an item, enforcing order and cleaning up removed storage objects.
+// - Persists imagesUrls and imageStorageIds in the provided order
+// - Deletes storage objects that are no longer referenced
+// - Validates max 15 images
+export const update_item_images = mutation({
+  args: {
+    itemId: v.id("items"),
+    imageStorageIds: v.optional(v.array(v.id("_storage"))),
+    imagesUrls: v.optional(v.array(v.string())),
+  },
+  handler: async (ctx, { itemId, imageStorageIds, imagesUrls }) => {
+    const existing = await ctx.db.get(itemId);
+    if (!existing) throw new Error("Item not found");
+
+    // Determine next arrays (order is authoritative)
+    const nextStorageIds = imageStorageIds ?? existing.imageStorageIds ?? [];
+    if (nextStorageIds.length > 15) {
+      throw new Error("Максимум 15 изображений");
+    }
+
+    let nextUrls = imagesUrls ?? existing.imagesUrls ?? [];
+    // If URLs not provided or sizes mismatch, regenerate from storage ids
+    if (!imagesUrls || imagesUrls.length !== nextStorageIds.length) {
+      const urls = await Promise.all(
+        nextStorageIds.map((sid) => ctx.storage.getUrl(sid)),
+      );
+      nextUrls = urls.map((u) => u ?? "/not-found.jpg");
+    }
+
+    // Cleanup: delete storage ids that are no longer referenced
+    const oldStorageIds = existing.imageStorageIds ?? [];
+    const nextSet = new Set(nextStorageIds.map((sid) => sid.toString()));
+    const toDelete = oldStorageIds.filter((sid) => !nextSet.has(sid.toString()));
+    if (toDelete.length) {
+      await Promise.all(toDelete.map((sid) => ctx.storage.delete(sid)));
+    }
+
+    await ctx.db.patch(itemId, {
+      imageStorageIds: nextStorageIds.length ? nextStorageIds : undefined,
+      imagesUrls: nextUrls.length ? nextUrls : undefined,
+    });
+    return { status: 200, message: "Item images updated" };
+  },
+});

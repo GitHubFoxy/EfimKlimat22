@@ -4,6 +4,7 @@ import { Footer } from "@/components/Footer";
 import FreeConsultmant from "@/components/FreeConsultmant";
 import Header from "@/components/Header/Header";
 import ItemCard from "@/components/ItemCard";
+import EmptyState from "@/components/ui/EmptyState";
 import { usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useEffect, useMemo, useState } from "react";
@@ -43,6 +44,14 @@ function CatalogResults({
     <div className="px-4 mb-8">
       {isLoading && results.length === 0 ? (
         <div className="text-center py-8">Загрузка...</div>
+      ) : results.length === 0 ? (
+        <EmptyState
+          title="В этой категории пока нет товаров по выбранному фильтру"
+          description="Если вам нужна помощь с подбором, свяжитесь с консультантом"
+          secondaryActions={[
+            { label: "Связаться с консультантом", href: "#free-consult" },
+          ]}
+        />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {results.map((e, index: number) => (
@@ -111,8 +120,19 @@ export default function Catalog() {
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
             {searchResults.length === 0 ? (
-              <div className="col-span-full text-center py-6 text-gray-500">
-                Ничего не найдено
+              <div className="col-span-full">
+                <EmptyState
+                  title="Ничего не найдено"
+                  description="Проверьте запрос или попробуйте выбрать категорию"
+                  primaryAction={{
+                    label: "Очистить поиск",
+                    onClick: () => router.push("/catalog"),
+                  }}
+                  secondaryActions={[
+                    { label: "Перейти в каталог", href: "/catalog" },
+                    { label: "Связаться с консультантом", href: "#free-consult" },
+                  ]}
+                />
               </div>
             ) : (
               searchResults.map((e: any, index: number) => (
@@ -128,7 +148,10 @@ export default function Catalog() {
         </div>
       )}
       {/* Filters & Categories */}
-      <div className="px-4 mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div
+        id="catalog-filters"
+        className="px-4 mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
+      >
         <div className="flex items-center gap-3">
           <span className="text-sm text-gray-600">Категория:</span>
           <Select
@@ -177,7 +200,9 @@ export default function Catalog() {
         </div>
       )}
 
-      <FreeConsultmant />
+      <div id="free-consult">
+        <FreeConsultmant />
+      </div>
       <Footer />
 
       {/* Floating Checkout Button */}
