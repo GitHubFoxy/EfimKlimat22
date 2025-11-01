@@ -58,3 +58,17 @@ export const addCategory = internalMutation({
     return { status: 200, message: "Category added" };
   },
 });
+
+export const addSubcategory = internalMutation({
+  args: {
+    parentCategory: v.id("categorys"),
+    subcategoryName: v.string(),
+  },
+  handler: async (ctx, { parentCategory, subcategoryName }) => {
+    await ctx.db.insert("subcategorys", {
+      parent: parentCategory,
+      name: subcategoryName,
+    });
+    return { status: 200, message: "Subcategory added" };
+  },
+});

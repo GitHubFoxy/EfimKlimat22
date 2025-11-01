@@ -27,29 +27,35 @@ export const catalog_query_based_on_category_and_filter = query({
       v.literal("Новинки"),
       v.literal("Со скидкой"),
     ),
+    subcategory: v.optional(v.string()),
     paginationOpts: paginationOptsValidator,
   },
-  handler: async (ctx, { category, filter, paginationOpts }) => {
+  handler: async (ctx, { category, filter, subcategory, paginationOpts }) => {
+    let queryBuilder;
+
     if (filter === "Хиты продаж") {
-      return await ctx.db
+      queryBuilder = ctx.db
         .query("items")
-        .withIndex("by_category_orders", (q) => q.eq("category", category))
-        .order("desc")
-        .paginate(paginationOpts);
-    }
-    if (filter === "Новинки") {
-      return await ctx.db
+        .withIndex("by_category_orders", (q) => q.eq("category", category));
+    } else if (filter === "Новинки") {
+      queryBuilder = ctx.db
         .query("items")
-        .withIndex("by_category", (q) => q.eq("category", category))
-        .order("desc")
-        .paginate(paginationOpts);
+        .withIndex("by_category", (q) => q.eq("category", category));
+    } else {
+      // "Со скидкой"
+      queryBuilder = ctx.db
+        .query("items")
+        .withIndex("by_category_sale", (q) => q.eq("category", category));
     }
-    // "Со скидкой"
-    return await ctx.db
-      .query("items")
-      .withIndex("by_category_sale", (q) => q.eq("category", category))
-      .order("desc")
-      .paginate(paginationOpts);
+
+    // Apply subcategory filter if provided
+    if (subcategory !== undefined && subcategory !== null) {
+      queryBuilder = queryBuilder.filter((q) =>
+        q.eq(q.field("subcategory"), subcategory),
+      );
+    }
+
+    return await queryBuilder.order("desc").paginate(paginationOpts);
   },
 });
 

@@ -5,7 +5,9 @@
       "Bash(openspec show add-manager-ui-crud-orders-consultations --json --deltas-only)",
       "Bash(openspec archive add-manager-ui-crud-orders-consultations --yes)",
       "Bash(openspec list)",
-      "Bash(openspec list --specs)"
+      "Bash(openspec list --specs)",
+      "Bash(mkdir -p openspec/changes/add-dev-add-subcategory-function/specs/dev-functions)",
+      "Bash(openspec validate add-dev-add-subcategory-function --strict)"
     ],
     "deny": [],
     "ask": []

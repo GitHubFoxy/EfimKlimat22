@@ -60,7 +60,7 @@ export const ItemCard = ({ e }: { e: Item }) => {
     <div className="group relative w-full">
       {/* Image + Carousel Section */}
       <Link href={href} className="block w-full">
-        <div className="relative w-full h-[350px] flex items-center justify-center bg-gray-50 group-hover:bg-gray-100 transition-colors rounded-2xl overflow-hidden mb-3">
+        <div className="relative w-full h-[350px] flex items-center justify-center  transition-colors rounded-2xl overflow-hidden mb-3">
           <Carousel className="w-full h-full">
             <CarouselContent className="h-full">
               {(e.imagesUrls && e.imagesUrls.length > 0

@@ -63,8 +63,8 @@ export const addItemsPublic = mutation({
     brand: v.optional(v.string()),
     variant: v.optional(v.string()),
     subcategory: v.optional(v.string()),
-    // New optional part number for items
     partNumber: v.optional(v.string()),
+    collection: v.optional(v.string()),
   },
   handler: async (
     ctx,
@@ -82,6 +82,7 @@ export const addItemsPublic = mutation({
       variant = "",
       subcategory,
       partNumber,
+      collection,
     },
   ) => {
     const imageUrls = [];
@@ -111,8 +112,8 @@ export const addItemsPublic = mutation({
       sale,
       variant,
       subcategory,
-      // Persist optional part number
       partNumber: partNumber ?? undefined,
+      collection: collection ?? undefined,
     });
     return { status: 200, message: "Item added" };
   },
@@ -139,6 +140,35 @@ export const show_item = query({
   handler: async (ctx, { id }) => {
     const doc = await ctx.db.get(id);
     return doc ?? null;
+  },
+});
+
+// Fetch related items by brand and collection (excluding the current item)
+export const show_items_by_brand_and_collection = query({
+  args: {
+    itemId: v.id("items"),
+    brand: v.optional(v.string()),
+    collection: v.optional(v.string()),
+  },
+  handler: async (ctx, { itemId, brand, collection }) => {
+    // If no collection is provided, return empty array
+    if (!collection) {
+      return [];
+    }
+
+    // Query all items with matching brand and collection, excluding current item
+    const items = await ctx.db
+      .query("items")
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("brand"), brand),
+          q.eq(q.field("collection"), collection),
+          q.neq(q.field("_id"), itemId),
+        ),
+      )
+      .collect();
+
+    return items;
   },
 });
 

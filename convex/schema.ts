@@ -30,6 +30,7 @@ export default defineSchema({
     variant: v.string(),
     subcategory: v.optional(v.string()),
     color: v.optional(v.string()),
+    collection: v.optional(v.string()),
   })
     .index("by_orders", ["orders"])
     .index("by_category", ["category"])

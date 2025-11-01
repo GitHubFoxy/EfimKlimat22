@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -198,6 +199,7 @@ export default function ManagerPage() {
   const [imagesDraft, setImagesDraft] = useState<Record<string, { url: string; storageId: Id<"_storage"> }[]>>({});
   // Items UI helpers: client-side search and controlled edits with Save
   const [itemSearch, setItemSearch] = useState("");
+  const [showOnlyWithoutImages, setShowOnlyWithoutImages] = useState(false);
   type ItemEdit = {
     name: string;
     brand: string;
@@ -692,18 +694,40 @@ export default function ManagerPage() {
             <Label htmlFor="item-search">Поиск товаров</Label>
             <Input id="item-search" placeholder="Поиск по названию, бренду, варианту" value={itemSearch} onChange={(e) => setItemSearch(e.target.value)} />
           </div>
+          <div className="flex items-center gap-3 mt-2">
+            <Switch
+              id="filter-without-images"
+              checked={showOnlyWithoutImages}
+              onCheckedChange={setShowOnlyWithoutImages}
+            />
+            <Label htmlFor="filter-without-images">Только без изображений</Label>
+          </div>
 
           <div className="space-y-3 mt-4">
             {(() => {
               const all = items ?? [];
               const q = itemSearch.trim().toLowerCase();
-              const filtered = !q
-                ? all
-                : all.filter((it) =>
-                    it.name.toLowerCase().includes(q) ||
-                    (it.brand ? it.brand.toLowerCase().includes(q) : false) ||
-                    (it.variant ? it.variant.toLowerCase().includes(q) : false)
-                  );
+              const filtered = all
+                .filter((it) => {
+                  // Filter by search query
+                  if (q) {
+                    if (
+                      !it.name.toLowerCase().includes(q) &&
+                      !(it.brand ? it.brand.toLowerCase().includes(q) : false) &&
+                      !(it.variant ? it.variant.toLowerCase().includes(q) : false)
+                    ) {
+                      return false;
+                    }
+                  }
+                  // Filter by "only without images" switch
+                  if (showOnlyWithoutImages) {
+                    const hasImages = it.imagesUrls && it.imagesUrls.length > 0;
+                    if (hasImages) {
+                      return false;
+                    }
+                  }
+                  return true;
+                });
 
               if (all.length === 0 && !q) {
                 return (

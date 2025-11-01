@@ -27,18 +27,17 @@ export const dynamic = "force-dynamic";
 function CatalogResults({
   categoryId,
   filter,
+  subcategory,
 }: {
   categoryId: Id<"categorys">;
   filter: "Хиты продаж" | "Новинки" | "Со скидкой";
+  subcategory?: string | null;
 }) {
   const { results, status, isLoading, loadMore } = usePaginatedQuery(
     api.catalog.catalog_query_based_on_category_and_filter,
-    { category: categoryId, filter },
+    { category: categoryId, filter, subcategory: subcategory ?? undefined },
     { initialNumItems: 12 },
   );
-  useEffect(() => {
-    console.log(status);
-  }, [status]);
 
   return (
     <div className="px-4 mb-8">
@@ -99,15 +98,32 @@ export default function Catalog() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
     null,
   );
+
+  // Subcategories data
+  const subcategoriesData = useQuery(
+    api.dashboard.show_subcategories_by_category,
+    selectedCategoryId
+      ? { parent: selectedCategoryId as Id<"categorys"> }
+      : "skip",
+  );
+  const subcategories = subcategoriesData?.subcategories ?? [];
   const [selectedFilter, setSelectedFilter] = useState<
     "Хиты продаж" | "Новинки" | "Со скидкой"
   >("Новинки");
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     if (!selectedCategoryId && categories.length > 0) {
       setSelectedCategoryId(categories[0]._id);
     }
   }, [categories, selectedCategoryId]);
+
+  useEffect(() => {
+    // Reset subcategory when category changes
+    setSelectedSubcategory(null);
+  }, [selectedCategoryId]);
 
   return (
     <div className="px-6 py-2 md:px-12 lg:px-28 xl:max-w-[1280px] xl:mx-auto">
@@ -130,7 +146,10 @@ export default function Catalog() {
                   }}
                   secondaryActions={[
                     { label: "Перейти в каталог", href: "/catalog" },
-                    { label: "Связаться с консультантом", href: "#free-consult" },
+                    {
+                      label: "Связаться с консультантом",
+                      href: "#free-consult",
+                    },
                   ]}
                 />
               </div>
@@ -171,6 +190,26 @@ export default function Catalog() {
           </Select>
         </div>
 
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-gray-600">Подкатегория:</span>
+          <Select
+            value={selectedSubcategory ?? undefined}
+            onValueChange={(val) => setSelectedSubcategory(val)}
+          >
+            <SelectTrigger className="min-w-[220px]">
+              <SelectValue placeholder="Выберите подкатегорию" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Без подкатегории</SelectItem>
+              {subcategories.map((sc: any) => (
+                <SelectItem key={sc._id} value={sc._id}>
+                  {sc.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-600 mr-2">Фильтр:</span>
           {["Новинки", "Хиты продаж", "Со скидкой"].map((f) => (
@@ -188,11 +227,22 @@ export default function Catalog() {
           ))}
         </div>
       </div>
+      {/* Disclaimer message for gas-related subcategories */}
+      {selectedSubcategory === "k974vfejt24xdkaf0dvmx731957se0s5" && (
+        <div className="px-4 mb-6">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-blue-900">
+            <p className="font-medium">Все цены указаны с дымоходом</p>
+          </div>
+        </div>
+      )}
       {/* Paginated catalog results by category & filter */}
       {selectedCategoryId ? (
         <CatalogResults
           categoryId={selectedCategoryId as Id<"categorys">}
           filter={selectedFilter}
+          subcategory={
+            selectedSubcategory === "none" ? null : selectedSubcategory
+          }
         />
       ) : (
         <div className="px-4 mb-8">
