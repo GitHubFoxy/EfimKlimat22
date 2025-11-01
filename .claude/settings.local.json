@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(openspec archive add-manager-ui-items-add-form-dialog --yes)",
+      "Bash(openspec show add-manager-ui-crud-orders-consultations --json --deltas-only)",
+      "Bash(openspec archive add-manager-ui-crud-orders-consultations --yes)",
+      "Bash(openspec list)",
+      "Bash(openspec list --specs)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -24,6 +24,7 @@ export const list_items_paginated = query({
         sale: v.optional(v.number()),
         subcategory: v.optional(v.string()),
         color: v.optional(v.string()),
+        partNumber: v.optional(v.string()),
       }),
     ),
     isDone: v.boolean(),

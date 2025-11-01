@@ -42,10 +42,10 @@ The dialog SHALL include the existing image handling features.
 - **WHEN** the user adds images in the dialog
 - **THEN** previews are shown, images can be reordered, and the maximum image limit is enforced (as per existing items image spec)
 
-## MODIFIED Requirements
+## ADDED Requirements
 
-### Requirement: Items Empty State primary action
-**MODIFIED** to open the Add Item dialog instead of relying on scrolling to an inline form.
+### Requirement: Items Empty State primary action opens dialog
+The Items Empty State primary action SHALL open the Add Item dialog instead of relying on scrolling to an inline form.
 
 #### Scenario: Empty list – create first item
 - **WHEN** items list is empty and user clicks “Добавить товар”

@@ -93,6 +93,7 @@ export default function Cart({ className }: { className?: string }) {
                         src={item.image ?? "/kotel.jpg"}
                         alt={item.name}
                         fill
+                        className="object-contain"
                       />
                     </div>
                     <div className="col-span-2 flex gap-2 flex-col">

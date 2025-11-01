@@ -39,13 +39,50 @@ const CONSULTANT_STATUS_OPTIONS: { value: ConsultantStatus; label: string }[] = 
 export default function ManagerPage() {
   const router = useRouter();
   const { role, setRole, managerId, setManagerId } = useRole();
-  // Auth guard: require localStorage "userToken"; otherwise redirect to /auth
+
+  // Auth verification: verify the stored managerId exists and has correct role
+  const verifiedUser = useQuery(
+    api.users.get_user_by_id,
+    managerId ? { id: managerId as Id<"users"> } : "skip"
+  );
+
+  // Auth guard: verify user exists and has manager/admin role
   useEffect(() => {
     const token = typeof window !== "undefined" && localStorage.getItem("userToken");
-    if (!token) {
+    const storedManagerId = typeof window !== "undefined" && localStorage.getItem("managerId");
+
+    if (!token || !storedManagerId) {
+      // Clear any stale data
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("userToken");
+        localStorage.removeItem("managerId");
+        localStorage.removeItem("role");
+      }
       router.replace("/auth");
+      return;
     }
   }, [router]);
+
+  // Verify user with backend
+  useEffect(() => {
+    if (verifiedUser === null) {
+      // User not found - redirect to auth and clear storage
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("userToken");
+        localStorage.removeItem("managerId");
+        localStorage.removeItem("role");
+      }
+      router.replace("/auth");
+    } else if (verifiedUser && verifiedUser.role !== "manager" && verifiedUser.role !== "admin") {
+      // User found but wrong role - redirect to auth
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("userToken");
+        localStorage.removeItem("managerId");
+        localStorage.removeItem("role");
+      }
+      router.replace("/auth");
+    }
+  }, [verifiedUser, router]);
   const [status, setStatus] = useState<Status>("pending");
   const [viewMine, setViewMine] = useState(false);
   const [section, setSection] = useState<"orders" | "consultants" | "items" | "users">("orders");
@@ -65,7 +102,6 @@ export default function ManagerPage() {
       : "skip",
     { initialNumItems: 10 },
   );
-  const managers = useQuery(api.users.list_users_by_role, { role: "manager" });
   const updateStatus = useMutation(api.manager.update_order_status);
   const claim = useMutation(api.manager.claim_order);
   const unclaim = useMutation(api.manager.unclaim_order);
@@ -237,30 +273,13 @@ export default function ManagerPage() {
     return false;
   };
 
-  if (role !== "manager" && role !== "admin") {
+  // Show loading while verifying authentication
+  if (!verifiedUser && managerId) {
     return (
       <div className="container mx-auto max-w-2xl p-6 space-y-4">
-        <h1 className="text-2xl font-semibold">Доступ менеджера</h1>
+        <h1 className="text-2xl font-semibold">Проверка авторизации...</h1>
         <p className="text-sm text-muted-foreground">
-          Для разработки выберите роль, чтобы открыть интерфейс менеджера.
-        </p>
-        <div className="flex items-center gap-4">
-          <label className="text-sm">Текущая роль:</label>
-          <Select value={role} onValueChange={(v: any) => setRole(v)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {["user", "manager", "admin"].map((r) => (
-                <SelectItem key={r} value={r as any}>
-                  {r}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Примечание: это только для разработки (локальное хранилище). Позже будет добавлена полноценная авторизация.
+          Пожалуйста, подождите.
         </p>
       </div>
     );
@@ -279,40 +298,6 @@ export default function ManagerPage() {
         }}
         onAddItem={() => setShowAddItemDialog(true)}
       />
-      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-        <span>Роль:</span>
-        <Select value={role} onValueChange={(v: any) => setRole(v)}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {["user", "manager", "admin"].map((r) => (
-              <SelectItem key={r} value={r as any}>
-                {r}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="flex items-center gap-4">
-        <label className="text-sm">Мой аккаунт менеджера:</label>
-        <Select
-          value={managerId ?? "none"}
-          onValueChange={(v: string) => setManagerId(v === "none" ? null : v)}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">не выбран</SelectItem>
-            {managers?.map((m) => (
-              <SelectItem key={m._id} value={String(m._id)}>
-                {m.name} ({m.phone})
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
       <div className="flex items-center gap-4">
         <label className="text-sm">Раздел:</label>
         <Select value={section} onValueChange={(v: any) => setSection(v)}>
@@ -829,6 +814,7 @@ export default function ManagerPage() {
                             delete nextDraft[String(it._id)];
                             return nextDraft;
                           });
+                          toast.success("Изображения обновлены");
                         }}
                       >
                         Сохранить изображения
@@ -850,6 +836,7 @@ export default function ManagerPage() {
                         delete next[String(it._id)];
                         return next;
                       });
+                      toast.success("Товар обновлен");
                     }}
                   >
                     Сохранить
@@ -864,7 +851,13 @@ export default function ManagerPage() {
                   >
                     Сброс
                   </Button>
-                  <Button variant="destructive" onClick={() => deleteItemWithImages({ id: it._id })}>Удалить</Button>
+                  <Button variant="destructive" onClick={() => {
+                    const ok = window.confirm("Удалить товар? Это действие нельзя отменить.");
+                    if (ok) {
+                      deleteItemWithImages({ id: it._id });
+                      toast.success("Товар удален");
+                    }
+                  }}>Удалить</Button>
                 </div>
               </div>
               ));
