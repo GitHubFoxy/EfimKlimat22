@@ -99,7 +99,7 @@ export const ItemCard = ({ e }: { e: Item }) => {
       <Link href={href} className="block mb-3">
         <div className="flex justify-between items-start gap-3 min-h-[48px]">
           <p className="text-base leading-6 line-clamp-2 break-words flex-1 max-h-[48px] overflow-hidden">
-            {e.brand ?? ""} "{e.name}" {e.variant ?? ""}
+            {e.brand ?? ""} {e.name} {e.variant ?? ""}
           </p>
           <p className="font-medium whitespace-nowrap shrink-0 text-right">
             {e.price} руб.
