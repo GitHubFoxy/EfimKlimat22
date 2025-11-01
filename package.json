@@ -13,7 +13,8 @@
     "mvp": "npm run dev",
     "quick-build": "next build --no-lint",
     "reset-db": "convex dev --clear",
-    "deploy": "npm run build && convex deploy"
+    "deploy": "npm run build && convex deploy",
+    "seed": "node scripts/seed.mjs"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.3.3",
@@ -24,6 +25,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "convex": "^1.28.0",
+    "dotenv": "^17.2.3",
     "embla-carousel-react": "^8.6.0",
     "lucide-react": "^0.544.0",
     "next": "15.2.3",
@@ -32,6 +34,7 @@
     "react-dom": "^19.2.0",
     "react-dropzone": "^14.3.8",
     "react-responsive": "^10.0.1",
+    "sharp": "^0.34.4",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.1"
   },
