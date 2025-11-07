@@ -1,5 +1,6 @@
 // Seed script: reads public/test.json, converts images to WebP using sharp,
 // uploads to Convex storage, then inserts items via dashboard.addItemsPublic.
+// If an item's image folder is missing or contains no images, the item is inserted without images.
 // Usage: pnpm seed
 
 import fs from "node:fs/promises";
@@ -68,7 +69,7 @@ async function uploadWebp(buffer) {
 async function seed() {
   const projectRoot = process.cwd();
   const publicRoot = path.join(projectRoot, "public");
-  const jsonPath = path.join(publicRoot, "test.json");
+  const jsonPath = path.join(publicRoot, "seed2.json");
   const items = await readJson(jsonPath);
 
   // NOTE: Category in the items schema expects a Convex id, but the seed JSON
@@ -79,18 +80,22 @@ async function seed() {
   for (const item of items) {
     // Normalize path to avoid leading slash breaking path.join on Windows
     const imagesDirRelRaw = item.images; // e.g. "/images/ZOTA/box-10"
-    const imagesDirRel = imagesDirRelRaw?.startsWith("/")
-      ? imagesDirRelRaw.slice(1)
-      : imagesDirRelRaw;
-    const imagesDirAbs = path.join(publicRoot, imagesDirRel);
     let files = [];
-    try {
-      files = await getDirImages(imagesDirAbs);
-    } catch (e) {
-      console.warn(`Images directory not found: ${imagesDirAbs}`);
-    }
-    if (!files.length) {
-      console.warn(`No images found for ${item.name} at ${imagesDirAbs}`);
+    if (!imagesDirRelRaw || typeof imagesDirRelRaw !== "string" || imagesDirRelRaw.trim() === "") {
+      console.warn(`No images path provided for ${item.name}, inserting without images`);
+    } else {
+      const imagesDirRel = imagesDirRelRaw.startsWith("/")
+        ? imagesDirRelRaw.slice(1)
+        : imagesDirRelRaw;
+      const imagesDirAbs = path.join(publicRoot, imagesDirRel);
+      try {
+        files = await getDirImages(imagesDirAbs);
+      } catch (e) {
+        console.warn(`Images directory not found at ${imagesDirAbs} for ${item.name}, inserting without images`);
+      }
+      if (!files.length) {
+        console.warn(`No images found at ${imagesDirAbs} for ${item.name}, inserting without images`);
+      }
     }
 
     const storageIds = [];
@@ -107,6 +112,7 @@ async function seed() {
     // Map fields from test.json to mutation args
     const catName = item.category ? String(item.category) : undefined;
     const subcategoryStr = item.subcategory ? String(item.subcategory) : undefined;
+    const collectionStr = item.Collection ? String(item.Collection) : undefined;
 
     const args = {
       name: item.name,
@@ -118,6 +124,7 @@ async function seed() {
       // Extract category and subcategory exactly as they appear in test.json
       category: catName,
       subcategory: subcategoryStr,
+      collection: collectionStr,
       partNumber: item.partNumber ? String(item.partNumber) : undefined,
       imageStorageIds: storageIds,
     };

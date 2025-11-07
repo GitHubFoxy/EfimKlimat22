@@ -28,9 +28,10 @@ export default defineSchema({
     category: v.optional(v.id("categorys")),
     sale: v.optional(v.number()),
     variant: v.string(),
-    subcategory: v.optional(v.string()),
+    subcategory: v.optional(v.id("subcategorys")),
     color: v.optional(v.string()),
     collection: v.optional(v.string()),
+    tags: v.optional(v.array(v.string())),
   })
     .index("by_orders", ["orders"])
     .index("by_category", ["category"])

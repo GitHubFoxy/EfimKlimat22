@@ -27,7 +27,7 @@ export const catalog_query_based_on_category_and_filter = query({
       v.literal("Новинки"),
       v.literal("Со скидкой"),
     ),
-    subcategory: v.optional(v.string()),
+    subcategory: v.optional(v.id("subcategorys")),
     paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, { category, filter, subcategory, paginationOpts }) => {

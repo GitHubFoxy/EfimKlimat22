@@ -18,7 +18,7 @@ export const seedInsertItems = action({
         brand: v.optional(v.string()),
         variant: v.optional(v.string()),
         category: v.optional(v.id("categorys")),
-        subcategory: v.optional(v.string()),
+        subcategory: v.optional(v.id("subcategorys")),
         partNumber: v.optional(v.string()),
         imageStorageIds: v.optional(v.array(v.id("_storage"))),
       }),

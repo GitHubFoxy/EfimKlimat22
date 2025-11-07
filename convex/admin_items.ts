@@ -3,7 +3,12 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
 export const list_items_paginated = query({
-  args: { paginationOpts: paginationOptsValidator },
+  args: {
+    paginationOpts: paginationOptsValidator,
+    // Optional filters for category and subcategory
+    category: v.optional(v.id("categorys")),
+    subcategory: v.optional(v.id("subcategorys")),
+  },
   returns: v.object({
     page: v.array(
       v.object({
@@ -22,8 +27,11 @@ export const list_items_paginated = query({
         category: v.optional(v.id("categorys")),
         variant: v.string(),
         sale: v.optional(v.number()),
-        subcategory: v.optional(v.string()),
+        subcategory: v.optional(v.id("subcategorys")),
         color: v.optional(v.string()),
+        // Include optional fields present in the items schema to avoid ReturnsValidationError
+        collection: v.optional(v.string()),
+        tags: v.optional(v.array(v.string())),
         partNumber: v.optional(v.string()),
       }),
     ),
@@ -32,8 +40,15 @@ export const list_items_paginated = query({
     pageStatus: v.optional(v.union(v.string(), v.null())),
     splitCursor: v.optional(v.union(v.string(), v.null())),
   }),
-  handler: async (ctx, { paginationOpts }) => {
-    return await ctx.db.query("items").order("desc").paginate(paginationOpts);
+  handler: async (ctx, { paginationOpts, category, subcategory }) => {
+    let q = ctx.db.query("items");
+    if (category) {
+      q = q.filter((f) => f.eq(f.field("category"), category));
+    }
+    if (subcategory) {
+      q = q.filter((f) => f.eq(f.field("subcategory"), subcategory));
+    }
+    return await q.order("desc").paginate(paginationOpts);
   },
 });
 
@@ -67,6 +82,9 @@ export const update_item = mutation({
     price: v.optional(v.number()),
     variant: v.optional(v.string()),
     sale: v.optional(v.number()),
+    // Allow updating category and subcategory
+    category: v.optional(v.id("categorys")),
+    subcategory: v.optional(v.id("subcategorys")),
     // Allow updating part number
     partNumber: v.optional(v.string()),
   },

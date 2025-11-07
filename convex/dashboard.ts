@@ -62,7 +62,7 @@ export const addItemsPublic = mutation({
     sale: v.optional(v.number()),
     brand: v.optional(v.string()),
     variant: v.optional(v.string()),
-    subcategory: v.optional(v.string()),
+    subcategory: v.optional(v.id("subcategorys")),
     partNumber: v.optional(v.string()),
     collection: v.optional(v.string()),
   },
