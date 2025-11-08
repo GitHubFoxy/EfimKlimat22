@@ -116,15 +116,15 @@ export default function ItemPage() {
                     <h2 className="text-xl font-semibold mb-4">
                       Товары из коллекции
                     </h2>
-                    <div className="flex gap-3 overflow-x-auto pb-4">
+                    <div className="grid grid-cols-4 gap-3 overflow-x-auto">
                       {relatedItems.map((relatedItem) => (
                         <Tooltip key={relatedItem._id}>
                           <TooltipTrigger asChild>
                             <Link
                               href={`/catalog/${relatedItem._id}`}
-                              className="flex-shrink-0 block"
+                              className="block min-w-[80px]"
                             >
-                              <div className="w-24 h-24 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 hover:border-gray-300 transition-colors">
+                              <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200 hover:border-gray-300 transition-colors">
                                 <img
                                   src={
                                     relatedItem.imagesUrls?.[0] ||
