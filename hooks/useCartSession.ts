@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { v4 as uuidv4 } from "uuid";
 
 /**
  * Provides a stable anonymous cart sessionId stored in localStorage.
@@ -14,7 +15,7 @@ export function useCartSessionId() {
     if (typeof window === "undefined") return undefined;
     const existing = window.localStorage.getItem("cartSessionId");
     if (existing && existing.length > 0) return existing;
-    const id = crypto.randomUUID();
+    const id = uuidv4();
     window.localStorage.setItem("cartSessionId", id);
     return id;
   }, []);

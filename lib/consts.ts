@@ -3,7 +3,7 @@ export const Title =
 export const Description =
   "Профессиональная продажа и установка газовых котлов, инженерной сантехники и отопительного оборудования в Барнауле. Качественные решения для вашего дома от компании Климат 22.";
 export const Icon = "/logo_.jpg";
-export const Phone = "8 (993) 399-99-63";
+export const Phone = "+7 (993) 399-99-63";
 export const Email = "klimat_brn@mail.ru";
 export const FullAdress =
   "г. Барнаул, Ленинский район, ул. Эмилии Алексеевой, 107";
