@@ -8,6 +8,10 @@ export const Email = "klimat_brn@mail.ru";
 export const FullAdress =
   "г. Барнаул, Ленинский район, ул. Эмилии Алексеевой, 107";
 
+// Company details for footer compliance
+export const CompanyName = "Климат 22"; // Уточните юридическое наименование
+export const INN = "222332865994"; // Укажите ИНН
+
 // Catalog filter options used across the app
 export const FILTERS = ["Хиты продаж", "Новинки", "Со скидкой"] as const;
 

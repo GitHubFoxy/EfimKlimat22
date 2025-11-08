@@ -293,6 +293,34 @@ export default function CheckoutPage() {
                 />
               </div>
 
+              <div className="mt-2">
+                <div className="bg-white rounded-lg border border-gray-100 p-3">
+                  <p className="text-sm text-gray-600 mb-2">
+                    Принимаемые способы оплаты:
+                  </p>
+                  <div className="flex items-center gap-2 mt-6">
+                    <div className="h-8 w-16 flex items-center justify-center rounded-full bg-white">
+                      <Image
+                        src="/payment-logo/mir.png"
+                        alt="Оплата картами Мир"
+                        width={64}
+                        height={24}
+                        className="object-contain rounded-full bg-white"
+                      />
+                    </div>
+                    <div className="h-8 w-16 flex items-center justify-center rounded-full bg-white">
+                      <Image
+                        src="/payment-logo/vtb.png"
+                        alt="Оплата через ВТБ"
+                        width={64}
+                        height={24}
+                        className="object-contain rounded-full bg-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <Button
                 type="submit"
                 disabled={isSubmitting}

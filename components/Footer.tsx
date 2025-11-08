@@ -1,9 +1,15 @@
-import { Email, FullAdress, Phone } from "@/lib/consts";
+import { Email, FullAdress, Phone, CompanyName, INN } from "@/lib/consts";
 import Image from "next/image";
 import Link from "next/link";
 
 export const Footer = () => {
-  const Contacts = [FullAdress, Phone, Email];
+  const Contacts = [
+    CompanyName ? `Компания: ${CompanyName}` : null,
+    INN ? `ИНН: ${INN}` : null,
+    FullAdress,
+    Phone,
+    Email,
+  ].filter(Boolean) as string[];
   const categorys = [
     {
       name: "Каталог",
