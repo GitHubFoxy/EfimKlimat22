@@ -12,6 +12,14 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -216,6 +224,90 @@ export default function CheckoutPage() {
               <p className="text-sm text-blue-900">
                 <strong>Обратите внимание:</strong> Стоимость доставки будет
                 рассчитана менеджером и сообщена вам при подтверждении заказа.
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <span className="ml-2 underline cursor-pointer text-blue-700">
+                      Подробнее
+                    </span>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Доставка и оплата</DialogTitle>
+                      <DialogDescription>
+                        Мы заботимся о том, чтобы вы получили ваш заказ как
+                        можно быстрее и удобнее. Ниже вы найдете всю необходимую
+                        информацию об условиях доставки.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 text-sm text-gray-800">
+                      <div>
+                        <p className="font-semibold">1. Способы доставки</p>
+                        <ul className="list-disc pl-5 space-y-1">
+                          <li>
+                            Курьерская доставка по [Ваш город]: Доставка
+                            осуществляется нашей курьерской службой до двери.
+                          </li>
+                          <li>
+                            Транспортной компанией по России: Мы отправляем
+                            заказы по всей России через ТК "СДЭК" и "Деловые
+                            Линии" до пункта выдачи или до вашего адреса.
+                          </li>
+                          <li>
+                            Самовывоз: Вы можете забрать ваш заказ
+                            самостоятельно с нашего склада по адресу: [Точный
+                            адрес, включая город, улицу, дом].
+                          </li>
+                        </ul>
+                      </div>
+
+                      <div>
+                        <p className="font-semibold">2. Сроки доставки</p>
+                        <ul className="list-disc pl-5 space-y-1">
+                          <li>
+                            Сборка и передача заказа в службу доставки занимает
+                            1-3 рабочих дня.
+                          </li>
+                          <li>
+                            Срок доставки курьером по [Ваш город]: 1-2 рабочих
+                            дня после передачи в доставку.
+                          </li>
+                          <li>
+                            Срок доставки по России: от 3 до 14 рабочих дней в
+                            зависимости от вашего региона.
+                          </li>
+                        </ul>
+                      </div>
+
+                      <div>
+                        <p className="font-semibold">3. Стоимость доставки</p>
+                        <ul className="list-disc pl-5 space-y-1">
+                          <li>
+                            Стоимость доставки по [Ваш город]: 500 рублей.
+                          </li>
+                          <li>
+                            Стоимость доставки по России рассчитывается
+                            индивидуально по тарифам выбранной транспортной
+                            компании и будет отображена на этапе оформления
+                            заказа.
+                          </li>
+                          <li>
+                            При заказе на сумму свыше 20 000 рублей доставка
+                            осуществляется бесплатно.
+                          </li>
+                        </ul>
+                      </div>
+
+                      <div>
+                        <p className="font-semibold">4. Получение заказа</p>
+                        <p>
+                          При получении товара, пожалуйста, проверьте его
+                          внешний вид и комплектность в присутствии курьера или
+                          сотрудника пункта выдачи.
+                        </p>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </p>
             </div>
           </div>
@@ -298,6 +390,26 @@ export default function CheckoutPage() {
                   <p className="text-sm text-gray-600 mb-2">
                     Принимаемые способы оплаты:
                   </p>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <span className="text-sm text-blue-700 underline cursor-pointer">Подробнее</span>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-xl max-h-[80vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>Безопасность онлайн-платежей</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-3 text-sm text-gray-800">
+                        <p>При выборе формы оплаты с помощью банковской карты проведение платежа производится непосредственно после оформления заказа.</p>
+                        <ul className="list-disc pl-5 space-y-1">
+                          <li>После завершения оформления заказа в нашем магазине, вы будете автоматически перенаправлены на защищенную страницу платежного шлюза ПАО «ВТБ» для ввода данных вашей банковской карты.</li>
+                          <li>Соединение с платежным шлюзом и передача информации осуществляется в защищенном режиме с использованием протокола шифрования SSL/TLS.</li>
+                          <li>Все операции с вашей картой происходят на стороне банка. Наш интернет-магазин не получает, не обрабатывает и не хранит какие-либо данные вашей банковской карты.</li>
+                          <li>Введенные вами данные полностью защищены в соответствии с требованиями стандарта безопасности PCI DSS и никто, включая сотрудников нашего магазина, не может их получить.</li>
+                        </ul>
+                        <p>После завершения оплаты вы будете возвращены на наш сайт. Информация о вашем платеже может идти до нас от 5 секунд до нескольких минут. В случае возникновения проблем с оплатой, пожалуйста, свяжитесь с нами.</p>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                   <div className="flex items-center gap-2 mt-6">
                     <div className="h-8 w-16 flex items-center justify-center rounded-full bg-white">
                       <Image
