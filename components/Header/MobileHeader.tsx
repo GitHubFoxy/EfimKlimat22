@@ -65,7 +65,7 @@ export function MobileHeader({ PhoneNumber }: { PhoneNumber: string }) {
                       ev.preventDefault();
                       const id = e.link.split("#")[1];
                       const el = document.getElementById(id);
-                      if (el) {
+                    if (el) {
                         el.scrollIntoView({
                           behavior: "smooth",
                           block: "center",
@@ -73,7 +73,10 @@ export function MobileHeader({ PhoneNumber }: { PhoneNumber: string }) {
                         history.replaceState(null, "", `#${id}`);
                         setIsOpen(false);
                       } else {
-                        window.location.href = e.link;
+                        // Element is not on the current page (e.g., we're on /catalog)
+                        // Redirect to home with the anchor so the user lands at the correct section
+                        setIsOpen(false);
+                        window.location.href = `/#${id}`;
                       }
                     }
                   }}
