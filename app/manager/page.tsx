@@ -329,14 +329,18 @@ export default function ManagerPage() {
       <Select
         value={selectValue}
         onValueChange={(v) =>
-          onChange(v === "__none__" ? undefined : (v as unknown as Id<"subcategorys">))
+          onChange(
+            v === "__none__" ? undefined : (v as unknown as Id<"subcategorys">),
+          )
         }
       >
         <SelectTrigger>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="__none__">{noneLabel ?? "Без подкатегории"}</SelectItem>
+          <SelectItem value="__none__">
+            {noneLabel ?? "Без подкатегории"}
+          </SelectItem>
           {subcategories.map((s: any) => (
             <SelectItem key={String(s._id)} value={String(s._id)}>
               {s.name}
@@ -1135,7 +1139,9 @@ export default function ManagerPage() {
           <div className="flex items-center gap-3 mt-2">
             <Label>Категория</Label>
             <Select
-              value={itemCategoryFilter ? String(itemCategoryFilter) : "__all__"}
+              value={
+                itemCategoryFilter ? String(itemCategoryFilter) : "__all__"
+              }
               onValueChange={(v: string) => {
                 if (v === "__all__") {
                   setItemCategoryFilter(undefined);
@@ -1282,7 +1288,11 @@ export default function ManagerPage() {
                     <div className="space-y-1">
                       <Label>Категория</Label>
                       <Select
-                        value={getEdit(it).category ? String(getEdit(it).category) : "__none__"}
+                        value={
+                          getEdit(it).category
+                            ? String(getEdit(it).category)
+                            : "__none__"
+                        }
                         onValueChange={(v: string) =>
                           setItemEdits((prev) => ({
                             ...prev,
@@ -1300,10 +1310,15 @@ export default function ManagerPage() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="__none__">Без категории</SelectItem>
+                          <SelectItem value="__none__">
+                            Без категории
+                          </SelectItem>
                           {Array.isArray(categories) &&
                             categories.map((c: any) => (
-                              <SelectItem key={String(c._id)} value={String(c._id)}>
+                              <SelectItem
+                                key={String(c._id)}
+                                value={String(c._id)}
+                              >
                                 {c.name}
                               </SelectItem>
                             ))}

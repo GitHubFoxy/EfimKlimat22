@@ -44,40 +44,48 @@ export default function HeaderSearch({ className }: { className?: string }) {
       {isOpen && results?.length > 0 && (
         <div className="absolute left-0 top-full mt-2 w-[min(28rem,80vw)] max-h-80 overflow-auto rounded-2xl border border-gray-200 bg-white shadow-lg z-20">
           <ul className="divide-y">
-            {results.map((item: any) => (
-              <li
-                key={item._id?.toString?.() ?? item._id}
-                className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer"
-                onMouseDown={(e) => {
-                  // Prevent blur so click works before closing.
-                  e.preventDefault();
-                }}
-                onClick={() => {
-                  setSearchValue(item.name);
-                  setIsOpen(false);
-                }}
-              >
-                {/* Thumbnail */}
-                <img
-                  src={
-                    (item.imagesUrls && item.imagesUrls.length > 0
-                      ? item.imagesUrls[0]
-                      : "/not-found.jpg")
-                  }
-                  alt={item.name}
-                  className="w-10 h-10 rounded-md object-cover"
-                />
-                {/* Title & Price */}
-                <div className="flex-1">
-                  <div className="text-sm font-medium text-gray-900 line-clamp-1">
-                    {item.name}
-                  </div>
-                  {typeof item.price === "number" && (
-                    <div className="text-xs text-gray-600">{item.price} ₽</div>
-                  )}
-                </div>
-              </li>
-            ))}
+            {results.map((item: any) => {
+              const id = typeof item._id === "string" ? item._id : String(item._id);
+              return (
+                <li
+                  key={id}
+                  onMouseDown={(e) => {
+                    // Prevent input blur so click navigates cleanly.
+                    e.preventDefault();
+                  }}
+                >
+                  <Link
+                    href={`/catalog/${id}`}
+                    className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer"
+                    onClick={() => {
+                      setSearchValue(item.name);
+                      setIsOpen(false);
+                    }}
+                    aria-label={`Открыть ${item.name}`}
+                  >
+                    {/* Thumbnail */}
+                    <img
+                      src={
+                        (item.imagesUrls && item.imagesUrls.length > 0
+                          ? item.imagesUrls[0]
+                          : "/not-found.jpg")
+                      }
+                      alt={item.name}
+                      className="w-10 h-10 rounded-md object-cover"
+                    />
+                    {/* Title & Price */}
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-900 line-clamp-1">
+                        {item.name}
+                      </div>
+                      {typeof item.price === "number" && (
+                        <div className="text-xs text-gray-600">{item.price} ₽</div>
+                      )}
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
             <li
               className="p-2"
               onMouseDown={(e) => {
