@@ -58,16 +58,19 @@ export function MobileHeader({ PhoneNumber }: { PhoneNumber: string }) {
               return (
                 <Link
                   key={index}
-                  className="font-[400]"
+                  className="font-normal"
                   href={e.link}
                   onClick={(ev) => {
-                    if (e.link.includes('#')) {
+                    if (e.link.includes("#")) {
                       ev.preventDefault();
-                      const id = e.link.split('#')[1];
+                      const id = e.link.split("#")[1];
                       const el = document.getElementById(id);
                       if (el) {
-                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        history.replaceState(null, '', `#${id}`);
+                        el.scrollIntoView({
+                          behavior: "smooth",
+                          block: "center",
+                        });
+                        history.replaceState(null, "", `#${id}`);
                         setIsOpen(false);
                       } else {
                         window.location.href = e.link;

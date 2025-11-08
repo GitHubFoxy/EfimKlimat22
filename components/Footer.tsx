@@ -28,18 +28,18 @@ export const Footer = () => {
         <div className="flex flex-col gap-5 px-2 md:px-4 py-6 md:py-[80px] md:border-r">
           <Image src="/logo_.jpg" alt="logo" width={180} height={80} />
           <div className="flex flex-col gap-4">
-            <p className="text-sm font-[400]">
+            <p className="text-sm font-normal">
               Все материалы на сайте являются авторским уникальным контентом.
               Копирование материалов с сайта преследуется по закону.
             </p>
-            <p className="text-sm font-[400]">
+            <p className="text-sm font-normal">
               Данный ресурс не является публичной офертой и носит исключительно
               информационный характер.
             </p>
           </div>
         </div>
         <div className="flex flex-col gap-4 px-2 md:px-4 py-6 md:py-[80px] md:border-r">
-          <h3 className="font-[500] text-xl">Покупателям</h3>
+          <h3 className="font-medium text-xl">Покупателям</h3>
           <div className="flex flex-col gap-2">
             {categorys.map((cat, index) => (
               <Link key={index} href={cat.link}>
@@ -49,7 +49,7 @@ export const Footer = () => {
           </div>
         </div>
         <div className="flex flex-col gap-4 px-2 md:px-4 py-6 md:py-[80px] md:border-r">
-          <h3 className="font-[500] text-xl">Контакты</h3>
+          <h3 className="font-medium text-xl">Контакты</h3>
           <div className="flex flex-col gap-2">
             {Contacts.map((contact, index) => (
               <p key={index}>{contact}</p>

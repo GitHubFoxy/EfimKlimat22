@@ -17,7 +17,9 @@ export default function FreeConsultmant() {
   const [showPhoneError, setShowPhoneError] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const submitConsultant = useMutation(api.consultants.submit_consultant_request);
+  const submitConsultant = useMutation(
+    api.consultants.submit_consultant_request,
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,10 +77,10 @@ export default function FreeConsultmant() {
     <section id="free-consultant">
       <div className="mb-6 flex flex-col md:border-b md:border-t md:grid md:grid-cols-2 md:mb-[120px]">
         <div className="md:border-r md:py-[36px] pb-4">
-          <h1 className="text-[14px] md:text-3xl font-[500] md:border-b md:pb-[24px] w-[20ch]">
+          <h1 className="text-[14px] md:text-3xl font-medium md:border-b md:pb-[24px] w-[20ch]">
             Получите бесплатную консультацию
           </h1>
-          <p className="text-[12px] md:text-base font-[400] pt-[12px] md:pt-[90px] w-[42ch]">
+          <p className="text-[12px] md:text-base font-normal pt-[12px] md:pt-[90px] w-[42ch]">
             Не знаете какое оборудование лучше всего подойдёт для Вас? Наш
             менеджер поможет Вам.
           </p>
@@ -126,14 +128,17 @@ export default function FreeConsultmant() {
                 onCheckedChange={handleCheckboxChange}
               />
               <Label
-                className={`font-inter font-[400] text-sm ${
+                className={`font-inter font-normal text-sm ${
                   showValidationError ? "text-red-500" : ""
                 }`}
               >
                 Нажимая кнопку Вы соглашаетесь с Политикой конфиденциальности
               </Label>
             </div>
-            <Button disabled={submitting} className="bg-light-orange h-[58px] rounded-full mt-4 cursor-pointer">
+            <Button
+              disabled={submitting}
+              className="bg-light-orange h-[58px] rounded-full mt-4 cursor-pointer"
+            >
               Отправить
             </Button>
           </form>

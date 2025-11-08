@@ -17,15 +17,19 @@ const filters = [
 function BestDealsContent() {
   const [activeIndex, setActiveIndex] = useState(0);
   // Query each filter once; select between them without triggering refetches
-  const hits = useQuery(api.main.main_page_by_filter, { filter: "Хиты продаж" });
-  const newItems = useQuery(api.main.main_page_by_filter, { filter: "Новинки" });
+  const hits = useQuery(api.main.main_page_by_filter, {
+    filter: "Хиты продаж",
+  });
+  const newItems = useQuery(api.main.main_page_by_filter, {
+    filter: "Новинки",
+  });
   const sales = useQuery(api.main.main_page_by_filter, { filter: "Скидки" });
   const data = activeIndex === 0 ? hits : activeIndex === 1 ? newItems : sales;
 
   return (
     <section id="best-deals">
       <div className="flex flex-col mb-32">
-        <h1 className="text-[12px] md:text-3xl font-[500] text-center md:mb-6 mb-2">
+        <h1 className="text-[12px] md:text-3xl font-medium text-center md:mb-6 mb-2">
           Выгодные предложения
         </h1>
         <div className="mb-4 border-b-2 pb-4 border-light-gray flex relative items-center justify-center">
@@ -35,7 +39,7 @@ function BestDealsContent() {
           <Button
             variant={"secondary"}
             className={cn(
-              "text-[12px] md:text-base font-[400] text-black bg-transparent",
+              "text-[12px] md:text-base font-normal text-black bg-transparent",
               activeIndex == 0 && "font-[700]",
             )}
             onClick={() => setActiveIndex(0)}
@@ -45,7 +49,7 @@ function BestDealsContent() {
           <Button
             variant={"secondary"}
             className={cn(
-              "text-[12px] md:text-base font-[400] text-black bg-transparent",
+              "text-[12px] md:text-base font-normal text-black bg-transparent",
               activeIndex == 1 && "font-[700]",
             )}
             onClick={() => setActiveIndex(1)}
@@ -55,7 +59,7 @@ function BestDealsContent() {
           <Button
             variant={"secondary"}
             className={cn(
-              "text-[12px] md:text-base font-[400] text-black bg-transparent",
+              "text-[12px] md:text-base font-normal text-black bg-transparent",
               activeIndex == 2 && "font-[700]",
             )}
             onClick={() => setActiveIndex(2)}

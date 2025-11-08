@@ -30,10 +30,10 @@ export const Brands = () => {
   return (
     <section id="partners" className="flex flex-col gap-6 mb-[120px]">
       <div className="flex flex-col gap-4">
-        <h2 className="text-center py-4 text-3xl font-[500] text-blackish ">
+        <h2 className="text-center py-4 text-3xl font-medium text-blackish ">
           Нам доверяют лидеры
         </h2>
-        <p className="text-center py-2 mb-6 text-base font-[400] text-blackish max-w-[500px] mx-auto">
+        <p className="text-center py-2 mb-6 text-base font-normal text-blackish max-w-[500px] mx-auto">
           Сотрудничаем с надёжными партнёрами в области строительства и
           производства климатического оборудования
         </p>
