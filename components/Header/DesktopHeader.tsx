@@ -99,6 +99,22 @@ export const DesktopHeader = ({ PhoneNumber }: { PhoneNumber: string }) => {
                hover:before:w-full hover:before:opacity-100 before:transition-all before:duration-300"
                   key={index}
                   href={category.link}
+                  onClick={(e) => {
+                    if (category.link.includes('#')) {
+                      e.preventDefault();
+                      const id = category.link.split('#')[1];
+                      const el = document.getElementById(id);
+                      if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        // Preserve hash in URL without full navigation
+                        const base = location.pathname === '/' ? '' : '/';
+                        history.replaceState(null, '', `${base}#${id}`);
+                      } else {
+                        // Fallback: navigate to the target route with hash
+                        window.location.href = category.link;
+                      }
+                    }
+                  }}
                 >
                   {category.name}
                 </Link>

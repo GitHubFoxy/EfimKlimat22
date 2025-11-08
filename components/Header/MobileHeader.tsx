@@ -56,7 +56,25 @@ export function MobileHeader({ PhoneNumber }: { PhoneNumber: string }) {
           <div className="flex flex-col gap-2">
             {Categorys.map((e, index) => {
               return (
-                <Link key={index} className="font-[400]" href={e.link}>
+                <Link
+                  key={index}
+                  className="font-[400]"
+                  href={e.link}
+                  onClick={(ev) => {
+                    if (e.link.includes('#')) {
+                      ev.preventDefault();
+                      const id = e.link.split('#')[1];
+                      const el = document.getElementById(id);
+                      if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        history.replaceState(null, '', `#${id}`);
+                        setIsOpen(false);
+                      } else {
+                        window.location.href = e.link;
+                      }
+                    }
+                  }}
+                >
                   {e.name}
                 </Link>
               );

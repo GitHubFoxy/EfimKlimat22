@@ -1,3 +1,4 @@
+"use client";
 import Image from "next/image";
 import { Button } from "../ui/button";
 import Link from "next/link";
@@ -27,7 +28,19 @@ export const Hero = () => {
             className="cursor-pointer bg-transparent border border-blackish h-[36px] rounded-full md:h-[57px]"
             variant={"outline"}
           >
-            <Link href={"#free-consultant"}>Заказать консультацию</Link>
+            <Link
+              href="#free-consultant"
+              onClick={(e) => {
+                e.preventDefault();
+                const el = document.getElementById("free-consultant");
+                if (el) {
+                  el.scrollIntoView({ behavior: "smooth", block: "center" });
+                  history.replaceState(null, "", "#free-consultant");
+                }
+              }}
+            >
+              Заказать консультацию
+            </Link>
           </Button>
         </div>
       </div>
