@@ -13,7 +13,6 @@ export default function HeaderSearch({ className }: { className?: string }) {
   const [isOpen, setIsOpen] = useState(false);
   const ref = useRef<HTMLInputElement>(null);
 
-  // Basic debouncing to avoid spamming queries on very fast typing.
   const [debounced, setDebounced] = useState("");
   useEffect(() => {
     const t = setTimeout(() => setDebounced(searchValue), 200);
@@ -45,7 +44,8 @@ export default function HeaderSearch({ className }: { className?: string }) {
         <div className="absolute left-0 top-full mt-2 w-[min(28rem,80vw)] max-h-80 overflow-auto rounded-2xl border border-gray-200 bg-white shadow-lg z-20">
           <ul className="divide-y">
             {results.map((item: any) => {
-              const id = typeof item._id === "string" ? item._id : String(item._id);
+              const id =
+                typeof item._id === "string" ? item._id : String(item._id);
               return (
                 <li
                   key={id}
@@ -66,9 +66,9 @@ export default function HeaderSearch({ className }: { className?: string }) {
                     {/* Thumbnail */}
                     <img
                       src={
-                        (item.imagesUrls && item.imagesUrls.length > 0
+                        item.imagesUrls && item.imagesUrls.length > 0
                           ? item.imagesUrls[0]
-                          : "/not-found.jpg")
+                          : "/not-found.jpg"
                       }
                       alt={item.name}
                       className="w-10 h-10 rounded-md object-cover"
@@ -79,7 +79,9 @@ export default function HeaderSearch({ className }: { className?: string }) {
                         {item.name}
                       </div>
                       {typeof item.price === "number" && (
-                        <div className="text-xs text-gray-600">{item.price} ₽</div>
+                        <div className="text-xs text-gray-600">
+                          {item.price} ₽
+                        </div>
                       )}
                     </div>
                   </Link>

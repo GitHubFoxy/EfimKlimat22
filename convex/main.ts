@@ -15,12 +15,17 @@ export const search_items = query({
         .take(3);
     }
 
-    return await ctx.db
-      .query("items")
-      .withIndex("by_lowercase_name", (x) =>
-        x.gte("lowerCaseName", q).lte("lowerCaseName", q + "\uffff"),
-      )
-      .take(3);
+    // Substring match using JS .includes on lowerCaseName
+    // Note: This scans the table; fine for small datasets. For large datasets,
+    // prefer index-based prefix search or introduce a dedicated search index/table.
+    const allItems = await ctx.db.query("items").collect();
+    return allItems
+      .filter((item) => {
+        const inName = item?.lowerCaseName?.includes(q);
+        const inBrand = item?.brand ? item.brand.toLowerCase().includes(q) : false;
+        return Boolean(inName || inBrand);
+      })
+      .slice(0, 3);
   },
 });
 
