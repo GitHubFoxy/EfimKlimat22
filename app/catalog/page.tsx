@@ -35,7 +35,11 @@ function CatalogResults({
 }) {
   const { results, status, isLoading, loadMore } = usePaginatedQuery(
     api.catalog.catalog_query_based_on_category_and_filter,
-    { category: categoryId, filter, subcategory: subcategory ?? undefined },
+    {
+      category: categoryId,
+      filter,
+      subcategory: (subcategory as Id<"subcategorys">) ?? undefined,
+    },
     { initialNumItems: 12 },
   );
 
