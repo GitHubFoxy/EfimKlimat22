@@ -25,6 +25,10 @@ export const Brands = () => {
       src: "/newlogos/RTP.png",
       alt: "RTP logo",
     },
+    {
+      src: "/company_logos/valtek.webp",
+      alt: "VALTEK logo",
+    },
   ];
 
   return (

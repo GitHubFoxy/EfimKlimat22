@@ -14,6 +14,10 @@ export const DesktopHeader = ({ PhoneNumber }: { PhoneNumber: string }) => {
       link: "/",
     },
     {
+      name: "Каталог",
+      link: "/catalog",
+    },
+    {
       name: "Почему мы",
       link: "/#whyus",
     },
@@ -66,7 +70,7 @@ export const DesktopHeader = ({ PhoneNumber }: { PhoneNumber: string }) => {
                 await navigator.clipboard.writeText(PhoneNumber);
                 setCopied(true);
                 setTimeout(() => setCopied(false), 1500);
-              } catch {}
+              } catch { }
             }}
             aria-live="polite"
             title="Скопировать номер"

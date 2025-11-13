@@ -28,10 +28,18 @@ function CatalogResults({
   categoryId,
   filter,
   subcategory,
+  priceSort,
+  variantSort,
+  selectedBrand,
+  onClearBrandFilter,
 }: {
   categoryId: Id<"categorys">;
   filter: "Хиты продаж" | "Новинки" | "Со скидкой";
   subcategory?: string | null;
+  priceSort?: "asc" | "desc" | null;
+  variantSort?: "asc" | "desc" | null;
+  selectedBrand?: string | null;
+  onClearBrandFilter: () => void;
 }) {
   const { results, status, isLoading, loadMore } = usePaginatedQuery(
     api.catalog.catalog_query_based_on_category_and_filter,
@@ -42,6 +50,40 @@ function CatalogResults({
     },
     { initialNumItems: 12 },
   );
+
+  // Apply client-side filtering and sorting
+  const sortedResults = useMemo(() => {
+    let sorted = [...results];
+
+    // Filter by brand if selected
+    if (selectedBrand && selectedBrand !== "all") {
+      sorted = sorted.filter((item) => item.brand === selectedBrand);
+    }
+
+    // Sort by price if selected
+    if (priceSort === "asc") {
+      sorted.sort((a, b) => a.price - b.price);
+    } else if (priceSort === "desc") {
+      sorted.sort((a, b) => b.price - a.price);
+    }
+
+    // Sort by variant (as number) if selected
+    if (variantSort === "asc") {
+      sorted.sort((a, b) => {
+        const variantA = parseFloat(a.variant) || 0;
+        const variantB = parseFloat(b.variant) || 0;
+        return variantA - variantB;
+      });
+    } else if (variantSort === "desc") {
+      sorted.sort((a, b) => {
+        const variantA = parseFloat(a.variant) || 0;
+        const variantB = parseFloat(b.variant) || 0;
+        return variantB - variantA;
+      });
+    }
+
+    return sorted;
+  }, [results, priceSort, variantSort, selectedBrand]);
 
   return (
     <div className="px-4 mb-8">
@@ -55,27 +97,41 @@ function CatalogResults({
             { label: "Связаться с консультантом", href: "#free-consult" },
           ]}
         />
+      ) : sortedResults.length === 0 ? (
+        <EmptyState
+          title={`Товары бренда "${selectedBrand}" не найдены`}
+          description="Попробуйте выбрать другой бренд или сбросьте фильтр"
+          primaryAction={{
+            label: "Сбросить фильтр по бренду",
+            onClick: onClearBrandFilter,
+          }}
+          secondaryActions={[
+            { label: "Связаться с консультантом", href: "#free-consult" },
+          ]}
+        />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-          {results.map((e, index: number) => (
-            <div
-              key={e._id?.toString?.() ?? index}
-              className="flex flex-col items-center bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 p-4 md:p-5"
-            >
-              <ItemCard e={e} />
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+            {sortedResults.map((e, index: number) => (
+              <div
+                key={e._id?.toString?.() ?? index}
+                className="flex flex-col items-center bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 p-4 md:p-5"
+              >
+                <ItemCard e={e} />
+              </div>
+            ))}
+          </div>
+          {status !== "Exhausted" && (
+            <div className="flex justify-center mt-6">
+              <button
+                className="px-4 py-2 rounded-md border  disabled:opacity-50"
+                onClick={() => loadMore(12)}
+              >
+                Показать еще
+              </button>
             </div>
-          ))}
-        </div>
-      )}
-      {status !== "Exhausted" && (
-        <div className="flex justify-center mt-6">
-          <button
-            className="px-4 py-2 rounded-md border  disabled:opacity-50"
-            onClick={() => loadMore(12)}
-          >
-            Показать еще
-          </button>
-        </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -99,6 +155,10 @@ export default function Catalog() {
   // Categories and filters
   const categoriesData = useQuery(api.catalog.catalog_list_all_categories);
   const categories = categoriesData ?? [];
+
+  // Brands data
+  const brandsData = useQuery(api.dashboard.show_all_brands);
+  const brands = brandsData ?? [];
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
     null,
   );
@@ -117,6 +177,9 @@ export default function Catalog() {
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(
     null,
   );
+  const [priceSort, setPriceSort] = useState<"asc" | "desc" | null>(null);
+  const [variantSort, setVariantSort] = useState<"asc" | "desc" | null>(null);
+  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
 
   useEffect(() => {
     if (!selectedCategoryId && categories.length > 0) {
@@ -170,67 +233,138 @@ export default function Catalog() {
           </div>
         </div>
       )}
-      {/* Filters & Categories */}
-      <div
-        id="catalog-filters"
-        className="px-4 mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
-      >
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-600">Категория:</span>
-          <Select
-            value={selectedCategoryId ?? undefined}
-            onValueChange={(val) => setSelectedCategoryId(val)}
-          >
-            <SelectTrigger className="min-w-[220px]">
-              <SelectValue placeholder="Выберите категорию" />
-            </SelectTrigger>
-            <SelectContent>
-              {categories.map((c: any) => (
-                <SelectItem key={c._id} value={c._id}>
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
 
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-600">Подкатегория:</span>
-          <Select
-            value={selectedSubcategory ?? undefined}
-            onValueChange={(val) => setSelectedSubcategory(val)}
-          >
-            <SelectTrigger className="min-w-[220px]">
-              <SelectValue placeholder="Выберите подкатегорию" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">Без подкатегории</SelectItem>
-              {subcategories.map((sc: any) => (
-                <SelectItem key={sc._id} value={sc._id}>
-                  {sc.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      {/* Filters & Categories - Two Row Layout */}
+      <div id="catalog-filters" className="px-4 mb-6 flex flex-col gap-4">
+        {/* First Row: Category, Subcategory, Filter */}
+        <div className="flex flex-col md:flex-row md:items-center gap-4">
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-600 whitespace-nowrap">Категория:</span>
+            <Select
+              value={selectedCategoryId ?? undefined}
+              onValueChange={(val) => setSelectedCategoryId(val)}
+            >
+              <SelectTrigger className="min-w-[200px]">
+                <SelectValue placeholder="Выберите категорию" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((c: any) => (
+                  <SelectItem key={c._id} value={c._id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-600 mr-2">Фильтр:</span>
-          {["Новинки", "Хиты продаж", "Со скидкой"].map((f) => (
-            <button
-              key={f}
-              className={`px-3 py-2 rounded-md border text-sm transition ${
-                selectedFilter === f
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-600 whitespace-nowrap">Подкатегория:</span>
+            <Select
+              value={selectedSubcategory ?? undefined}
+              onValueChange={(val) => setSelectedSubcategory(val)}
+            >
+              <SelectTrigger className="min-w-[200px]">
+                <SelectValue placeholder="Выберите подкатегорию" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Без подкатегории</SelectItem>
+                {subcategories.map((sc: any) => (
+                  <SelectItem key={sc._id} value={sc._id}>
+                    {sc.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600 whitespace-nowrap">Фильтр:</span>
+            {["Новинки", "Хиты продаж", "Со скидкой"].map((f) => (
+              <button
+                key={f}
+                className={`px-3 py-2 rounded-md border text-sm transition whitespace-nowrap ${selectedFilter === f
                   ? "bg-gray-900 text-white border-gray-900"
                   : "bg-white hover:bg-gray-50"
-              }`}
-              onClick={() => setSelectedFilter(f as any)}
+                  }`}
+                onClick={() => setSelectedFilter(f as any)}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Second Row: Brand Filter, Price Sort and Variant Sort */}
+        <div className="flex flex-col md:flex-row md:items-center gap-4">
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-600 whitespace-nowrap">Бренд:</span>
+            <Select
+              value={selectedBrand ?? "all"}
+              onValueChange={(val) => setSelectedBrand(val === "all" ? null : val)}
             >
-              {f}
-            </button>
-          ))}
+              <SelectTrigger className="min-w-[180px]">
+                <SelectValue placeholder="Все бренды" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все бренды</SelectItem>
+                {brands.map((brand: any) => (
+                  <SelectItem key={brand._id} value={brand.name}>
+                    {brand.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-600 whitespace-nowrap">Сортировка по цене:</span>
+            <Select
+              value={priceSort ?? "none"}
+              onValueChange={(val) => {
+                if (val === "none") {
+                  setPriceSort(null);
+                } else {
+                  setPriceSort(val as "asc" | "desc");
+                  setVariantSort(null);
+                }
+              }}
+            >
+              <SelectTrigger className="min-w-[180px]">
+                <SelectValue placeholder="Без сортировки" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Без сортировки</SelectItem>
+                <SelectItem value="asc">По возрастанию</SelectItem>
+                <SelectItem value="desc">По убыванию</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-600 whitespace-nowrap">Сортировка по варианту:</span>
+            <Select
+              value={variantSort ?? "none"}
+              onValueChange={(val) => {
+                if (val === "none") {
+                  setVariantSort(null);
+                } else {
+                  setVariantSort(val as "asc" | "desc");
+                  setPriceSort(null);
+                }
+              }}
+            >
+              <SelectTrigger className="min-w-[180px]">
+                <SelectValue placeholder="Без сортировки" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Без сортировки</SelectItem>
+                <SelectItem value="asc">По возрастанию</SelectItem>
+                <SelectItem value="desc">По убыванию</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
+
       {/* Disclaimer message for gas-related subcategories */}
       {selectedSubcategory === "k974vfejt24xdkaf0dvmx731957se0s5" && (
         <div className="px-4 mb-6">
@@ -247,6 +381,10 @@ export default function Catalog() {
           subcategory={
             selectedSubcategory === "none" ? null : selectedSubcategory
           }
+          priceSort={priceSort}
+          variantSort={variantSort}
+          selectedBrand={selectedBrand}
+          onClearBrandFilter={() => setSelectedBrand(null)}
         />
       ) : (
         <div className="px-4 mb-8">
