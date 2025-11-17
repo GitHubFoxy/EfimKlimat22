@@ -18,9 +18,20 @@ import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { formatPrice } from "@/lib/utils";
 
 // Strong type for catalog item documents
-type Item = Doc<"items">;
+type Item = Doc<"items"> & {
+  variantsCount?: number;
+  priceRange?: {
+    min: number;
+    max: number;
+  };
+  variantRange?: {
+    min: number;
+    max: number;
+  };
+};
 
 export const ItemCard = ({ e }: { e: Item }) => {
   const [isHovered, setIsHovered] = useState(false);
@@ -67,6 +78,12 @@ export const ItemCard = ({ e }: { e: Item }) => {
       {/* Image + Carousel Section */}
       <Link href={href} className="block w-full">
         <div className="relative w-full h-[350px] flex items-center justify-center  transition-colors rounded-2xl overflow-hidden mb-3">
+          {/* Add badge for multiple variants */}
+          {e.variantsCount && e.variantsCount > 1 && (
+            <div className="absolute top-2 right-2 z-10 bg-blue-500 text-white text-xs font-medium px-2 py-1 rounded-full shadow-md">
+              {e.variantsCount} вариантов
+            </div>
+          )}
           <Carousel className="w-full h-full">
             <CarouselContent className="h-full">
               {(e.imagesUrls && e.imagesUrls.length > 0
@@ -105,12 +122,27 @@ export const ItemCard = ({ e }: { e: Item }) => {
 
       {/* Name and Price on same line */}
       <Link href={href} className="block mb-3">
-        <div className="flex justify-between items-start gap-3 min-h-12">
+        <div className="flex flex-col justify-between items-start gap-3 min-h-12">
           <p className="text-base leading-6 line-clamp-2 wrap-break-word flex-1 max-h-12 overflow-hidden">
-            {e.brand ?? ""} {e.name} {e.variant ?? ""}
+            {e.brand ?? ""} {e.name}{" "}
+            {e.variantRange
+              ? `${e.variantRange.min}${e.variantRange.min !== e.variantRange.max ? `-${e.variantRange.max}` : ""} кВт`
+              : e.variant
+                ? `${e.variant}`
+                : ""}
           </p>
           <p className="font-medium whitespace-nowrap shrink-0 text-right">
-            {e.price} руб.
+            {e.priceRange ? (
+              <>
+                {formatPrice(e.priceRange.min)}
+                {e.priceRange.min !== e.priceRange.max && (
+                  <> - {formatPrice(e.priceRange.max)}</>
+                )}
+                {" руб."}
+              </>
+            ) : (
+              <>{formatPrice(e.price)} руб.</>
+            )}
           </p>
         </div>
       </Link>

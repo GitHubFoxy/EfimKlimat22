@@ -242,7 +242,7 @@ export default function ManagerPage() {
     newImages.forEach((img) => {
       try {
         URL.revokeObjectURL(img.url);
-      } catch {}
+      } catch { }
     });
     setNewImages([]);
     setShowAddItemDialog(false);
@@ -581,13 +581,13 @@ export default function ManagerPage() {
                       (managerId &&
                         o.assignedManager &&
                         String(o.assignedManager) === managerId)) && (
-                      <Button
-                        variant="destructive"
-                        onClick={() => unclaim({ orderId: o._id })}
-                      >
-                        Снять
-                      </Button>
-                    )}
+                        <Button
+                          variant="destructive"
+                          onClick={() => unclaim({ orderId: o._id })}
+                        >
+                          Снять
+                        </Button>
+                      )}
                   </div>
                 </div>
               ));
@@ -761,15 +761,15 @@ export default function ManagerPage() {
                       (managerId &&
                         c.assignedManager &&
                         String(c.assignedManager) === managerId)) && (
-                      <Button
-                        variant="destructive"
-                        onClick={() =>
-                          unclaimConsultant({ consultantId: c._id })
-                        }
-                      >
-                        Снять
-                      </Button>
-                    )}
+                        <Button
+                          variant="destructive"
+                          onClick={() =>
+                            unclaimConsultant({ consultantId: c._id })
+                          }
+                        >
+                          Снять
+                        </Button>
+                      )}
                   </div>
                 </div>
               ));
@@ -902,7 +902,7 @@ export default function ManagerPage() {
                     itemName={newItem.name || "Товар"}
                     images={newImages}
                     max={15}
-                    onDropFiles={async (fs) => {
+                    onDropFilesAction={async (fs) => {
                       // Enforce max 15 images; only accept up to remaining slots
                       const remaining = 15 - newImages.length;
                       const files = fs
@@ -926,14 +926,14 @@ export default function ManagerPage() {
                       );
                       setNewImages((prev) => [...prev, ...uploaded]);
                     }}
-                    onChange={(next) =>
+                    onChangeAction={(next) =>
                       setNewImages(
                         next as { url: string; storageId: Id<"_storage"> }[],
                       )
                     }
                   />
                 </div>
-                <div className="md:col-span-2 sticky bottom-0 w-full bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 border-t pt-3 pb-3 flex justify-end gap-2">
+                <div className="md:col-span-2 sticky bottom-0 w-full bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/80 border-t pt-3 pb-3 flex justify-end gap-2">
                   <Button
                     variant="outline"
                     onClick={() => {
@@ -947,7 +947,7 @@ export default function ManagerPage() {
                       newImages.forEach((img) => {
                         try {
                           URL.revokeObjectURL(img.url);
-                        } catch {}
+                        } catch { }
                       });
                       setNewImages([]);
                     }}
@@ -1044,7 +1044,7 @@ export default function ManagerPage() {
                   itemName={newItem.name || "Товар"}
                   images={newImages}
                   max={15}
-                  onDropFiles={async (fs) => {
+                  onDropFilesAction={async (fs) => {
                     // Enforce max 15 images; only accept up to remaining slots
                     const remaining = 15 - newImages.length;
                     const files = fs
@@ -1068,7 +1068,7 @@ export default function ManagerPage() {
                     );
                     setNewImages((prev) => [...prev, ...uploaded]);
                   }}
-                  onChange={(next) =>
+                  onChangeAction={(next) =>
                     setNewImages(
                       next as { url: string; storageId: Id<"_storage"> }[],
                     )
@@ -1106,7 +1106,7 @@ export default function ManagerPage() {
                     newImages.forEach((img) => {
                       try {
                         URL.revokeObjectURL(img.url);
-                      } catch {}
+                      } catch { }
                     });
                     setNewImages([]);
                   }}
@@ -1169,7 +1169,7 @@ export default function ManagerPage() {
           </div>
           <div className="flex items-center gap-3 mt-2">
             <Label>Подкатегория</Label>
-            <div className="min-w-[240px]">
+            <div className="min-w-60">
               <SubcategorySelect
                 categoryId={itemCategoryFilter}
                 value={itemSubcategoryFilter}
@@ -1425,7 +1425,7 @@ export default function ManagerPage() {
                         itemName={getEdit(it).name}
                         images={getImagesFor(it)}
                         max={15}
-                        onDropFiles={async (fs) => {
+                        onDropFilesAction={async (fs) => {
                           const current = getImagesFor(it);
                           const remaining = 15 - current.length;
                           const files = fs
@@ -1451,7 +1451,7 @@ export default function ManagerPage() {
                             [String(it._id)]: [...current, ...uploaded],
                           }));
                         }}
-                        onChange={(next) =>
+                        onChangeAction={(next) =>
                           setImagesDraft((prev) => ({
                             ...prev,
                             [String(it._id)]: next as {
@@ -1480,7 +1480,7 @@ export default function ManagerPage() {
                               if (img.url?.startsWith("blob:")) {
                                 try {
                                   URL.revokeObjectURL(img.url);
-                                } catch {}
+                                } catch { }
                               }
                             });
                             setImagesDraft((prev) => {

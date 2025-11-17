@@ -1,7 +1,7 @@
 "use client";
 import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import { Button } from "../ui/button";
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { twMerge } from "tailwind-merge";
 import { useRouter } from "next/navigation";
 import {
@@ -88,7 +88,7 @@ export default function Cart({ className }: { className?: string }) {
               {itemsData.items.map((item: any) => (
                 <div key={item._id}>
                   <div className="grid grid-cols-3">
-                    <div className="w-[43px] h-[89px] px-1 py-5 rounded relative  place-self-center  col-span-1">
+                    <div className="w-24 h-24 p-2 rounded-lg relative place-self-center col-span-1 bg-gray-50 border border-gray-200">
                       <Image
                         src={item.image ?? "/kotel.jpg"}
                         alt={item.name}
@@ -136,20 +136,21 @@ export default function Cart({ className }: { className?: string }) {
                     </div>
                   </div>
                   <hr className="my-4" />
-                  <div className="flex justify-between">
-                    <div className="flex flex-col gap-2">
-                      <p>Итого к оплате:</p>
-                      <p>{itemsData.subtotal.toLocaleString("ru-RU")} руб.</p>
-                    </div>
-                    <div
-                      className="flex gap-2 cursor-pointer"
-                      onClick={() => sessionId && clear({ sessionId })}
-                    >
-                      Очистить корзину <Trash2 />
-                    </div>
-                  </div>
                 </div>
+
               ))}
+              <div className="flex justify-between">
+                <div className="flex flex-col gap-2">
+                  <p>Итого к оплате:</p>
+                  <p>{itemsData.subtotal.toLocaleString("ru-RU")} руб.</p>
+                </div>
+                <div
+                  className="flex gap-2 cursor-pointer"
+                  onClick={() => sessionId && clear({ sessionId })}
+                >
+                  Очистить корзину <Trash2 />
+                </div>
+              </div>
             </div>
           ) : (
             <p>Корзина пуста</p>

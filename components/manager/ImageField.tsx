@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -15,8 +15,8 @@ export type ImageFieldProps = {
   itemName: string;
   images: ImageItem[];
   max?: number; // default: 15
-  onDropFiles?: (files: File[]) => void; // caller uploads & sets new images
-  onChange?: (next: ImageItem[]) => void; // emitted on reorder/remove
+  onDropFilesAction?: (files: File[]) => void; // caller uploads & sets new images
+  onChangeAction?: (next: ImageItem[]) => void; // emitted on reorder/remove
 };
 
 // Simple drop area using native input for selecting images; callers can also wire react-dropzone.
@@ -25,18 +25,17 @@ export default function ImageField({
   itemName,
   images,
   max = 15,
-  onDropFiles,
-  onChange,
+  onDropFilesAction,
+  onChangeAction,
 }: ImageFieldProps) {
   const [preview, setPreview] = useState<string | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const canAddMore = images.length < max;
-  const message = useMemo(() => {
-    if (!canAddMore) return "Максимум 15 изображений";
-    return "Перетащите изображения сюда или нажмите, чтобы выбрать";
-  }, [canAddMore]);
+  const message = !canAddMore
+    ? "Максимум 15 изображений"
+    : "Перетащите изображения сюда или нажмите, чтобы выбрать";
 
   const onSelectFiles = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -44,11 +43,11 @@ export default function ImageField({
       if (!files.length) return;
       if (!canAddMore) return; // enforce max
       const allowed = files.filter((f) => f.type.startsWith("image/"));
-      if (allowed.length && onDropFiles) onDropFiles(allowed);
+      if (allowed.length && onDropFilesAction) onDropFilesAction(allowed);
       // reset input value to allow re-selection of the same files
       if (inputRef.current) inputRef.current.value = "";
     },
-    [onDropFiles, canAddMore],
+    [onDropFilesAction, canAddMore],
   );
 
   const onDragStart = (idx: number) => setDragIndex(idx);
@@ -59,12 +58,12 @@ export default function ImageField({
     const [moved] = next.splice(dragIndex, 1);
     next.splice(idx, 0, moved);
     setDragIndex(null);
-    onChange?.(next);
+    onChangeAction?.(next);
   };
 
   const removeAt = (idx: number) => {
     const next = images.filter((_, i) => i !== idx);
-    onChange?.(next);
+    onChangeAction?.(next);
   };
 
   return (
@@ -72,7 +71,7 @@ export default function ImageField({
       <Label className="text-sm font-medium">{label}</Label>
       {/* Empty state / selector */}
       <div
-        className="rounded-md border border-dashed p-4 min-h-[96px] flex items-center justify-between gap-3 bg-muted/30"
+        className="rounded-md border border-dashed p-4 min-h-24 flex items-center justify-between gap-3 bg-muted/30"
       >
         <div className="text-sm text-muted-foreground">
           {message}

@@ -6,6 +6,7 @@ import { Preloaded, usePreloadedQuery, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Doc, Id } from "@/convex/_generated/dataModel";
 import Link from "next/link";
+import { formatPrice } from "@/lib/utils";
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -42,7 +43,7 @@ export function ItemClient({
   ) as Doc<"items">[] | undefined;
 
   return (
-    <div className="px-6 py-6 md:px-12 lg:px-28 xl:max-w-[1280px] xl:mx-auto">
+    <div className="px-6 py-6 md:px-12 lg:px-28 xl:max-w-7xl xl:mx-auto">
       <Header />
 
       {/* Breadcrumbs */}
@@ -104,7 +105,7 @@ export function ItemClient({
                           <TooltipTrigger asChild>
                             <Link
                               href={`/catalog/${relatedItem._id}`}
-                              className="block min-w-[80px]"
+                              className="block min-w-20"
                             >
                               <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200 hover:border-gray-300 transition-colors">
                                 <img
@@ -138,7 +139,7 @@ export function ItemClient({
               </h1>
 
               <p className="text-lg font-medium mb-2 text-amber-600">
-                {item.price} руб.
+                {formatPrice(item.price)} руб.
               </p>
 
               <p className="text-sm text-gray-500 mb-4">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
 /**
@@ -11,14 +11,16 @@ export function useCartSessionId() {
   const [sessionId, setSessionId] = useState<string | undefined>(undefined);
 
   // Generate synchronously during first render if possible.
-  const initialId = useMemo(() => {
+  const getInitialId = () => {
     if (typeof window === "undefined") return undefined;
     const existing = window.localStorage.getItem("cartSessionId");
     if (existing && existing.length > 0) return existing;
     const id = uuidv4();
     window.localStorage.setItem("cartSessionId", id);
     return id;
-  }, []);
+  };
+
+  const initialId = getInitialId();
 
   useEffect(() => {
     if (initialId && !sessionId) setSessionId(initialId);
