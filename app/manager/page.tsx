@@ -183,7 +183,8 @@ export default function ManagerPage() {
     price: 0,
     quantity: 0,
     description: "",
-    variant: "default",
+    variant: "0",
+    collection: "",
     sale: 0,
   });
   // New images state for create flow: ordered array of { url (object URL), storageId }
@@ -199,6 +200,7 @@ export default function ManagerPage() {
     quantity: 0,
     description: "",
     variant: "default",
+    collection: "",
     sale: 0,
   };
   const isAddItemFormDirty = () => {
@@ -210,6 +212,7 @@ export default function ManagerPage() {
       ni.quantity !== 0 ||
       ni.description !== "" ||
       (ni.variant && ni.variant !== "default") ||
+      ni.collection !== "" ||
       (typeof ni.sale === "number" && ni.sale !== 0) ||
       newImages.length > 0
     );
@@ -233,6 +236,7 @@ export default function ManagerPage() {
       quantity: newItem.quantity,
       description: newItem.description,
       variant: newItem.variant || "default",
+      collection: newItem.collection || undefined,
       sale: newItem.sale || undefined,
       imageStorageIds,
     });
@@ -262,6 +266,7 @@ export default function ManagerPage() {
     quantity: number;
     description: string;
     variant: string;
+    collection: string;
     sale: number;
     category?: Id<"categorys">;
     subcategory?: Id<"subcategorys">;
@@ -277,6 +282,7 @@ export default function ManagerPage() {
         quantity: it.quantity,
         description: it.description,
         variant: it.variant ?? "",
+        collection: it.collection ?? "",
         sale: it.sale ?? 0,
         category: it.category ?? undefined,
         subcategory: it.subcategory ?? undefined,
@@ -291,6 +297,7 @@ export default function ManagerPage() {
       ed.quantity !== it.quantity ||
       ed.description !== it.description ||
       (ed.variant || undefined) !== (it.variant ?? undefined) ||
+      (ed.collection || undefined) !== (it.collection ?? undefined) ||
       (ed.sale || undefined) !== (it.sale ?? undefined) ||
       (ed.category || undefined) !== (it.category ?? undefined) ||
       (ed.subcategory || undefined) !== (it.subcategory ?? undefined)
@@ -304,6 +311,7 @@ export default function ManagerPage() {
     if (ed.quantity !== it.quantity) patch.quantity = ed.quantity;
     if (ed.description !== it.description) patch.description = ed.description;
     if (ed.variant !== (it.variant ?? "")) patch.variant = ed.variant;
+    if (ed.collection !== (it.collection ?? "")) patch.collection = ed.collection;
     if (ed.sale !== (it.sale ?? 0)) patch.sale = ed.sale;
     if ((ed.category || undefined) !== (it.category ?? undefined))
       patch.category = ed.category ?? undefined;
@@ -864,7 +872,7 @@ export default function ManagerPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="variant">Вариант</Label>
+                  <Label htmlFor="variant">Мощность</Label>
                   <Input
                     id="variant"
                     value={newItem.variant}
@@ -872,6 +880,20 @@ export default function ManagerPage() {
                       setNewItem({
                         ...newItem,
                         variant: formatVariant(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="collection">Коллекция</Label>
+                  <Input
+                    id="collection"
+                    placeholder="Похожие товары должны иметь одинаковую коллекцию"
+                    value={newItem.collection}
+                    onChange={(e) =>
+                      setNewItem({
+                        ...newItem,
+                        collection: e.target.value,
                       })
                     }
                   />
@@ -1006,7 +1028,7 @@ export default function ManagerPage() {
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="variant">Вариант</Label>
+                <Label htmlFor="variant">Мощность</Label>
                 <Input
                   id="variant"
                   value={newItem.variant}
@@ -1015,6 +1037,17 @@ export default function ManagerPage() {
                       ...newItem,
                       variant: formatVariant(e.target.value),
                     })
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="collection-bulk">Коллекция</Label>
+                <Input
+                  id="collection-bulk"
+                  placeholder="Похожие товары должны иметь одинаковую коллекцию"
+                  value={newItem.collection}
+                  onChange={(e) =>
+                    setNewItem({ ...newItem, collection: e.target.value })
                   }
                 />
               </div>
@@ -1088,7 +1121,7 @@ export default function ManagerPage() {
                       price: newItem.price,
                       quantity: newItem.quantity,
                       description: newItem.description,
-                      variant: newItem.variant || "default",
+                      variant: newItem.variant || "0",
                       sale: newItem.sale || undefined,
                       imageStorageIds,
                     });
@@ -1099,7 +1132,8 @@ export default function ManagerPage() {
                       price: 0,
                       quantity: 0,
                       description: "",
-                      variant: "default",
+                      variant: "0",
+                      collection: "",
                       sale: 0,
                     });
                     // Revoke object URLs to avoid memory leaks
@@ -1121,7 +1155,7 @@ export default function ManagerPage() {
             <Label htmlFor="item-search">Поиск товаров</Label>
             <Input
               id="item-search"
-              placeholder="Поиск по названию, бренду, варианту"
+              placeholder="Поиск по названию, бренду, мощности"
               value={itemSearch}
               onChange={(e) => setItemSearch(e.target.value)}
             />
@@ -1389,7 +1423,7 @@ export default function ManagerPage() {
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label>Вариант</Label>
+                      <Label>Мощность</Label>
                       <Input
                         value={getEdit(it).variant}
                         onChange={(e) =>
@@ -1398,6 +1432,22 @@ export default function ManagerPage() {
                             [String(it._id)]: {
                               ...getEdit(it),
                               variant: formatVariant(e.target.value),
+                            },
+                          }))
+                        }
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label>Коллекция</Label>
+                      <Input
+                        placeholder="Похожие товары должны иметь одинаковую коллекцию"
+                        value={getEdit(it).collection}
+                        onChange={(e) =>
+                          setItemEdits((prev) => ({
+                            ...prev,
+                            [String(it._id)]: {
+                              ...getEdit(it),
+                              collection: e.target.value,
                             },
                           }))
                         }

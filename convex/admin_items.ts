@@ -87,6 +87,8 @@ export const update_item = mutation({
     subcategory: v.optional(v.id("subcategorys")),
     // Allow updating part number
     partNumber: v.optional(v.string()),
+    // Allow updating collection
+    collection: v.optional(v.string()),
   },
   returns: v.object({ status: v.number() }),
   handler: async (ctx, { itemId, ...patch }) => {

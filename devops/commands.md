@@ -27,3 +27,4 @@ nginx -t
 systemctl reload nginx
 
 ecosystem example
+pm2 reload app_name
