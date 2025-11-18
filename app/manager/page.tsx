@@ -177,6 +177,10 @@ export default function ManagerPage() {
   const createItem = useMutation(api.admin_items.create_item); // kept for updates without images (legacy)
   const updateItem = useMutation(api.admin_items.update_item);
   // const deleteItem = useMutation(api.admin_items.delete_item);
+
+  // Mutations for creating categories and subcategories
+  const createCategory = useMutation(api.dashboard.create_category);
+  const createSubcategory = useMutation(api.dashboard.create_subcategory);
   const [newItem, setNewItem] = useState({
     name: "",
     brand: "",
@@ -193,6 +197,12 @@ export default function ManagerPage() {
   >([]);
   // Add Item dialog state and helpers
   const [showAddItemDialog, setShowAddItemDialog] = useState(false);
+
+  // Category/Subcategory creation dialog states
+  const [showAddCategoryDialog, setShowAddCategoryDialog] = useState(false);
+  const [showAddSubcategoryDialog, setShowAddSubcategoryDialog] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [newSubcategoryName, setNewSubcategoryName] = useState("");
   const defaultNewItem = {
     name: "",
     brand: "",
@@ -252,6 +262,48 @@ export default function ManagerPage() {
     setShowAddItemDialog(false);
     toast.success("Товар создан");
   };
+
+  // Handler for creating new category
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) {
+      toast.error("Введите название категории");
+      return;
+    }
+    try {
+      await createCategory({ name: newCategoryName.trim() });
+      toast.success("Категория создана");
+      setNewCategoryName("");
+      setShowAddCategoryDialog(false);
+    } catch (error) {
+      toast.error("Ошибка при создании категории");
+      console.error(error);
+    }
+  };
+
+  // Handler for creating new subcategory
+  const handleCreateSubcategory = async () => {
+    if (!itemCategoryFilter) {
+      toast.error("Сначала выберите категорию");
+      return;
+    }
+    if (!newSubcategoryName.trim()) {
+      toast.error("Введите название подкатегории");
+      return;
+    }
+    try {
+      await createSubcategory({
+        name: newSubcategoryName.trim(),
+        parent: itemCategoryFilter,
+      });
+      toast.success("Подкатегория создана");
+      setNewSubcategoryName("");
+      setShowAddSubcategoryDialog(false);
+    } catch (error) {
+      toast.error("Ошибка при создании подкатегории");
+      console.error(error);
+    }
+  };
+
   // Per-item images draft for edits: keyed by item id
   const [imagesDraft, setImagesDraft] = useState<
     Record<string, { url: string; storageId: Id<"_storage"> }[]>
@@ -326,8 +378,9 @@ export default function ManagerPage() {
     value?: Id<"subcategorys">;
     onChange: (v?: Id<"subcategorys">) => void;
     noneLabel?: string;
+    onAddNew?: () => void;
   }) {
-    const { categoryId, value, onChange, noneLabel } = props;
+    const { categoryId, value, onChange, noneLabel, onAddNew } = props;
     const res = useQuery(api.dashboard.show_subcategories_by_category, {
       parent: categoryId ?? undefined,
     });
@@ -336,11 +389,15 @@ export default function ManagerPage() {
     return (
       <Select
         value={selectValue}
-        onValueChange={(v) =>
-          onChange(
-            v === "__none__" ? undefined : (v as unknown as Id<"subcategorys">),
-          )
-        }
+        onValueChange={(v) => {
+          if (v === "__add_new__") {
+            onAddNew?.();
+          } else {
+            onChange(
+              v === "__none__" ? undefined : (v as unknown as Id<"subcategorys">),
+            );
+          }
+        }}
       >
         <SelectTrigger>
           <SelectValue />
@@ -354,6 +411,7 @@ export default function ManagerPage() {
               {s.name}
             </SelectItem>
           ))}
+          <SelectItem value="__add_new__">Добавить новую</SelectItem>
         </SelectContent>
       </Select>
     );
@@ -1180,6 +1238,8 @@ export default function ManagerPage() {
                 if (v === "__all__") {
                   setItemCategoryFilter(undefined);
                   setItemSubcategoryFilter(undefined);
+                } else if (v === "__add_new__") {
+                  setShowAddCategoryDialog(true);
                 } else {
                   // When category changes, reset subcategory filter
                   setItemCategoryFilter(v as unknown as Id<"categorys">);
@@ -1198,6 +1258,7 @@ export default function ManagerPage() {
                       {c.name}
                     </SelectItem>
                   ))}
+                <SelectItem value="__add_new__">Добавить новую</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -1209,6 +1270,7 @@ export default function ManagerPage() {
                 value={itemSubcategoryFilter}
                 onChange={(next) => setItemSubcategoryFilter(next)}
                 noneLabel="Все подкатегории"
+                onAddNew={() => setShowAddSubcategoryDialog(true)}
               />
             </div>
           </div>
@@ -1618,6 +1680,93 @@ export default function ManagerPage() {
           </div>
         </>
       )}
+
+      {/* Dialog for adding new category */}
+      <Dialog open={showAddCategoryDialog} onOpenChange={setShowAddCategoryDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Добавить категорию</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="category-name">Название категории</Label>
+              <Input
+                id="category-name"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="Введите название"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleCreateCategory();
+                  }
+                }}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowAddCategoryDialog(false);
+                  setNewCategoryName("");
+                }}
+              >
+                Отмена
+              </Button>
+              <Button onClick={handleCreateCategory}>
+                Сохранить
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog for adding new subcategory */}
+      <Dialog open={showAddSubcategoryDialog} onOpenChange={setShowAddSubcategoryDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Добавить подкатегорию</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {!itemCategoryFilter && (
+              <p className="text-sm text-red-500">
+                Сначала выберите категорию
+              </p>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="subcategory-name">Название подкатегории</Label>
+              <Input
+                id="subcategory-name"
+                value={newSubcategoryName}
+                onChange={(e) => setNewSubcategoryName(e.target.value)}
+                placeholder="Введите название"
+                disabled={!itemCategoryFilter}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleCreateSubcategory();
+                  }
+                }}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowAddSubcategoryDialog(false);
+                  setNewSubcategoryName("");
+                }}
+              >
+                Отмена
+              </Button>
+              <Button
+                onClick={handleCreateSubcategory}
+                disabled={!itemCategoryFilter}
+              >
+                Сохранить
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

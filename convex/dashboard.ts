@@ -216,3 +216,24 @@ export const update_item_images = mutation({
     return { status: 200, message: "Item images updated" };
   },
 });
+
+// Create a new category
+export const create_category = mutation({
+  args: { name: v.string() },
+  handler: async (ctx, { name }) => {
+    const categoryId = await ctx.db.insert("categorys", { name });
+    return { status: 200, message: "Category created", categoryId };
+  },
+});
+
+// Create a new subcategory
+export const create_subcategory = mutation({
+  args: {
+    name: v.string(),
+    parent: v.id("categorys"),
+  },
+  handler: async (ctx, { name, parent }) => {
+    const subcategoryId = await ctx.db.insert("subcategorys", { name, parent });
+    return { status: 200, message: "Subcategory created", subcategoryId };
+  },
+});
