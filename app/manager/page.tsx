@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Settings } from "lucide-react";
 import { useRole } from "@/hooks/useRole";
 import ManagerHeader from "@/components/manager/ManagerHeader";
 import ImageField from "@/components/manager/ImageField";
@@ -181,6 +182,11 @@ export default function ManagerPage() {
   // Mutations for creating categories and subcategories
   const createCategory = useMutation(api.dashboard.create_category);
   const createSubcategory = useMutation(api.dashboard.create_subcategory);
+  const editCategory = useMutation(api.dashboard.edit_category);
+  const deleteCategory = useMutation(api.dashboard.delete_category);
+  const editSubcategory = useMutation(api.dashboard.edit_subcategory);
+  const deleteSubcategory = useMutation(api.dashboard.delete_subcategory);
+
   const [newItem, setNewItem] = useState({
     name: "",
     brand: "",
@@ -203,6 +209,32 @@ export default function ManagerPage() {
   const [showAddSubcategoryDialog, setShowAddSubcategoryDialog] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newSubcategoryName, setNewSubcategoryName] = useState("");
+
+  // Edit states
+  const [editingCategory, setEditingCategory] = useState<Id<"categorys"> | null>(null);
+  const [editCategoryName, setEditCategoryName] = useState("");
+  const [showEditCategoryDialog, setShowEditCategoryDialog] = useState(false);
+  const [showDeleteCategoryConfirm, setShowDeleteCategoryConfirm] = useState(false);
+
+  const [editingSubcategory, setEditingSubcategory] = useState<Id<"subcategorys"> | null>(null);
+  const [editSubcategoryName, setEditSubcategoryName] = useState("");
+  const [editSubcategoryParent, setEditSubcategoryParent] = useState<Id<"categorys"> | null>(null);
+  const [showEditSubcategoryDialog, setShowEditSubcategoryDialog] = useState(false);
+  const [showDeleteSubcategoryConfirm, setShowDeleteSubcategoryConfirm] = useState(false);
+
+  // Fetch subcategory data for editing
+  const editingSubcategoryData = useQuery(
+    api.dashboard.get_subcategory,
+    editingSubcategory ? { id: editingSubcategory } : "skip"
+  );
+
+  useEffect(() => {
+    if (editingSubcategoryData) {
+      setEditSubcategoryName(editingSubcategoryData.name);
+      setEditSubcategoryParent(editingSubcategoryData.parent);
+    }
+  }, [editingSubcategoryData]);
+
   const defaultNewItem = {
     name: "",
     brand: "",
@@ -304,6 +336,63 @@ export default function ManagerPage() {
     }
   };
 
+  const handleEditCategory = async () => {
+    if (!editingCategory || !editCategoryName.trim()) return;
+    try {
+      await editCategory({ id: editingCategory, name: editCategoryName.trim() });
+      toast.success("Категория обновлена");
+      setShowEditCategoryDialog(false);
+    } catch (e) {
+      toast.error("Ошибка при обновлении категории");
+    }
+  };
+
+  const handleDeleteCategory = async () => {
+    if (!editingCategory) return;
+    try {
+      await deleteCategory({ id: editingCategory });
+      toast.success("Категория удалена");
+      setShowDeleteCategoryConfirm(false);
+      setShowEditCategoryDialog(false);
+      if (itemCategoryFilter === editingCategory) {
+        setItemCategoryFilter(undefined);
+        setItemSubcategoryFilter(undefined);
+      }
+    } catch (e) {
+      toast.error("Ошибка при удалении категории");
+    }
+  };
+
+  const handleEditSubcategory = async () => {
+    if (!editingSubcategory || !editSubcategoryName.trim() || !editSubcategoryParent) return;
+    try {
+      await editSubcategory({
+        id: editingSubcategory,
+        name: editSubcategoryName.trim(),
+        parent: editSubcategoryParent,
+      });
+      toast.success("Подкатегория обновлена");
+      setShowEditSubcategoryDialog(false);
+    } catch (e) {
+      toast.error("Ошибка при обновлении подкатегории");
+    }
+  };
+
+  const handleDeleteSubcategory = async () => {
+    if (!editingSubcategory) return;
+    try {
+      await deleteSubcategory({ id: editingSubcategory });
+      toast.success("Подкатегория удалена");
+      setShowDeleteSubcategoryConfirm(false);
+      setShowEditSubcategoryDialog(false);
+      if (itemSubcategoryFilter === editingSubcategory) {
+        setItemSubcategoryFilter(undefined);
+      }
+    } catch (e) {
+      toast.error("Ошибка при удалении подкатегории");
+    }
+  };
+
   // Per-item images draft for edits: keyed by item id
   const [imagesDraft, setImagesDraft] = useState<
     Record<string, { url: string; storageId: Id<"_storage"> }[]>
@@ -379,41 +468,54 @@ export default function ManagerPage() {
     onChange: (v?: Id<"subcategorys">) => void;
     noneLabel?: string;
     onAddNew?: () => void;
+    onEdit?: (id: Id<"subcategorys">) => void;
   }) {
-    const { categoryId, value, onChange, noneLabel, onAddNew } = props;
+    const { categoryId, value, onChange, noneLabel, onAddNew, onEdit } = props;
     const res = useQuery(api.dashboard.show_subcategories_by_category, {
       parent: categoryId ?? undefined,
     });
     const subcategories = res?.subcategories ?? [];
     const selectValue = value ? String(value) : "__none__";
     return (
-      <Select
-        value={selectValue}
-        onValueChange={(v) => {
-          if (v === "__add_new__") {
-            onAddNew?.();
-          } else {
-            onChange(
-              v === "__none__" ? undefined : (v as unknown as Id<"subcategorys">),
-            );
-          }
-        }}
-      >
-        <SelectTrigger>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="__none__">
-            {noneLabel ?? "Без подкатегории"}
-          </SelectItem>
-          {subcategories.map((s: any) => (
-            <SelectItem key={String(s._id)} value={String(s._id)}>
-              {s.name}
+      <>
+        <Select
+          value={selectValue}
+          onValueChange={(v) => {
+            if (v === "__add_new__") {
+              onAddNew?.();
+            } else {
+              onChange(
+                v === "__none__" ? undefined : (v as unknown as Id<"subcategorys">),
+              );
+            }
+          }}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__">
+              {noneLabel ?? "Без подкатегории"}
             </SelectItem>
-          ))}
-          <SelectItem value="__add_new__">Добавить новую</SelectItem>
-        </SelectContent>
-      </Select>
+            {subcategories.map((s: any) => (
+              <SelectItem key={String(s._id)} value={String(s._id)}>
+                {s.name}
+              </SelectItem>
+            ))}
+            <SelectItem value="__add_new__">Добавить новую</SelectItem>
+          </SelectContent>
+        </Select>
+        {value && onEdit && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onEdit(value)}
+            title="Настройки подкатегории"
+          >
+            <Settings className="w-4 h-4" />
+          </Button>
+        )}
+      </>
     );
   }
 
@@ -1230,47 +1332,72 @@ export default function ManagerPage() {
           {/* Filters: Category & Subcategory */}
           <div className="flex items-center gap-3 mt-2">
             <Label>Категория</Label>
-            <Select
-              value={
-                itemCategoryFilter ? String(itemCategoryFilter) : "__all__"
-              }
-              onValueChange={(v: string) => {
-                if (v === "__all__") {
-                  setItemCategoryFilter(undefined);
-                  setItemSubcategoryFilter(undefined);
-                } else if (v === "__add_new__") {
-                  setShowAddCategoryDialog(true);
-                } else {
-                  // When category changes, reset subcategory filter
-                  setItemCategoryFilter(v as unknown as Id<"categorys">);
-                  setItemSubcategoryFilter(undefined);
+            <div className="flex items-center gap-2 flex-1">
+              <Select
+                value={
+                  itemCategoryFilter ? String(itemCategoryFilter) : "__all__"
                 }
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">Все категории</SelectItem>
-                {Array.isArray(categories) &&
-                  categories.map((c: any) => (
-                    <SelectItem key={String(c._id)} value={String(c._id)}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                <SelectItem value="__add_new__">Добавить новую</SelectItem>
-              </SelectContent>
-            </Select>
+                onValueChange={(v: string) => {
+                  if (v === "__all__") {
+                    setItemCategoryFilter(undefined);
+                    setItemSubcategoryFilter(undefined);
+                  } else if (v === "__add_new__") {
+                    setShowAddCategoryDialog(true);
+                  } else {
+                    // When category changes, reset subcategory filter
+                    setItemCategoryFilter(v as unknown as Id<"categorys">);
+                    setItemSubcategoryFilter(undefined);
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Все категории</SelectItem>
+                  {Array.isArray(categories) &&
+                    categories.map((c: any) => (
+                      <SelectItem key={String(c._id)} value={String(c._id)}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  <SelectItem value="__add_new__">Добавить новую</SelectItem>
+                </SelectContent>
+              </Select>
+              {itemCategoryFilter && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    const cat = categories?.find(
+                      (c: any) => String(c._id) === String(itemCategoryFilter)
+                    );
+                    if (cat) {
+                      setEditingCategory(cat._id);
+                      setEditCategoryName(cat.name);
+                      setShowEditCategoryDialog(true);
+                    }
+                  }}
+                  title="Настройки категории"
+                >
+                  <Settings className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-3 mt-2">
             <Label>Подкатегория</Label>
-            <div className="min-w-60">
+            <div className="flex items-center gap-2">
               <SubcategorySelect
                 categoryId={itemCategoryFilter}
                 value={itemSubcategoryFilter}
                 onChange={(next) => setItemSubcategoryFilter(next)}
                 noneLabel="Все подкатегории"
                 onAddNew={() => setShowAddSubcategoryDialog(true)}
+                onEdit={(id) => {
+                  setEditingSubcategory(id);
+                  setShowEditSubcategoryDialog(true);
+                }}
               />
             </div>
           </div>
@@ -1764,6 +1891,155 @@ export default function ManagerPage() {
                 Сохранить
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog for editing category */}
+      <Dialog open={showEditCategoryDialog} onOpenChange={setShowEditCategoryDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Редактировать категорию</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-category-name">Название категории</Label>
+              <Input
+                id="edit-category-name"
+                value={editCategoryName}
+                onChange={(e) => setEditCategoryName(e.target.value)}
+                placeholder="Введите название"
+              />
+            </div>
+            <div className="flex justify-between items-center pt-4">
+              <Button
+                variant="destructive"
+                onClick={() => setShowDeleteCategoryConfirm(true)}
+              >
+                Удалить категорию
+              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowEditCategoryDialog(false)}
+                >
+                  Отмена
+                </Button>
+                <Button onClick={handleEditCategory}>
+                  Сохранить
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmation dialog for deleting category */}
+      <Dialog open={showDeleteCategoryConfirm} onOpenChange={setShowDeleteCategoryConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Вы уверены?</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p>Это действие нельзя отменить. Категория будет удалена.</p>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteCategoryConfirm(false)}
+            >
+              Отмена
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteCategory}
+            >
+              Удалить
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog for editing subcategory */}
+      <Dialog open={showEditSubcategoryDialog} onOpenChange={setShowEditSubcategoryDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Редактировать подкатегорию</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-subcategory-name">Название подкатегории</Label>
+              <Input
+                id="edit-subcategory-name"
+                value={editSubcategoryName}
+                onChange={(e) => setEditSubcategoryName(e.target.value)}
+                placeholder="Введите название"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Родительская категория</Label>
+              <Select
+                value={editSubcategoryParent ? String(editSubcategoryParent) : ""}
+                onValueChange={(v) => setEditSubcategoryParent(v as Id<"categorys">)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Выберите категорию" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.isArray(categories) &&
+                    categories.map((c: any) => (
+                      <SelectItem key={String(c._id)} value={String(c._id)}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-between items-center pt-4">
+              <Button
+                variant="destructive"
+                onClick={() => setShowDeleteSubcategoryConfirm(true)}
+              >
+                Удалить подкатегорию
+              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowEditSubcategoryDialog(false)}
+                >
+                  Отмена
+                </Button>
+                <Button onClick={handleEditSubcategory}>
+                  Сохранить
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmation dialog for deleting subcategory */}
+      <Dialog open={showDeleteSubcategoryConfirm} onOpenChange={setShowDeleteSubcategoryConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Вы уверены?</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p>Это действие нельзя отменить. Подкатегория будет удалена.</p>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteSubcategoryConfirm(false)}
+            >
+              Отмена
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteSubcategory}
+            >
+              Удалить
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

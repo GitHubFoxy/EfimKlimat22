@@ -143,6 +143,20 @@ export const show_item = query({
   },
 });
 
+export const get_category = query({
+  args: { id: v.id("categorys") },
+  handler: async (ctx, { id }) => {
+    return await ctx.db.get(id);
+  },
+});
+
+export const get_subcategory = query({
+  args: { id: v.id("subcategorys") },
+  handler: async (ctx, { id }) => {
+    return await ctx.db.get(id);
+  },
+});
+
 // Fetch related items by brand and collection (excluding the current item)
 export const show_items_by_brand_and_collection = query({
   args: {
@@ -235,5 +249,46 @@ export const create_subcategory = mutation({
   handler: async (ctx, { name, parent }) => {
     const subcategoryId = await ctx.db.insert("subcategorys", { name, parent });
     return { status: 200, message: "Subcategory created", subcategoryId };
+  },
+});
+
+// Edit a category
+export const edit_category = mutation({
+  args: { id: v.id("categorys"), name: v.string() },
+  handler: async (ctx, { id, name }) => {
+    await ctx.db.patch(id, { name });
+    return { status: 200, message: "Category updated" };
+  },
+});
+
+// Delete a category
+export const delete_category = mutation({
+  args: { id: v.id("categorys") },
+  handler: async (ctx, { id }) => {
+    // Optional: check for dependencies?
+    await ctx.db.delete(id);
+    return { status: 200, message: "Category deleted" };
+  },
+});
+
+// Edit a subcategory
+export const edit_subcategory = mutation({
+  args: {
+    id: v.id("subcategorys"),
+    name: v.string(),
+    parent: v.id("categorys"),
+  },
+  handler: async (ctx, { id, name, parent }) => {
+    await ctx.db.patch(id, { name, parent });
+    return { status: 200, message: "Subcategory updated" };
+  },
+});
+
+// Delete a subcategory
+export const delete_subcategory = mutation({
+  args: { id: v.id("subcategorys") },
+  handler: async (ctx, { id }) => {
+    await ctx.db.delete(id);
+    return { status: 200, message: "Subcategory deleted" };
   },
 });
