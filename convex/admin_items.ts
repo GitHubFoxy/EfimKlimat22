@@ -11,37 +11,6 @@ export const list_items_paginated = query({
     // Optional search query
     search: v.optional(v.string()),
   },
-  returns: v.object({
-    page: v.array(
-      v.object({
-        _id: v.id("items"),
-        _creationTime: v.number(),
-        brand: v.optional(v.string()),
-        name: v.string(),
-        lowerCaseName: v.string(),
-        imagesUrls: v.optional(v.array(v.string())),
-        imageStorageIds: v.optional(v.array(v.id("_storage"))),
-        quantity: v.number(),
-        description: v.string(),
-        price: v.number(),
-        rating: v.optional(v.number()),
-        orders: v.optional(v.number()),
-        category: v.optional(v.id("categorys")),
-        variant: v.string(),
-        sale: v.optional(v.number()),
-        subcategory: v.optional(v.id("subcategorys")),
-        color: v.optional(v.string()),
-        // Include optional fields present in the items schema to avoid ReturnsValidationError
-        collection: v.optional(v.string()),
-        tags: v.optional(v.array(v.string())),
-        partNumber: v.optional(v.string()),
-      }),
-    ),
-    isDone: v.boolean(),
-    continueCursor: v.union(v.string(), v.null()),
-    pageStatus: v.optional(v.union(v.string(), v.null())),
-    splitCursor: v.optional(v.union(v.string(), v.null())),
-  }),
   handler: async (ctx, { paginationOpts, category, subcategory, search }) => {
     const searchQuery = search?.trim().toLowerCase();
 
@@ -80,7 +49,7 @@ export const list_items_paginated = query({
       return {
         page,
         isDone: !hasMore,
-        continueCursor: hasMore ? String(startIndex + numItems) : null,
+        continueCursor: hasMore ? String(startIndex + numItems) : "",
       };
     }
 
