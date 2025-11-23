@@ -8,6 +8,8 @@ export const list_items_paginated = query({
     // Optional filters for category and subcategory
     category: v.optional(v.id("categorys")),
     subcategory: v.optional(v.id("subcategorys")),
+    // Optional search query
+    search: v.optional(v.string()),
   },
   returns: v.object({
     page: v.array(
@@ -40,7 +42,49 @@ export const list_items_paginated = query({
     pageStatus: v.optional(v.union(v.string(), v.null())),
     splitCursor: v.optional(v.union(v.string(), v.null())),
   }),
-  handler: async (ctx, { paginationOpts, category, subcategory }) => {
+  handler: async (ctx, { paginationOpts, category, subcategory, search }) => {
+    const searchQuery = search?.trim().toLowerCase();
+
+    // If search is provided, collect all items and filter in-memory
+    // (Convex doesn't support LIKE/substring queries in indexed pagination)
+    if (searchQuery) {
+      let q = ctx.db.query("items");
+      if (category) {
+        q = q.filter((f) => f.eq(f.field("category"), category));
+      }
+      if (subcategory) {
+        q = q.filter((f) => f.eq(f.field("subcategory"), subcategory));
+      }
+      const allItems = await q.collect();
+
+      // Filter by search query (name, brand, variant)
+      const filtered = allItems.filter((item) => {
+        const inName = item.lowerCaseName.includes(searchQuery);
+        const inBrand = item.brand
+          ? item.brand.toLowerCase().includes(searchQuery)
+          : false;
+        const inVariant = item.variant
+          ? item.variant.toLowerCase().includes(searchQuery)
+          : false;
+        return inName || inBrand || inVariant;
+      });
+
+      // Manual pagination for filtered results
+      const startIndex = paginationOpts.cursor
+        ? parseInt(paginationOpts.cursor, 10)
+        : 0;
+      const numItems = paginationOpts.numItems;
+      const page = filtered.slice(startIndex, startIndex + numItems);
+      const hasMore = startIndex + numItems < filtered.length;
+
+      return {
+        page,
+        isDone: !hasMore,
+        continueCursor: hasMore ? String(startIndex + numItems) : null,
+      };
+    }
+
+    // No search: use normal pagination
     let q = ctx.db.query("items");
     if (category) {
       q = q.filter((f) => f.eq(f.field("category"), category));

@@ -161,13 +161,19 @@ export default function ManagerPage() {
   const [itemSubcategoryFilter, setItemSubcategoryFilter] = useState<
     Id<"subcategorys"> | undefined
   >(undefined);
+  const [itemSearch, setItemSearch] = useState("");
+  const [showOnlyIncomplete, setShowOnlyIncomplete] = useState(false);
   const {
     results: items,
     loadMore: loadMoreItems,
     status: loadStatusItems,
   } = usePaginatedQuery(
     api.admin_items.list_items_paginated,
-    { category: itemCategoryFilter, subcategory: itemSubcategoryFilter },
+    {
+      category: itemCategoryFilter,
+      subcategory: itemSubcategoryFilter,
+      search: itemSearch.trim() || undefined,
+    },
     { initialNumItems: 10 },
   );
   // Use dashboard image-aware mutations for create & delete
@@ -206,26 +212,33 @@ export default function ManagerPage() {
 
   // Category/Subcategory creation dialog states
   const [showAddCategoryDialog, setShowAddCategoryDialog] = useState(false);
-  const [showAddSubcategoryDialog, setShowAddSubcategoryDialog] = useState(false);
+  const [showAddSubcategoryDialog, setShowAddSubcategoryDialog] =
+    useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newSubcategoryName, setNewSubcategoryName] = useState("");
 
   // Edit states
-  const [editingCategory, setEditingCategory] = useState<Id<"categorys"> | null>(null);
+  const [editingCategory, setEditingCategory] =
+    useState<Id<"categorys"> | null>(null);
   const [editCategoryName, setEditCategoryName] = useState("");
   const [showEditCategoryDialog, setShowEditCategoryDialog] = useState(false);
-  const [showDeleteCategoryConfirm, setShowDeleteCategoryConfirm] = useState(false);
+  const [showDeleteCategoryConfirm, setShowDeleteCategoryConfirm] =
+    useState(false);
 
-  const [editingSubcategory, setEditingSubcategory] = useState<Id<"subcategorys"> | null>(null);
+  const [editingSubcategory, setEditingSubcategory] =
+    useState<Id<"subcategorys"> | null>(null);
   const [editSubcategoryName, setEditSubcategoryName] = useState("");
-  const [editSubcategoryParent, setEditSubcategoryParent] = useState<Id<"categorys"> | null>(null);
-  const [showEditSubcategoryDialog, setShowEditSubcategoryDialog] = useState(false);
-  const [showDeleteSubcategoryConfirm, setShowDeleteSubcategoryConfirm] = useState(false);
+  const [editSubcategoryParent, setEditSubcategoryParent] =
+    useState<Id<"categorys"> | null>(null);
+  const [showEditSubcategoryDialog, setShowEditSubcategoryDialog] =
+    useState(false);
+  const [showDeleteSubcategoryConfirm, setShowDeleteSubcategoryConfirm] =
+    useState(false);
 
   // Fetch subcategory data for editing
   const editingSubcategoryData = useQuery(
     api.dashboard.get_subcategory,
-    editingSubcategory ? { id: editingSubcategory } : "skip"
+    editingSubcategory ? { id: editingSubcategory } : "skip",
   );
 
   useEffect(() => {
@@ -288,7 +301,7 @@ export default function ManagerPage() {
     newImages.forEach((img) => {
       try {
         URL.revokeObjectURL(img.url);
-      } catch { }
+      } catch {}
     });
     setNewImages([]);
     setShowAddItemDialog(false);
@@ -339,7 +352,10 @@ export default function ManagerPage() {
   const handleEditCategory = async () => {
     if (!editingCategory || !editCategoryName.trim()) return;
     try {
-      await editCategory({ id: editingCategory, name: editCategoryName.trim() });
+      await editCategory({
+        id: editingCategory,
+        name: editCategoryName.trim(),
+      });
       toast.success("Категория обновлена");
       setShowEditCategoryDialog(false);
     } catch (e) {
@@ -364,7 +380,12 @@ export default function ManagerPage() {
   };
 
   const handleEditSubcategory = async () => {
-    if (!editingSubcategory || !editSubcategoryName.trim() || !editSubcategoryParent) return;
+    if (
+      !editingSubcategory ||
+      !editSubcategoryName.trim() ||
+      !editSubcategoryParent
+    )
+      return;
     try {
       await editSubcategory({
         id: editingSubcategory,
@@ -397,9 +418,6 @@ export default function ManagerPage() {
   const [imagesDraft, setImagesDraft] = useState<
     Record<string, { url: string; storageId: Id<"_storage"> }[]>
   >({});
-  // Items UI helpers: client-side search and controlled edits with Save
-  const [itemSearch, setItemSearch] = useState("");
-  const [showOnlyIncomplete, setShowOnlyIncomplete] = useState(false);
   type ItemEdit = {
     name: string;
     brand: string;
@@ -452,7 +470,8 @@ export default function ManagerPage() {
     if (ed.quantity !== it.quantity) patch.quantity = ed.quantity;
     if (ed.description !== it.description) patch.description = ed.description;
     if (ed.variant !== (it.variant ?? "")) patch.variant = ed.variant;
-    if (ed.collection !== (it.collection ?? "")) patch.collection = ed.collection;
+    if (ed.collection !== (it.collection ?? ""))
+      patch.collection = ed.collection;
     if (ed.sale !== (it.sale ?? 0)) patch.sale = ed.sale;
     if ((ed.category || undefined) !== (it.category ?? undefined))
       patch.category = ed.category ?? undefined;
@@ -485,7 +504,9 @@ export default function ManagerPage() {
               onAddNew?.();
             } else {
               onChange(
-                v === "__none__" ? undefined : (v as unknown as Id<"subcategorys">),
+                v === "__none__"
+                  ? undefined
+                  : (v as unknown as Id<"subcategorys">),
               );
             }
           }}
@@ -749,13 +770,13 @@ export default function ManagerPage() {
                       (managerId &&
                         o.assignedManager &&
                         String(o.assignedManager) === managerId)) && (
-                        <Button
-                          variant="destructive"
-                          onClick={() => unclaim({ orderId: o._id })}
-                        >
-                          Снять
-                        </Button>
-                      )}
+                      <Button
+                        variant="destructive"
+                        onClick={() => unclaim({ orderId: o._id })}
+                      >
+                        Снять
+                      </Button>
+                    )}
                   </div>
                 </div>
               ));
@@ -929,15 +950,15 @@ export default function ManagerPage() {
                       (managerId &&
                         c.assignedManager &&
                         String(c.assignedManager) === managerId)) && (
-                        <Button
-                          variant="destructive"
-                          onClick={() =>
-                            unclaimConsultant({ consultantId: c._id })
-                          }
-                        >
-                          Снять
-                        </Button>
-                      )}
+                      <Button
+                        variant="destructive"
+                        onClick={() =>
+                          unclaimConsultant({ consultantId: c._id })
+                        }
+                      >
+                        Снять
+                      </Button>
+                    )}
                   </div>
                 </div>
               ));
@@ -1129,7 +1150,7 @@ export default function ManagerPage() {
                       newImages.forEach((img) => {
                         try {
                           URL.revokeObjectURL(img.url);
-                        } catch { }
+                        } catch {}
                       });
                       setNewImages([]);
                     }}
@@ -1300,7 +1321,7 @@ export default function ManagerPage() {
                     newImages.forEach((img) => {
                       try {
                         URL.revokeObjectURL(img.url);
-                      } catch { }
+                      } catch {}
                     });
                     setNewImages([]);
                   }}
@@ -1370,7 +1391,7 @@ export default function ManagerPage() {
                   size="icon"
                   onClick={() => {
                     const cat = categories?.find(
-                      (c: any) => String(c._id) === String(itemCategoryFilter)
+                      (c: any) => String(c._id) === String(itemCategoryFilter),
                     );
                     if (cat) {
                       setEditingCategory(cat._id);
@@ -1405,7 +1426,7 @@ export default function ManagerPage() {
           <div className="space-y-3 mt-4">
             {(() => {
               const all = items ?? [];
-              const q = itemSearch.trim().toLowerCase();
+              const q = itemSearch.trim();
               const isIncomplete = (it: any) => {
                 return (
                   !it.name ||
@@ -1423,17 +1444,8 @@ export default function ManagerPage() {
                 );
               };
 
+              // Server now handles search filtering, only filter by "incomplete" on client
               const filtered = all.filter((it) => {
-                // Filter by search query
-                if (q) {
-                  if (
-                    !it.name.toLowerCase().includes(q) &&
-                    !(it.brand ? it.brand.toLowerCase().includes(q) : false) &&
-                    !(it.variant ? it.variant.toLowerCase().includes(q) : false)
-                  ) {
-                    return false;
-                  }
-                }
                 // Filter by "incomplete" switch
                 if (showOnlyIncomplete) {
                   if (!isIncomplete(it)) {
@@ -1455,7 +1467,7 @@ export default function ManagerPage() {
                   />
                 );
               }
-              if (filtered.length === 0 && q) {
+              if (filtered.length === 0 && (q || showOnlyIncomplete)) {
                 return (
                   <EmptyState
                     title="Ничего не найдено"
@@ -1719,7 +1731,7 @@ export default function ManagerPage() {
                               if (img.url?.startsWith("blob:")) {
                                 try {
                                   URL.revokeObjectURL(img.url);
-                                } catch { }
+                                } catch {}
                               }
                             });
                             setImagesDraft((prev) => {
@@ -1809,7 +1821,10 @@ export default function ManagerPage() {
       )}
 
       {/* Dialog for adding new category */}
-      <Dialog open={showAddCategoryDialog} onOpenChange={setShowAddCategoryDialog}>
+      <Dialog
+        open={showAddCategoryDialog}
+        onOpenChange={setShowAddCategoryDialog}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Добавить категорию</DialogTitle>
@@ -1839,25 +1854,24 @@ export default function ManagerPage() {
               >
                 Отмена
               </Button>
-              <Button onClick={handleCreateCategory}>
-                Сохранить
-              </Button>
+              <Button onClick={handleCreateCategory}>Сохранить</Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
       {/* Dialog for adding new subcategory */}
-      <Dialog open={showAddSubcategoryDialog} onOpenChange={setShowAddSubcategoryDialog}>
+      <Dialog
+        open={showAddSubcategoryDialog}
+        onOpenChange={setShowAddSubcategoryDialog}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Добавить подкатегорию</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             {!itemCategoryFilter && (
-              <p className="text-sm text-red-500">
-                Сначала выберите категорию
-              </p>
+              <p className="text-sm text-red-500">Сначала выберите категорию</p>
             )}
             <div className="space-y-2">
               <Label htmlFor="subcategory-name">Название подкатегории</Label>
@@ -1896,7 +1910,10 @@ export default function ManagerPage() {
       </Dialog>
 
       {/* Dialog for editing category */}
-      <Dialog open={showEditCategoryDialog} onOpenChange={setShowEditCategoryDialog}>
+      <Dialog
+        open={showEditCategoryDialog}
+        onOpenChange={setShowEditCategoryDialog}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Редактировать категорию</DialogTitle>
@@ -1925,9 +1942,7 @@ export default function ManagerPage() {
                 >
                   Отмена
                 </Button>
-                <Button onClick={handleEditCategory}>
-                  Сохранить
-                </Button>
+                <Button onClick={handleEditCategory}>Сохранить</Button>
               </div>
             </div>
           </div>
@@ -1935,7 +1950,10 @@ export default function ManagerPage() {
       </Dialog>
 
       {/* Confirmation dialog for deleting category */}
-      <Dialog open={showDeleteCategoryConfirm} onOpenChange={setShowDeleteCategoryConfirm}>
+      <Dialog
+        open={showDeleteCategoryConfirm}
+        onOpenChange={setShowDeleteCategoryConfirm}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Вы уверены?</DialogTitle>
@@ -1950,10 +1968,7 @@ export default function ManagerPage() {
             >
               Отмена
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteCategory}
-            >
+            <Button variant="destructive" onClick={handleDeleteCategory}>
               Удалить
             </Button>
           </div>
@@ -1961,14 +1976,19 @@ export default function ManagerPage() {
       </Dialog>
 
       {/* Dialog for editing subcategory */}
-      <Dialog open={showEditSubcategoryDialog} onOpenChange={setShowEditSubcategoryDialog}>
+      <Dialog
+        open={showEditSubcategoryDialog}
+        onOpenChange={setShowEditSubcategoryDialog}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Редактировать подкатегорию</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-subcategory-name">Название подкатегории</Label>
+              <Label htmlFor="edit-subcategory-name">
+                Название подкатегории
+              </Label>
               <Input
                 id="edit-subcategory-name"
                 value={editSubcategoryName}
@@ -1979,8 +1999,12 @@ export default function ManagerPage() {
             <div className="space-y-2">
               <Label>Родительская категория</Label>
               <Select
-                value={editSubcategoryParent ? String(editSubcategoryParent) : ""}
-                onValueChange={(v) => setEditSubcategoryParent(v as Id<"categorys">)}
+                value={
+                  editSubcategoryParent ? String(editSubcategoryParent) : ""
+                }
+                onValueChange={(v) =>
+                  setEditSubcategoryParent(v as Id<"categorys">)
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Выберите категорию" />
@@ -2009,9 +2033,7 @@ export default function ManagerPage() {
                 >
                   Отмена
                 </Button>
-                <Button onClick={handleEditSubcategory}>
-                  Сохранить
-                </Button>
+                <Button onClick={handleEditSubcategory}>Сохранить</Button>
               </div>
             </div>
           </div>
@@ -2019,7 +2041,10 @@ export default function ManagerPage() {
       </Dialog>
 
       {/* Confirmation dialog for deleting subcategory */}
-      <Dialog open={showDeleteSubcategoryConfirm} onOpenChange={setShowDeleteSubcategoryConfirm}>
+      <Dialog
+        open={showDeleteSubcategoryConfirm}
+        onOpenChange={setShowDeleteSubcategoryConfirm}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Вы уверены?</DialogTitle>
@@ -2034,10 +2059,7 @@ export default function ManagerPage() {
             >
               Отмена
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteSubcategory}
-            >
+            <Button variant="destructive" onClick={handleDeleteSubcategory}>
               Удалить
             </Button>
           </div>
