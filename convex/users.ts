@@ -51,21 +51,7 @@ export const list_users_by_role = query({
 // Fetch a single user document by id
 export const get_user_by_id = query({
   args: { id: v.id("users") },
-  returns: v.union(
-    v.object({
-      _id: v.id("users"),
-      _creationTime: v.number(),
-      name: v.string(),
-      phone: v.string(),
-      password: v.optional(v.string()),
-      role: v.union(
-        v.literal("user"),
-        v.literal("manager"),
-        v.literal("admin"),
-      ),
-    }),
-    v.null(),
-  ),
+
   handler: async (ctx, { id }) => {
     const doc = await ctx.db.get(id);
     return doc ?? null;

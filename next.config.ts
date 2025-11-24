@@ -5,8 +5,8 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
-        protocol: "https",
-        hostname: "accurate-rabbit-307.convex.cloud",
+        protocol: "http",
+        hostname: "212.67.9.127",
         pathname: "/api/storage/**",
       },
     ],

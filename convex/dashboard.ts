@@ -7,6 +7,8 @@ export const generateUploadUrl = mutation({
   },
 });
 
+
+
 export const show_all_items = query({
   handler: async (ctx) => {
     const items = await ctx.db.query("items").collect();

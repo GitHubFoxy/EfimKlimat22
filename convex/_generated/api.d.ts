@@ -17,6 +17,7 @@ import type * as dashboard from "../dashboard.js";
 import type * as dev from "../dev.js";
 import type * as main from "../main.js";
 import type * as manager from "../manager.js";
+import type * as migrateImagesToLocal from "../migrateImagesToLocal.js";
 import type * as seed from "../seed.js";
 import type * as users from "../users.js";
 
@@ -36,6 +37,7 @@ declare const fullApi: ApiFromModules<{
   dev: typeof dev;
   main: typeof main;
   manager: typeof manager;
+  migrateImagesToLocal: typeof migrateImagesToLocal;
   seed: typeof seed;
   users: typeof users;
 }>;
