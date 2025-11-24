@@ -5,8 +5,8 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
-        protocol: "http",
-        hostname: "212.67.9.127",
+        protocol: "https",
+        hostname: "api.klimat22.com",
         pathname: "/api/storage/**",
       },
     ],
