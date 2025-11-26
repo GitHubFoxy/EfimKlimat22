@@ -21,7 +21,6 @@ import { Settings } from "lucide-react";
 import { useRole } from "@/hooks/useRole";
 import ManagerHeader from "@/components/manager/ManagerHeader";
 import ImageField from "@/components/manager/ImageField";
-import EmptyState from "@/components/ui/EmptyState";
 import {
   Dialog,
   DialogContent,
@@ -29,20 +28,19 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import AdminUsersPanel from "@/components/manager/AdminUsersPanel";
+import ManagerFilters, { Section } from "@/components/manager/ManagerFilters";
+import OrdersList, {
+  ORDER_STATUS_OPTIONS,
+} from "@/components/manager/orders/OrdersList";
+import ConsultantsList, {
+  CONSULTANT_STATUS_OPTIONS,
+} from "@/components/manager/consultants/ConsultantsList";
+import ItemsList from "@/components/manager/items/ItemsList";
+import SubcategorySelect from "@/components/manager/items/SubcategorySelect";
 
 type Status = "pending" | "processing" | "done";
-const ORDER_STATUS_OPTIONS: { value: Status; label: string }[] = [
-  { value: "pending", label: "Ожидает" },
-  { value: "processing", label: "В процессе" },
-  { value: "done", label: "Готово" },
-];
 type ConsultantStatus = "new" | "processing" | "done";
-const CONSULTANT_STATUS_OPTIONS: { value: ConsultantStatus; label: string }[] =
-  [
-    { value: "new", label: "Ожидает" },
-    { value: "processing", label: "В процессе" },
-    { value: "done", label: "Готово" },
-  ];
 
 export default function ManagerPage() {
   const router = useRouter();
@@ -51,7 +49,7 @@ export default function ManagerPage() {
   // Auth verification: verify the stored managerId exists and has correct role
   const verifiedUser = useQuery(
     api.users.get_user_by_id,
-    managerId ? { id: managerId as Id<"users"> } : "skip",
+    managerId ? { id: managerId as Id<"users"> } : "skip"
   );
 
   // Auth guard: verify user exists and has manager/admin role
@@ -97,11 +95,11 @@ export default function ManagerPage() {
       router.replace("/auth");
     }
   }, [verifiedUser, router]);
+
   const [status, setStatus] = useState<Status>("pending");
   const [viewMine, setViewMine] = useState(false);
-  const [section, setSection] = useState<
-    "orders" | "consultants" | "items" | "users"
-  >("orders");
+  const [section, setSection] = useState<Section>("orders");
+
   const {
     results,
     loadMore,
@@ -109,7 +107,7 @@ export default function ManagerPage() {
   } = usePaginatedQuery(
     api.manager.list_orders_by_status,
     { status },
-    { initialNumItems: 10 },
+    { initialNumItems: 10 }
   );
   const {
     results: myResults,
@@ -120,11 +118,12 @@ export default function ManagerPage() {
     managerId
       ? ({ managerId: managerId as Id<"users">, status } as const)
       : "skip",
-    { initialNumItems: 10 },
+    { initialNumItems: 10 }
   );
   const updateStatus = useMutation(api.manager.update_order_status);
   const claim = useMutation(api.manager.claim_order);
   const unclaim = useMutation(api.manager.unclaim_order);
+
   // Consultants data & actions
   const [cStatus, setCStatus] = useState<ConsultantStatus>("new");
   const {
@@ -134,7 +133,7 @@ export default function ManagerPage() {
   } = usePaginatedQuery(
     api.consultants.list_consultants_by_status,
     { status: cStatus },
-    { initialNumItems: 10 },
+    { initialNumItems: 10 }
   );
   const {
     results: consultantsMine,
@@ -145,10 +144,10 @@ export default function ManagerPage() {
     managerId
       ? ({ managerId: managerId as Id<"users">, status: cStatus } as const)
       : "skip",
-    { initialNumItems: 10 },
+    { initialNumItems: 10 }
   );
   const updateConsultantStatus = useMutation(
-    api.consultants.update_consultant_status,
+    api.consultants.update_consultant_status
   );
   const claimConsultant = useMutation(api.consultants.claim_consultant);
   const unclaimConsultant = useMutation(api.consultants.unclaim_consultant);
@@ -174,16 +173,14 @@ export default function ManagerPage() {
       subcategory: itemSubcategoryFilter,
       search: itemSearch.trim() || undefined,
     },
-    { initialNumItems: 10 },
+    { initialNumItems: 10 }
   );
   // Use dashboard image-aware mutations for create & delete
   const generateUploadUrl = useMutation(api.dashboard.generateUploadUrl);
   const addItemWithImages = useMutation(api.dashboard.addItemsPublic);
   const deleteItemWithImages = useMutation(api.dashboard.deleteItem);
   const updateItemImages = useMutation(api.dashboard.update_item_images);
-  const createItem = useMutation(api.admin_items.create_item); // kept for updates without images (legacy)
   const updateItem = useMutation(api.admin_items.update_item);
-  // const deleteItem = useMutation(api.admin_items.delete_item);
 
   // Mutations for creating categories and subcategories
   const createCategory = useMutation(api.dashboard.create_category);
@@ -221,6 +218,7 @@ export default function ManagerPage() {
   const [editingCategory, setEditingCategory] =
     useState<Id<"categorys"> | null>(null);
   const [editCategoryName, setEditCategoryName] = useState("");
+  const [editCategoryOrder, setEditCategoryOrder] = useState<number>(0);
   const [showEditCategoryDialog, setShowEditCategoryDialog] = useState(false);
   const [showDeleteCategoryConfirm, setShowDeleteCategoryConfirm] =
     useState(false);
@@ -228,6 +226,7 @@ export default function ManagerPage() {
   const [editingSubcategory, setEditingSubcategory] =
     useState<Id<"subcategorys"> | null>(null);
   const [editSubcategoryName, setEditSubcategoryName] = useState("");
+  const [editSubcategoryOrder, setEditSubcategoryOrder] = useState<number>(0);
   const [editSubcategoryParent, setEditSubcategoryParent] =
     useState<Id<"categorys"> | null>(null);
   const [showEditSubcategoryDialog, setShowEditSubcategoryDialog] =
@@ -238,13 +237,14 @@ export default function ManagerPage() {
   // Fetch subcategory data for editing
   const editingSubcategoryData = useQuery(
     api.dashboard.get_subcategory,
-    editingSubcategory ? { id: editingSubcategory } : "skip",
+    editingSubcategory ? { id: editingSubcategory } : "skip"
   );
 
   useEffect(() => {
     if (editingSubcategoryData) {
       setEditSubcategoryName(editingSubcategoryData.name);
       setEditSubcategoryParent(editingSubcategoryData.parent);
+      setEditSubcategoryOrder(Math.floor(editingSubcategoryData.order));
     }
   }, [editingSubcategoryData]);
 
@@ -355,6 +355,7 @@ export default function ManagerPage() {
       await editCategory({
         id: editingCategory,
         name: editCategoryName.trim(),
+        order: editCategoryOrder,
       });
       toast.success("Категория обновлена");
       setShowEditCategoryDialog(false);
@@ -391,6 +392,7 @@ export default function ManagerPage() {
         id: editingSubcategory,
         name: editSubcategoryName.trim(),
         parent: editSubcategoryParent,
+        order: Math.trunc(editSubcategoryOrder) | 0,
       });
       toast.success("Подкатегория обновлена");
       setShowEditSubcategoryDialog(false);
@@ -414,132 +416,6 @@ export default function ManagerPage() {
     }
   };
 
-  // Per-item images draft for edits: keyed by item id
-  const [imagesDraft, setImagesDraft] = useState<
-    Record<string, { url: string; storageId: Id<"_storage"> }[]>
-  >({});
-  type ItemEdit = {
-    name: string;
-    brand: string;
-    price: number;
-    quantity: number;
-    description: string;
-    variant: string;
-    collection: string;
-    sale: number;
-    category?: Id<"categorys">;
-    subcategory?: Id<"subcategorys">;
-  };
-  const [itemEdits, setItemEdits] = useState<Record<string, ItemEdit>>({});
-  const getEdit = (it: any): ItemEdit => {
-    const existing = itemEdits[String(it._id)];
-    return (
-      existing ?? {
-        name: it.name,
-        brand: it.brand ?? "",
-        price: it.price,
-        quantity: it.quantity,
-        description: it.description,
-        variant: it.variant ?? "",
-        collection: it.collection ?? "",
-        sale: it.sale ?? 0,
-        category: it.category ?? undefined,
-        subcategory: it.subcategory ?? undefined,
-      }
-    );
-  };
-  const hasChanges = (it: any, ed: ItemEdit) => {
-    return (
-      ed.name !== it.name ||
-      (ed.brand || undefined) !== (it.brand ?? undefined) ||
-      ed.price !== it.price ||
-      ed.quantity !== it.quantity ||
-      ed.description !== it.description ||
-      (ed.variant || undefined) !== (it.variant ?? undefined) ||
-      (ed.collection || undefined) !== (it.collection ?? undefined) ||
-      (ed.sale || undefined) !== (it.sale ?? undefined) ||
-      (ed.category || undefined) !== (it.category ?? undefined) ||
-      (ed.subcategory || undefined) !== (it.subcategory ?? undefined)
-    );
-  };
-  const computePatch = (it: any, ed: ItemEdit) => {
-    const patch: any = {};
-    if (ed.name !== it.name) patch.name = ed.name;
-    if (ed.brand !== (it.brand ?? "")) patch.brand = ed.brand;
-    if (ed.price !== it.price) patch.price = ed.price;
-    if (ed.quantity !== it.quantity) patch.quantity = ed.quantity;
-    if (ed.description !== it.description) patch.description = ed.description;
-    if (ed.variant !== (it.variant ?? "")) patch.variant = ed.variant;
-    if (ed.collection !== (it.collection ?? ""))
-      patch.collection = ed.collection;
-    if (ed.sale !== (it.sale ?? 0)) patch.sale = ed.sale;
-    if ((ed.category || undefined) !== (it.category ?? undefined))
-      patch.category = ed.category ?? undefined;
-    if ((ed.subcategory || undefined) !== (it.subcategory ?? undefined))
-      patch.subcategory = ed.subcategory ?? undefined;
-    return patch;
-  };
-
-  // Subcategory selector bound to selected category
-  function SubcategorySelect(props: {
-    categoryId?: Id<"categorys">;
-    value?: Id<"subcategorys">;
-    onChange: (v?: Id<"subcategorys">) => void;
-    noneLabel?: string;
-    onAddNew?: () => void;
-    onEdit?: (id: Id<"subcategorys">) => void;
-  }) {
-    const { categoryId, value, onChange, noneLabel, onAddNew, onEdit } = props;
-    const res = useQuery(api.dashboard.show_subcategories_by_category, {
-      parent: categoryId ?? undefined,
-    });
-    const subcategories = res?.subcategories ?? [];
-    const selectValue = value ? String(value) : "__none__";
-    return (
-      <>
-        <Select
-          value={selectValue}
-          onValueChange={(v) => {
-            if (v === "__add_new__") {
-              onAddNew?.();
-            } else {
-              onChange(
-                v === "__none__"
-                  ? undefined
-                  : (v as unknown as Id<"subcategorys">),
-              );
-            }
-          }}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__none__">
-              {noneLabel ?? "Без подкатегории"}
-            </SelectItem>
-            {subcategories.map((s: any) => (
-              <SelectItem key={String(s._id)} value={String(s._id)}>
-                {s.name}
-              </SelectItem>
-            ))}
-            <SelectItem value="__add_new__">Добавить новую</SelectItem>
-          </SelectContent>
-        </Select>
-        {value && onEdit && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => onEdit(value)}
-            title="Настройки подкатегории"
-          >
-            <Settings className="w-4 h-4" />
-          </Button>
-        )}
-      </>
-    );
-  }
-
   const formatVariant = (value: string): string => {
     if (!value) return value;
     const trimmed = value.trim();
@@ -549,46 +425,8 @@ export default function ManagerPage() {
     return trimmed;
   };
 
-  // Helpers for image edits
-  const getImagesFor = (
-    it: any,
-  ): { url: string; storageId: Id<"_storage"> }[] => {
-    const key = String(it._id);
-    const draft = imagesDraft[key];
-    if (draft) return draft;
-    const urls: string[] = (it.imagesUrls ?? []) as string[];
-    const sids: Id<"_storage">[] = (it.imageStorageIds ??
-      []) as Id<"_storage">[];
-    const len = Math.min(urls.length, sids.length);
-    const zipped: { url: string; storageId: Id<"_storage"> }[] = [];
-    for (let i = 0; i < len; i++) {
-      zipped.push({ url: urls[i], storageId: sids[i] });
-    }
-    return zipped;
-  };
-
-  const hasImagesChanges = (it: any): boolean => {
-    const key = String(it._id);
-    const draft = imagesDraft[key];
-    if (!draft) return false;
-    const existingIds: string[] = (
-      (it.imageStorageIds ?? []) as Id<"_storage">[]
-    ).map((x) => x.toString());
-    const nextIds: string[] = draft.map((x) => x.storageId.toString());
-    if (existingIds.length !== nextIds.length) return true;
-    for (let i = 0; i < existingIds.length; i++) {
-      if (existingIds[i] !== nextIds[i]) return true;
-    }
-    return false;
-  };
-
   // Categories lookup for display
   const categories = useQuery(api.catalog.catalog_list_all_categories);
-  const getCategoryName = (catId: Id<"categorys"> | undefined): string => {
-    if (!catId || !categories) return "";
-    const found = categories.find((c: any) => String(c._id) === String(catId));
-    return found?.name ?? "";
-  };
 
   // Show loading while verifying authentication
   if (!verifiedUser && managerId) {
@@ -613,177 +451,44 @@ export default function ManagerPage() {
         }}
         onAddItem={() => setShowAddItemDialog(true)}
       />
-      <div className="flex items-center gap-4">
-        <label className="text-sm">Раздел:</label>
-        <Select value={section} onValueChange={(v: any) => setSection(v)}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="orders">Заказы</SelectItem>
-            <SelectItem value="consultants">Консультации</SelectItem>
-            <SelectItem value="items">Товары</SelectItem>
-            {role === "admin" && (
-              <SelectItem value="users">Пользователи</SelectItem>
-            )}
-          </SelectContent>
-        </Select>
-      </div>
+
+      <ManagerFilters
+        section={section}
+        setSection={setSection}
+        role={role}
+        showStatusFilter={section === "orders" || section === "consultants"}
+        statusValue={section === "orders" ? status : cStatus}
+        onStatusChange={
+          section === "orders"
+            ? (v: Status) => setStatus(v)
+            : (v: ConsultantStatus) => setCStatus(v)
+        }
+        statusOptions={
+          section === "orders"
+            ? ORDER_STATUS_OPTIONS
+            : CONSULTANT_STATUS_OPTIONS
+        }
+        showViewFilter={section === "orders" || section === "consultants"}
+        viewMine={viewMine}
+        setViewMine={setViewMine}
+        managerId={managerId}
+      />
 
       {section === "orders" && (
         <>
-          {/* Empty state for orders when list is empty */}
-          <div className="flex items-center gap-4">
-            <label className="text-sm">Фильтр по статусу:</label>
-            <Select value={status} onValueChange={(v: Status) => setStatus(v)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {ORDER_STATUS_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <OrdersList
+            orders={
+              viewMine && myResults && managerId ? myResults : results
+            }
+            managerId={managerId}
+            role={role}
+            updateStatus={updateStatus}
+            claim={claim}
+            unclaim={unclaim}
+            onResetStatus={() => setStatus("pending")}
+          />
 
-          <div className="flex items-center gap-3">
-            <span className="text-sm">Просмотр:</span>
-            <Select
-              value={viewMine ? "mine" : "all"}
-              onValueChange={(v: string) => {
-                if (v === "mine") {
-                  if (!managerId) {
-                    alert("Сначала выберите аккаунт менеджера");
-                    setViewMine(false);
-                  } else {
-                    setViewMine(true);
-                  }
-                } else {
-                  setViewMine(false);
-                }
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Все</SelectItem>
-                <SelectItem value="mine">Мои</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-3">
-            {(() => {
-              const ordersToShow =
-                viewMine && myResults && managerId ? myResults : results;
-              if ((ordersToShow?.length ?? 0) === 0) {
-                return (
-                  <EmptyState
-                    title="Заказов нет"
-                    description="Нет заказов для текущего фильтра. Измените статус или проверьте позже."
-                    secondaryActions={[
-                      {
-                        label: "Изменить статус",
-                        onClick: () => setStatus("pending"),
-                      },
-                    ]}
-                  />
-                );
-              }
-              return ordersToShow!.map((o) => (
-                <div
-                  key={o._id}
-                  className="border rounded p-3 flex items-center justify-between"
-                >
-                  <div className="space-y-1">
-                    <div className="text-sm text-muted-foreground">
-                      Заказ ID: <span className="font-mono">{o._id}</span>
-                    </div>
-                    <div className="text-sm">
-                      Пользователь:{" "}
-                      <span className="font-mono">{String(o.userId)}</span>
-                    </div>
-                    <div className="text-sm">Товаров: {o.itemId.length}</div>
-                    <div className="text-sm">Сумма: {o.total} ₽</div>
-                    <div className="text-xs text-muted-foreground">
-                      Обновлено:{" "}
-                      {o.updatedAt
-                        ? new Date(o.updatedAt).toLocaleString()
-                        : "—"}
-                    </div>
-                    <div className="text-xs">
-                      Назначен:{" "}
-                      {o.assignedManager ? String(o.assignedManager) : "—"}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Select
-                      value={o.status as Status}
-                      onValueChange={async (v: Status) =>
-                        updateStatus({ orderId: o._id, status: v })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {ORDER_STATUS_OPTIONS.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      variant="outline"
-                      onClick={() =>
-                        updateStatus({ orderId: o._id, status: "processing" })
-                      }
-                    >
-                      Начать
-                    </Button>
-                    <Button
-                      onClick={() =>
-                        updateStatus({ orderId: o._id, status: "done" })
-                      }
-                    >
-                      Готово
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      disabled={!managerId}
-                      onClick={() =>
-                        managerId &&
-                        claim({
-                          orderId: o._id,
-                          managerId: managerId as Id<"users">,
-                        })
-                      }
-                    >
-                      Взять
-                    </Button>
-                    {(role === "admin" ||
-                      (managerId &&
-                        o.assignedManager &&
-                        String(o.assignedManager) === managerId)) && (
-                      <Button
-                        variant="destructive"
-                        onClick={() => unclaim({ orderId: o._id })}
-                      >
-                        Снять
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ));
-            })()}
-          </div>
-
-          <div className="flex justify-center gap-3">
+          <div className="flex justify-center gap-3 mt-4">
             <Button
               variant="ghost"
               disabled={loadStatus !== "CanLoadMore"}
@@ -804,167 +509,20 @@ export default function ManagerPage() {
 
       {section === "consultants" && (
         <>
-          {/* Empty state for consultants when list is empty */}
-          <div className="flex items-center gap-4">
-            <label className="text-sm">Фильтр по статусу:</label>
-            <Select
-              value={cStatus}
-              onValueChange={(v: ConsultantStatus) => setCStatus(v)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {CONSULTANT_STATUS_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-sm">Просмотр:</span>
-            <Select
-              value={viewMine ? "mine" : "all"}
-              onValueChange={(v: string) => {
-                if (v === "mine") {
-                  if (!managerId) {
-                    alert("Сначала выберите аккаунт менеджера");
-                    setViewMine(false);
-                  } else {
-                    setViewMine(true);
-                  }
-                } else {
-                  setViewMine(false);
-                }
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Все</SelectItem>
-                <SelectItem value="mine">Мои</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-3">
-            {(() => {
-              const list =
-                viewMine && consultantsMine && managerId
-                  ? consultantsMine
-                  : consultantsAll;
-              if ((list?.length ?? 0) === 0) {
-                return (
-                  <EmptyState
-                    title="Запросов на консультацию нет"
-                    description="Нет консультаций для текущего фильтра. Измените статус или проверьте позже."
-                    secondaryActions={[
-                      {
-                        label: "Изменить статус",
-                        onClick: () => setCStatus("new"),
-                      },
-                    ]}
-                  />
-                );
-              }
-              return list!.map((c) => (
-                <div
-                  key={c._id}
-                  className="border rounded p-3 flex items-center justify-between"
-                >
-                  <div className="space-y-1">
-                    <div className="text-sm">Имя: {c.name}</div>
-                    <div className="text-sm">Телефон: {c.phone}</div>
-                    {c.message && (
-                      <div className="text-sm">Сообщение: {c.message}</div>
-                    )}
-                    <div className="text-xs text-muted-foreground">
-                      Обновлено:{" "}
-                      {c.updatedAt
-                        ? new Date(c.updatedAt).toLocaleString()
-                        : "—"}
-                    </div>
-                    <div className="text-xs">
-                      Назначен:{" "}
-                      {c.assignedManager ? String(c.assignedManager) : "—"}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Select
-                      value={c.status as ConsultantStatus}
-                      onValueChange={(v: ConsultantStatus) =>
-                        updateConsultantStatus({
-                          consultantId: c._id,
-                          status: v,
-                        })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {CONSULTANT_STATUS_OPTIONS.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      variant="outline"
-                      onClick={() =>
-                        updateConsultantStatus({
-                          consultantId: c._id,
-                          status: "processing",
-                        })
-                      }
-                    >
-                      Начать
-                    </Button>
-                    <Button
-                      onClick={() =>
-                        updateConsultantStatus({
-                          consultantId: c._id,
-                          status: "done",
-                        })
-                      }
-                    >
-                      Готово
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      disabled={!managerId}
-                      onClick={() =>
-                        managerId &&
-                        claimConsultant({
-                          consultantId: c._id,
-                          managerId: managerId as Id<"users">,
-                        })
-                      }
-                    >
-                      Взять
-                    </Button>
-                    {(role === "admin" ||
-                      (managerId &&
-                        c.assignedManager &&
-                        String(c.assignedManager) === managerId)) && (
-                      <Button
-                        variant="destructive"
-                        onClick={() =>
-                          unclaimConsultant({ consultantId: c._id })
-                        }
-                      >
-                        Снять
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ));
-            })()}
-          </div>
-          <div className="flex justify-center gap-3">
+          <ConsultantsList
+            consultants={
+              viewMine && consultantsMine && managerId
+                ? consultantsMine
+                : consultantsAll
+            }
+            managerId={managerId}
+            role={role}
+            updateStatus={updateConsultantStatus}
+            claim={claimConsultant}
+            unclaim={unclaimConsultant}
+            onResetStatus={() => setCStatus("new")}
+          />
+          <div className="flex justify-center gap-3 mt-4">
             <Button
               variant="ghost"
               disabled={loadStatusConsultantsAll !== "CanLoadMore"}
@@ -992,7 +550,7 @@ export default function ManagerPage() {
               if (!next) {
                 if (isAddItemFormDirty()) {
                   const ok = window.confirm(
-                    "Закрыть без сохранения? Изменения будут потеряны.",
+                    "Закрыть без сохранения? Изменения будут потеряны."
                   );
                   if (!ok) return;
                 }
@@ -1125,13 +683,13 @@ export default function ManagerPage() {
                           // Use object URL for immediate preview; Convex will generate public URLs after create
                           const objUrl = URL.createObjectURL(f);
                           return { storageId, url: objUrl };
-                        }),
+                        })
                       );
                       setNewImages((prev) => [...prev, ...uploaded]);
                     }}
                     onChangeAction={(next) =>
                       setNewImages(
-                        next as { url: string; storageId: Id<"_storage"> }[],
+                        next as { url: string; storageId: Id<"_storage"> }[]
                       )
                     }
                   />
@@ -1142,7 +700,7 @@ export default function ManagerPage() {
                     onClick={() => {
                       if (isAddItemFormDirty()) {
                         const ok = window.confirm(
-                          "Очистить форму? Изменения будут потеряны.",
+                          "Очистить форму? Изменения будут потеряны."
                         );
                         if (!ok) return;
                       }
@@ -1278,13 +836,13 @@ export default function ManagerPage() {
                         // Use object URL for immediate preview; Convex will generate public URLs after create
                         const objUrl = URL.createObjectURL(f);
                         return { storageId, url: objUrl };
-                      }),
+                      })
                     );
                     setNewImages((prev) => [...prev, ...uploaded]);
                   }}
                   onChangeAction={(next) =>
                     setNewImages(
-                      next as { url: string; storageId: Id<"_storage"> }[],
+                      next as { url: string; storageId: Id<"_storage"> }[]
                     )
                   }
                 />
@@ -1391,11 +949,12 @@ export default function ManagerPage() {
                   size="icon"
                   onClick={() => {
                     const cat = categories?.find(
-                      (c: any) => String(c._id) === String(itemCategoryFilter),
+                      (c: any) => String(c._id) === String(itemCategoryFilter)
                     );
                     if (cat) {
                       setEditingCategory(cat._id);
                       setEditCategoryName(cat.name);
+                      setEditCategoryOrder(cat.order);
                       setShowEditCategoryDialog(true);
                     }
                   }}
@@ -1423,382 +982,20 @@ export default function ManagerPage() {
             </div>
           </div>
 
-          <div className="space-y-3 mt-4">
-            {(() => {
-              const all = items ?? [];
-              const q = itemSearch.trim();
-              const isIncomplete = (it: any) => {
-                return (
-                  !it.name ||
-                  it.name.trim() === "" ||
-                  !it.description ||
-                  it.description.trim() === "" ||
-                  it.price === undefined ||
-                  it.price === null ||
-                  it.price <= 0 ||
-                  it.quantity === undefined ||
-                  it.quantity === null ||
-                  it.quantity < 0 ||
-                  !it.variant ||
-                  it.variant.trim() === ""
-                );
-              };
+          <ItemsList
+            items={items}
+            categories={categories}
+            itemSearch={itemSearch}
+            showOnlyIncomplete={showOnlyIncomplete}
+            onAddItem={() => setShowAddItemDialog(true)}
+            onClearSearch={() => setItemSearch("")}
+            updateItem={updateItem}
+            deleteItemWithImages={deleteItemWithImages}
+            updateItemImages={updateItemImages}
+            generateUploadUrl={generateUploadUrl}
+          />
 
-              // Server now handles search filtering, only filter by "incomplete" on client
-              const filtered = all.filter((it) => {
-                // Filter by "incomplete" switch
-                if (showOnlyIncomplete) {
-                  if (!isIncomplete(it)) {
-                    return false;
-                  }
-                }
-                return true;
-              });
-
-              if (all.length === 0 && !q) {
-                return (
-                  <EmptyState
-                    title="Товаров нет"
-                    description="Добавьте первый товар, чтобы начать управление каталогом."
-                    primaryAction={{
-                      label: "Добавить товар",
-                      onClick: () => setShowAddItemDialog(true),
-                    }}
-                  />
-                );
-              }
-              if (filtered.length === 0 && (q || showOnlyIncomplete)) {
-                return (
-                  <EmptyState
-                    title="Ничего не найдено"
-                    description="Измените условия поиска или сбросьте фильтры."
-                    primaryAction={{
-                      label: "Добавить товар",
-                      onClick: () => setShowAddItemDialog(true),
-                    }}
-                    secondaryActions={[
-                      {
-                        label: "Очистить поиск",
-                        onClick: () => setItemSearch(""),
-                      },
-                    ]}
-                  />
-                );
-              }
-
-              return filtered.map((it) => (
-                <div key={it._id} className="border rounded p-3 space-y-2">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <Label>Название</Label>
-                      <Input
-                        value={getEdit(it).name}
-                        onChange={(e) =>
-                          setItemEdits((prev) => ({
-                            ...prev,
-                            [String(it._id)]: {
-                              ...getEdit(it),
-                              name: e.target.value,
-                            },
-                          }))
-                        }
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label>Бренд</Label>
-                      <Input
-                        value={getEdit(it).brand}
-                        onChange={(e) =>
-                          setItemEdits((prev) => ({
-                            ...prev,
-                            [String(it._id)]: {
-                              ...getEdit(it),
-                              brand: e.target.value,
-                            },
-                          }))
-                        }
-                      />
-                    </div>
-                    {/* Editable category and subcategory */}
-                    <div className="space-y-1">
-                      <Label>Категория</Label>
-                      <Select
-                        value={
-                          getEdit(it).category
-                            ? String(getEdit(it).category)
-                            : "__none__"
-                        }
-                        onValueChange={(v: string) =>
-                          setItemEdits((prev) => ({
-                            ...prev,
-                            [String(it._id)]: {
-                              ...getEdit(it),
-                              category:
-                                v === "__none__"
-                                  ? undefined
-                                  : (v as unknown as Id<"categorys">),
-                            },
-                          }))
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__none__">
-                            Без категории
-                          </SelectItem>
-                          {Array.isArray(categories) &&
-                            categories.map((c: any) => (
-                              <SelectItem
-                                key={String(c._id)}
-                                value={String(c._id)}
-                              >
-                                {c.name}
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1">
-                      <Label>Подкатегория</Label>
-                      <SubcategorySelect
-                        categoryId={getEdit(it).category}
-                        value={getEdit(it).subcategory}
-                        onChange={(next) =>
-                          setItemEdits((prev) => ({
-                            ...prev,
-                            [String(it._id)]: {
-                              ...getEdit(it),
-                              subcategory: next,
-                            },
-                          }))
-                        }
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label>Цена</Label>
-                      <Input
-                        type="number"
-                        value={getEdit(it).price}
-                        onChange={(e) =>
-                          setItemEdits((prev) => ({
-                            ...prev,
-                            [String(it._id)]: {
-                              ...getEdit(it),
-                              price: Number(e.target.value),
-                            },
-                          }))
-                        }
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label>Количество</Label>
-                      <Input
-                        type="number"
-                        value={getEdit(it).quantity}
-                        onChange={(e) =>
-                          setItemEdits((prev) => ({
-                            ...prev,
-                            [String(it._id)]: {
-                              ...getEdit(it),
-                              quantity: Number(e.target.value),
-                            },
-                          }))
-                        }
-                      />
-                    </div>
-                    <div className="space-y-1 md:col-span-2">
-                      <Label>Описание</Label>
-                      <Textarea
-                        value={getEdit(it).description}
-                        onChange={(e) =>
-                          setItemEdits((prev) => ({
-                            ...prev,
-                            [String(it._id)]: {
-                              ...getEdit(it),
-                              description: e.target.value,
-                            },
-                          }))
-                        }
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label>Мощность</Label>
-                      <Input
-                        value={getEdit(it).variant}
-                        onChange={(e) =>
-                          setItemEdits((prev) => ({
-                            ...prev,
-                            [String(it._id)]: {
-                              ...getEdit(it),
-                              variant: formatVariant(e.target.value),
-                            },
-                          }))
-                        }
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label>Коллекция</Label>
-                      <Input
-                        placeholder="Похожие товары должны иметь одинаковую коллекцию"
-                        value={getEdit(it).collection}
-                        onChange={(e) =>
-                          setItemEdits((prev) => ({
-                            ...prev,
-                            [String(it._id)]: {
-                              ...getEdit(it),
-                              collection: e.target.value,
-                            },
-                          }))
-                        }
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label>Скидка %</Label>
-                      <Input
-                        type="number"
-                        value={getEdit(it).sale}
-                        onChange={(e) =>
-                          setItemEdits((prev) => ({
-                            ...prev,
-                            [String(it._id)]: {
-                              ...getEdit(it),
-                              sale: Number(e.target.value),
-                            },
-                          }))
-                        }
-                      />
-                    </div>
-                    {/* Images field for existing item: reorder, remove, add */}
-                    <div className="md:col-span-2 space-y-2">
-                      <ImageField
-                        itemName={getEdit(it).name}
-                        images={getImagesFor(it)}
-                        max={15}
-                        onDropFilesAction={async (fs) => {
-                          const current = getImagesFor(it);
-                          const remaining = 15 - current.length;
-                          const files = fs
-                            .filter((f) => f.type.startsWith("image/"))
-                            .slice(0, Math.max(0, remaining));
-                          if (!files.length) return;
-                          const uploaded = await Promise.all(
-                            files.map(async (f) => {
-                              const url = await generateUploadUrl();
-                              const res = await fetch(url, {
-                                method: "POST",
-                                headers: { "Content-Type": f.type },
-                                body: f,
-                              });
-                              const json = await res.json();
-                              const storageId =
-                                json.storageId as Id<"_storage">;
-                              return { storageId, url: URL.createObjectURL(f) };
-                            }),
-                          );
-                          setImagesDraft((prev) => ({
-                            ...prev,
-                            [String(it._id)]: [...current, ...uploaded],
-                          }));
-                        }}
-                        onChangeAction={(next) =>
-                          setImagesDraft((prev) => ({
-                            ...prev,
-                            [String(it._id)]: next as {
-                              url: string;
-                              storageId: Id<"_storage">;
-                            }[],
-                          }))
-                        }
-                      />
-                      <div className="flex justify-end">
-                        <Button
-                          variant="secondary"
-                          disabled={!hasImagesChanges(it)}
-                          onClick={async () => {
-                            const next = getImagesFor(it);
-                            const ids = next
-                              .map((x) => x.storageId)
-                              .filter(Boolean) as Id<"_storage">[];
-                            await updateItemImages({
-                              itemId: it._id,
-                              imageStorageIds: ids,
-                            });
-                            // Revoke any object URLs and clear local draft to rely on server values
-                            next.forEach((img) => {
-                              // Only revoke blob: URLs we created
-                              if (img.url?.startsWith("blob:")) {
-                                try {
-                                  URL.revokeObjectURL(img.url);
-                                } catch {}
-                              }
-                            });
-                            setImagesDraft((prev) => {
-                              const nextDraft = { ...prev };
-                              delete nextDraft[String(it._id)];
-                              return nextDraft;
-                            });
-                            toast.success("Изображения обновлены");
-                          }}
-                        >
-                          Сохранить изображения
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      variant="secondary"
-                      disabled={!hasChanges(it, getEdit(it))}
-                      onClick={async () => {
-                        const patch = computePatch(it, getEdit(it));
-                        if (Object.keys(patch).length === 0) return;
-                        const args: any = { itemId: it._id, ...patch };
-                        await updateItem(args);
-                        // clear local edits to rely on fresh server state
-                        setItemEdits((prev) => {
-                          const next = { ...prev };
-                          delete next[String(it._id)];
-                          return next;
-                        });
-                        toast.success("Товар обновлен");
-                      }}
-                    >
-                      Сохранить
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() =>
-                        setItemEdits((prev) => {
-                          const next = { ...prev };
-                          delete next[String(it._id)];
-                          return next;
-                        })
-                      }
-                    >
-                      Сброс
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={() => {
-                        const ok = window.confirm(
-                          "Удалить товар? Это действие нельзя отменить.",
-                        );
-                        if (ok) {
-                          deleteItemWithImages({ id: it._id });
-                          toast.success("Товар удален");
-                        }
-                      }}
-                    >
-                      Удалить
-                    </Button>
-                  </div>
-                </div>
-              ));
-            })()}
-          </div>
-          <div className="flex justify-center">
+          <div className="flex justify-center mt-4">
             <Button
               variant="ghost"
               disabled={loadStatusItems !== "CanLoadMore"}
@@ -1928,6 +1125,16 @@ export default function ManagerPage() {
                 placeholder="Введите название"
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-category-order">Порядок сортировки</Label>
+              <Input
+                id="edit-category-order"
+                type="number"
+                value={editCategoryOrder}
+                onChange={(e) => setEditCategoryOrder(Number(e.target.value))}
+                placeholder="Порядок"
+              />
+            </div>
             <div className="flex justify-between items-center pt-4">
               <Button
                 variant="destructive"
@@ -1994,6 +1201,18 @@ export default function ManagerPage() {
                 value={editSubcategoryName}
                 onChange={(e) => setEditSubcategoryName(e.target.value)}
                 placeholder="Введите название"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-subcategory-order">Порядок сортировки</Label>
+              <Input
+                id="edit-subcategory-order"
+                type="number"
+                value={editSubcategoryOrder}
+                onChange={(e) =>
+                  setEditSubcategoryOrder(Math.floor(Number(e.target.value)))
+                }
+                placeholder="Порядок"
               />
             </div>
             <div className="space-y-2">
@@ -2065,197 +1284,6 @@ export default function ManagerPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
-  );
-}
-
-function AdminUsersPanel() {
-  const createUser = useMutation(api.users.create_user_with_role);
-  const updateUser = useMutation(api.users.update_user);
-  const deleteUser = useMutation(api.users.delete_user);
-  const [roleFilter, setRoleFilter] = useState<"user" | "manager" | "admin">(
-    "manager",
-  );
-  const users = useQuery(api.users.list_users_by_role, { role: roleFilter });
-
-  const [newUser, setNewUser] = useState({
-    name: "",
-    phone: "",
-    role: "manager" as "user" | "manager" | "admin",
-  });
-  const [edits, setEdits] = useState<
-    Record<
-      string,
-      { name: string; phone: string; role: "user" | "manager" | "admin" }
-    >
-  >({});
-
-  const getEditUser = (u: any) =>
-    edits[String(u._id)] ?? { name: u.name, phone: u.phone, role: u.role };
-
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div className="space-y-1">
-          <Label htmlFor="newUserName">Имя</Label>
-          <Input
-            id="newUserName"
-            value={newUser.name}
-            onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-          />
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="newUserPhone">Телефон</Label>
-          <Input
-            id="newUserPhone"
-            value={newUser.phone}
-            onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
-          />
-        </div>
-        <div className="space-y-1">
-          <Label>Роль</Label>
-          <Select
-            value={newUser.role}
-            onValueChange={(v: any) => setNewUser({ ...newUser, role: v })}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="user">user</SelectItem>
-              <SelectItem value="manager">manager</SelectItem>
-              <SelectItem value="admin">admin</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      <div>
-        <Button
-          onClick={async () => {
-            await createUser({
-              name: newUser.name,
-              phone: newUser.phone,
-              role: newUser.role,
-            });
-            setNewUser({ name: "", phone: "", role: newUser.role });
-          }}
-        >
-          Создать пользователя
-        </Button>
-      </div>
-
-      <div className="flex items-center gap-4">
-        <Label>Фильтр по роли:</Label>
-        <Select value={roleFilter} onValueChange={(v: any) => setRoleFilter(v)}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="user">user</SelectItem>
-            <SelectItem value="manager">manager</SelectItem>
-            <SelectItem value="admin">admin</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-3 mt-3">
-        {users?.map((u) => (
-          <div key={u._id} className="border rounded p-3 space-y-2">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="space-y-1">
-                <Label>Имя</Label>
-                <Input
-                  value={getEditUser(u).name}
-                  onChange={(e) =>
-                    setEdits((prev) => ({
-                      ...prev,
-                      [String(u._id)]: {
-                        ...getEditUser(u),
-                        name: e.target.value,
-                      },
-                    }))
-                  }
-                />
-              </div>
-              <div className="space-y-1">
-                <Label>Телефон</Label>
-                <Input
-                  value={getEditUser(u).phone}
-                  onChange={(e) =>
-                    setEdits((prev) => ({
-                      ...prev,
-                      [String(u._id)]: {
-                        ...getEditUser(u),
-                        phone: e.target.value,
-                      },
-                    }))
-                  }
-                />
-              </div>
-              <div className="space-y-1">
-                <Label>Роль</Label>
-                <Select
-                  value={getEditUser(u).role}
-                  onValueChange={(v: any) =>
-                    setEdits((prev) => ({
-                      ...prev,
-                      [String(u._id)]: { ...getEditUser(u), role: v },
-                    }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="user">user</SelectItem>
-                    <SelectItem value="manager">manager</SelectItem>
-                    <SelectItem value="admin">admin</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="secondary"
-                onClick={async () => {
-                  const ed = getEditUser(u);
-                  await updateUser({
-                    id: u._id,
-                    name: ed.name,
-                    phone: ed.phone,
-                    role: ed.role,
-                  });
-                  setEdits((prev) => {
-                    const next = { ...prev };
-                    delete next[String(u._id)];
-                    return next;
-                  });
-                }}
-              >
-                Сохранить
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() =>
-                  setEdits((prev) => {
-                    const next = { ...prev };
-                    delete next[String(u._id)];
-                    return next;
-                  })
-                }
-              >
-                Сброс
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() => deleteUser({ id: u._id })}
-              >
-                Удалить
-              </Button>
-            </div>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

@@ -42,9 +42,11 @@ export default defineSchema({
 
   categorys: defineTable({
     name: v.string(),
+    order: v.number()
   }),
   subcategorys: defineTable({
     parent: v.id("categorys"),
+    order: v.number(),
     name: v.string(),
   }).index("by_parent", ["parent"]),
 

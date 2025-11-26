@@ -32,6 +32,8 @@ export const show_subcategories_by_category = query({
       .query("subcategorys")
       .withIndex("by_parent", (q) => q.eq("parent", parent))
       .collect();
+    // Sort by order field
+    subcategories.sort((a, b) => a.order - b.order);
     return { subcategories, status: 200 };
   },
 });
@@ -237,7 +239,15 @@ export const update_item_images = mutation({
 export const create_category = mutation({
   args: { name: v.string() },
   handler: async (ctx, { name }) => {
-    const categoryId = await ctx.db.insert("categorys", { name });
+    const categories = await ctx.db.query("categorys").collect();
+    const maxOrder = categories.reduce(
+      (max, c) => (c.order > max ? c.order : max),
+      0,
+    );
+    const categoryId = await ctx.db.insert("categorys", {
+      name,
+      order: maxOrder + 1,
+    });
     return { status: 200, message: "Category created", categoryId };
   },
 });
@@ -249,16 +259,48 @@ export const create_subcategory = mutation({
     parent: v.id("categorys"),
   },
   handler: async (ctx, { name, parent }) => {
-    const subcategoryId = await ctx.db.insert("subcategorys", { name, parent });
+    const subcategories = await ctx.db
+      .query("subcategorys")
+      .withIndex("by_parent", (q) => q.eq("parent", parent))
+      .collect();
+    const maxOrder = subcategories.reduce(
+      (max, c) => (c.order > max ? c.order : max),
+      0,
+    );
+    const subcategoryId = await ctx.db.insert("subcategorys", {
+      name,
+      parent,
+      order: maxOrder + 1,
+    });
     return { status: 200, message: "Subcategory created", subcategoryId };
   },
 });
 
 // Edit a category
 export const edit_category = mutation({
-  args: { id: v.id("categorys"), name: v.string() },
-  handler: async (ctx, { id, name }) => {
-    await ctx.db.patch(id, { name });
+  args: {
+    id: v.id("categorys"),
+    name: v.string(),
+    order: v.optional(v.number()),
+  },
+  handler: async (ctx, { id, name, order }) => {
+    const current = await ctx.db.get(id);
+    if (!current) throw new Error("Category not found");
+
+    if (order !== undefined && order !== current.order) {
+      const existing = await ctx.db
+        .query("categorys")
+        .filter((q) => q.eq(q.field("order"), order))
+        .first();
+      if (existing) {
+        await ctx.db.patch(existing._id, { order: current.order });
+      }
+    }
+
+    const patch: any = { name };
+    if (order !== undefined) patch.order = order;
+
+    await ctx.db.patch(id, patch);
     return { status: 200, message: "Category updated" };
   },
 });
@@ -279,9 +321,31 @@ export const edit_subcategory = mutation({
     id: v.id("subcategorys"),
     name: v.string(),
     parent: v.id("categorys"),
+    order: v.optional(v.number()),
   },
-  handler: async (ctx, { id, name, parent }) => {
-    await ctx.db.patch(id, { name, parent });
+  handler: async (ctx, { id, name, parent, order }) => {
+    const current = await ctx.db.get(id);
+    if (!current) throw new Error("Subcategory not found");
+
+    if (
+      order !== undefined &&
+      order !== current.order &&
+      parent === current.parent
+    ) {
+      const existing = await ctx.db
+        .query("subcategorys")
+        .withIndex("by_parent", (q) => q.eq("parent", parent))
+        .filter((q) => q.eq(q.field("order"), order))
+        .first();
+      if (existing) {
+        await ctx.db.patch(existing._id, { order: current.order });
+      }
+    }
+
+    const patch: any = { name, parent };
+    if (order !== undefined) patch.order = order;
+
+    await ctx.db.patch(id, patch);
     return { status: 200, message: "Subcategory updated" };
   },
 });

@@ -7,6 +7,7 @@ import { useRole } from "@/hooks/useRole";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import Link from "next/link";
 
 export default function ManagerHeader({ onLogout, onAddItem }: { onLogout: () => void; onAddItem?: () => void }) {
   const { managerId } = useRole();
@@ -18,7 +19,9 @@ export default function ManagerHeader({ onLogout, onAddItem }: { onLogout: () =>
   return (
     <div className="flex items-center justify-between border-b pb-3">
       <div className="flex items-center gap-3">
-        <Image src={Icon} alt="Логотип" width={80} height={36} />
+        <Link href={"/"}>
+          <Image src={Icon} alt="Логотип" width={80} height={36} />
+        </Link>
         <div className="text-sm">
           <div className="font-semibold">Менеджер</div>
           <div className="text-muted-foreground">
