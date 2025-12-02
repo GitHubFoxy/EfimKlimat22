@@ -8,39 +8,13 @@
  * @module
  */
 
-import type * as admin_items from "../admin_items.js";
-import type * as auth from "../auth.js";
-import type * as cart from "../cart.js";
-import type * as catalog from "../catalog.js";
-import type * as consultants from "../consultants.js";
-import type * as dashboard from "../dashboard.js";
-import type * as dev from "../dev.js";
-import type * as main from "../main.js";
-import type * as manager from "../manager.js";
-import type * as migrateImagesToLocal from "../migrateImagesToLocal.js";
-import type * as seed from "../seed.js";
-import type * as users from "../users.js";
-
 import type {
   ApiFromModules,
   FilterApi,
   FunctionReference,
 } from "convex/server";
 
-declare const fullApi: ApiFromModules<{
-  admin_items: typeof admin_items;
-  auth: typeof auth;
-  cart: typeof cart;
-  catalog: typeof catalog;
-  consultants: typeof consultants;
-  dashboard: typeof dashboard;
-  dev: typeof dev;
-  main: typeof main;
-  manager: typeof manager;
-  migrateImagesToLocal: typeof migrateImagesToLocal;
-  seed: typeof seed;
-  users: typeof users;
-}>;
+declare const fullApi: ApiFromModules<{}>;
 
 /**
  * A utility for referencing Convex functions in your app's public API.

@@ -282,4 +282,6 @@ export default defineSchema({
   orderItems: orderItemsTable,
   leads: leadsTable,
   reviews: reviewsTable
+}, {
+  schemaValidation: false
 });

@@ -1,0 +1,407 @@
+Configuration
+Passwords
+Passwords
+
+    Make sure you're done with setup before configuring authentication methods
+
+This authentication method relies on the user to remember (or preferably store in a password manager software) a secret password.
+
+Proper password-based authentication system requires at minimum a way for the user to reset their password (usually via email or text).
+
+You might also want to require email verification (during initial sign up or afterwards) to prevent users from accidentally or maliciously using the wrong email.
+Email + password setup
+
+You can implement the email (or username) and password sign-in via the Password provider config.
+Provider configuration
+
+Add the provider config to the providers array in convex/auth.ts.
+
+You can import the Password provider from @convex-dev/auth/providers/Password:
+convex/auth.ts
+
+import { Password } from "@convex-dev/auth/providers/Password";
+import { convexAuth } from "@convex-dev/auth/server";
+ 
+export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
+  providers: [Password],
+});
+
+Add sign-in form
+
+Now you can trigger sign-up or sign-in from a form submission via the signIn function.
+
+The first argument to the function is the provider ID, which unless customized is a lowercase version of the provider name, in this case password.
+
+The Password provider included in @convex-dev/auth assumes that the sign-up and sign-in flows are separate - this can prevent some user confusion during errors - and indicated via the flow field.
+src/SignIn.tsx
+
+import { useAuthActions } from "@convex-dev/auth/react";
+import { useState } from "react";
+ 
+export function SignIn() {
+  const { signIn } = useAuthActions();
+  const [step, setStep] = useState<"signUp" | "signIn">("signIn");
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        const formData = new FormData(event.currentTarget);
+        void signIn("password", formData);
+      }}
+    >
+      <input name="email" placeholder="Email" type="text" />
+      <input name="password" placeholder="Password" type="password" />
+      <input name="flow" type="hidden" value={step} />
+      <button type="submit">{step === "signIn" ? "Sign in" : "Sign up"}</button>
+      <button
+        type="button"
+        onClick={() => {
+          setStep(step === "signIn" ? "signUp" : "signIn");
+        }}
+      >
+        {step === "signIn" ? "Sign up instead" : "Sign in instead"}
+      </button>
+    </form>
+  );
+}
+
+Check out the example repo
+
+for a more polished UI.
+
+When you're done configuring your chosen authentication methods, learn how to use authentication in your frontend and backend in Authorization.
+Email reset setup
+
+Email reset is essentially a completely separate sign-in flow with two steps:
+
+    The user requests a password reset link/code to be sent to their email address
+    The user either clicks on the link or fills out the code on the website, and also fills out a new password
+
+This is very similar to the Magic Links and OTPs authentication methods, and the implementation will also be similar.
+
+Note that password reset via a link will require you to implement some form of routing so that your app knows that it should be rendering the 2nd password reset step.
+Provider configuration
+
+The Password provider included in Convex Auth supports password reset flow via the reset option, which takes an Auth.js email provider config.
+
+First, create a custom email provider.
+This example sends an OTP and uses additional dependencies
+
+convex/ResendOTPPasswordReset.ts
+
+import Resend from "@auth/core/providers/resend";
+import { Resend as ResendAPI } from "resend";
+import { RandomReader, generateRandomString } from "@oslojs/crypto/random";
+ 
+export const ResendOTPPasswordReset = Resend({
+  id: "resend-otp",
+  apiKey: process.env.AUTH_RESEND_KEY,
+  async generateVerificationToken() {
+    const random: RandomReader = {
+      read(bytes) {
+        crypto.getRandomValues(bytes);
+      },
+    };
+ 
+    const alphabet = "0123456789";
+    const length = 8;
+    return generateRandomString(random, alphabet, length);
+  },
+  async sendVerificationRequest({ identifier: email, provider, token }) {
+    const resend = new ResendAPI(provider.apiKey);
+    const { error } = await resend.emails.send({
+      from: "My App <onboarding@resend.dev>",
+      to: [email],
+      subject: `Reset your password in My App`,
+      text: "Your password reset code is " + token,
+    });
+ 
+    if (error) {
+      throw new Error("Could not send");
+    }
+  },
+});
+
+Then use it in convex/auth.ts:
+convex/auth.ts
+
+import { Password } from "@convex-dev/auth/providers/Password";
+import { convexAuth } from "@convex-dev/auth/server";
+import { ResendOTPPasswordReset } from "./ResendOTPPasswordReset";
+ 
+export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
+  providers: [Password({ reset: ResendOTPPasswordReset })],
+});
+
+Check out the example repo
+
+for a more polished email template.
+Add password reset form
+
+The Password provider included in @convex-dev/auth expects the password reset flow to be indicated via the flow field (just like the sign-up and sign-in flows were): "reset" for the initial step and "reset-verification" after the user provides the new password.
+src/PasswordReset.tsx
+
+import { useAuthActions } from "@convex-dev/auth/react";
+import { useState } from "react";
+ 
+export function PasswordReset() {
+  const { signIn } = useAuthActions();
+  const [step, setStep] = useState<"forgot" | { email: string }>("forgot");
+  return step === "forgot" ? (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        const formData = new FormData(event.currentTarget);
+        void signIn("password", formData).then(() =>
+          setStep({ email: formData.get("email") as string })
+        );
+      }}
+    >
+      <input name="email" placeholder="Email" type="text" />
+      <input name="flow" type="hidden" value="reset" />
+      <button type="submit">Send code</button>
+    </form>
+  ) : (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        const formData = new FormData(event.currentTarget);
+        void signIn("password", formData);
+      }}
+    >
+      <input name="code" placeholder="Code" type="text" />
+      <input name="newPassword" placeholder="New password" type="password" />
+      <input name="email" value={step.email} type="hidden" />
+      <input name="flow" value="reset-verification" type="hidden" />
+      <button type="submit">Continue</button>
+      <button type="button" onClick={() => setStep("forgot")}>
+        Cancel
+      </button>
+    </form>
+  );
+}
+
+Because this is a short code, we must also provide the email that matches the account used for the sign-in. The library automatically rate-limits failed attempts.
+
+Check out the example repo
+
+for a more polished UI.
+Email verification setup
+Provider configuration
+
+The Password provider included in Convex Auth supports a verification flow via the verify option, which takes an Auth.js email provider.
+
+First, create a custom email provider.
+This example sends an OTP and uses additional dependencies
+
+convex/ResendOTP.ts
+
+import Resend from "@auth/core/providers/resend";
+import { Resend as ResendAPI } from "resend";
+import { RandomReader, generateRandomString } from "@oslojs/crypto/random";
+ 
+export const ResendOTP = Resend({
+  id: "resend-otp",
+  apiKey: process.env.AUTH_RESEND_KEY,
+  async generateVerificationToken() {
+    const random: RandomReader = {
+      read(bytes) {
+        crypto.getRandomValues(bytes);
+      },
+    };
+ 
+    const alphabet = "0123456789";
+    const length = 8;
+    return generateRandomString(random, alphabet, length);
+  },
+  async sendVerificationRequest({ identifier: email, provider, token }) {
+    const resend = new ResendAPI(provider.apiKey);
+    const { error } = await resend.emails.send({
+      from: "My App <onboarding@resend.dev>",
+      to: [email],
+      subject: `Sign in to My App`,
+      text: "Your code is " + token,
+    });
+ 
+    if (error) {
+      throw new Error("Could not send");
+    }
+  },
+});
+
+Check out the example repo
+
+for a more polished email template.
+
+Then use it in convex/auth.ts:
+convex/auth.ts
+
+import { Password } from "@convex-dev/auth/providers/Password";
+import { convexAuth } from "@convex-dev/auth/server";
+import { ResendOTP } from "./ResendOTP";
+ 
+export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
+  providers: [Password({ verify: ResendOTP })],
+});
+
+Add verification form
+
+By configuring the verify option the Password provider automatically checks whether the user has verified their email during the sign-in flow.
+
+If the user previously verified their email, they will be immediately signed-in.
+
+The async signIn function returns a boolean indicating whether the sign-in was immediately successful. In the example below we don't check it, as we assume that the whole SignIn component will be unmounted when the user is signed-in.
+src/SignIn.tsx
+
+import { useAuthActions } from "@convex-dev/auth/react";
+import { useState } from "react";
+ 
+export function SignIn() {
+  const { signIn } = useAuthActions();
+  const [step, setStep] = useState<"signIn" | "signUp" | { email: string }>(
+    "signIn"
+  );
+  return step === "signIn" || step === "signUp" ? (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        const formData = new FormData(event.currentTarget);
+        void signIn("password", formData).then(() =>
+          setStep({ email: formData.get("email") as string })
+        );
+      }}
+    >
+      <input name="email" placeholder="Email" type="text" />
+      <input name="password" placeholder="Password" type="password" />
+      <input name="flow" value={step} type="hidden" />
+      <button type="submit">{step === "signIn" ? "Sign in" : "Sign up"}</button>
+      <button
+        type="button"
+        onClick={() => {
+          setStep(step === "signIn" ? "signUp" : "signIn");
+        }}
+      >
+        {step === "signIn" ? "Sign up instead" : "Sign in instead"}
+      </button>
+    </form>
+  ) : (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        const formData = new FormData(event.currentTarget);
+        void signIn("password", formData);
+      }}
+    >
+      <input name="code" placeholder="Code" type="text" />
+      <input name="flow" type="hidden" value="email-verification" />
+      <input name="email" value={step.email} type="hidden" />
+      <button type="submit">Continue</button>
+      <button type="button" onClick={() => setStep("signIn")}>
+        Cancel
+      </button>
+    </form>
+  );
+}
+
+Check out the example repo
+
+for a more polished UI.
+Customize sign-up form validation
+
+You'll want to improve the input validation for your sign-up form. Some suggestions:
+
+    Use Zod
+
+to validate basics like email format and password length, and share the logic between client and backend
+Use haveibeenpwned
+to check whether the email the user wants to use has been previously leaked
+Use zxcvbn-ts
+
+    to require a minimum password strength
+
+Remember to use ConvexError
+
+to pass error information from your backend to your frontend.
+Email address validation
+
+Use the profile option to Password to invoke email validation logic.
+
+This example uses Zod to validate the email format:
+CustomEmail.ts
+
+import { ConvexError } from "convex/values";
+import { Password } from "@convex-dev/auth/providers/Password";
+import { z } from "zod";
+ 
+const ParamsSchema = z.object({
+  email: z.string().email(),
+});
+ 
+export default Password({
+  profile(params) {
+    const { error, data } = ParamsSchema.safeParse(params);
+    if (error) {
+      throw new ConvexError(error.format());
+    }
+    return { email: data.email };
+  },
+});
+
+Password validation
+
+Use the validatePasswordRequirements option to Password to invoke password validation logic.
+
+If you don't supply custom validation, the default behavior simply requires that a password is 8 or more characters. If you do supply custom validation, the default validation is not used.
+
+This example requires a certain password length and contents:
+CustomPassword.ts
+
+import { ConvexError } from "convex/values";
+import { Password } from "@convex-dev/auth/providers/Password";
+ 
+export default Password({
+  validatePasswordRequirements: (password: string) => {
+    if (
+      password.length < 8 ||
+      !/\d/.test(password) ||
+      !/[a-z]/.test(password) ||
+      !/[A-Z]/.test(password)
+    ) {
+      throw new ConvexError("Invalid password.");
+    }
+  },
+});
+
+Customize user information
+
+Your sign-up form can include additional fields, and you can write these to your users documents.
+
+To do this, you need to:
+
+    Customize the schema to define the additional fields
+    Return the additional fields from the profile method
+
+This examples sets an additional role field received from the frontend:
+CustomProfile.ts
+
+import { Password } from "@convex-dev/auth/providers/Password";
+import { DataModel } from "./_generated/dataModel";
+ 
+export default Password<DataModel>({
+  profile(params, ctx) {
+    return {
+      email: params.email as string,
+      name: params.name as string,
+      role: params.role as string,
+    };
+  },
+});
+
+Replace the built-in Password provider with the one we've defined above.
+
+Parametrizing Password with your DataModel gives you strict type checking for the return value of profile.
+Completely customize the sign-in process
+
+You can control entirely the sign-in process on the backend by using the ConvexCredentials provider config. See the source of Password for an example.
+
+The server entrypoint exports a number of functions you can use, and you can also define and call your own mutations.

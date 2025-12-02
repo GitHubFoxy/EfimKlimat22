@@ -63,7 +63,7 @@ export default function AuthLoginPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Пароль (необязательно)</Label>
+            <Label htmlFor="password">Пароль</Label>
             <Input
               id="password"
               type="password"
