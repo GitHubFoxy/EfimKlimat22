@@ -1,5 +1,33 @@
-import { query } from "./_generated/server";
 import { v } from "convex/values";
+import { query } from "./_generated/server";
+
+// List items for any category, including its descendants, via bridge table
+
+export const search_items = query({
+  args: { query: v.string() },
+  handler: async (ctx, { query }) => {
+    const q = query.trim().toLowerCase();
+    if (!q) {
+      return await ctx.db
+        .query("items")
+        .withIndex("by_orders")
+        .order("desc")
+        .take(3);
+    }
+
+    // Substring match using JS .includes on lowerCaseName
+    // Note: This scans the table; fine for small datasets. For large datasets,
+    // prefer index-based prefix search or introduce a dedicated search index/table.
+    const allItems = await ctx.db.query("items").collect();
+    return allItems
+      .filter((item) => {
+        const inName = item?.lowerCaseName?.includes(q);
+        const inBrand = item?.brand ? item.brand.toLowerCase().includes(q) : false;
+        return Boolean(inName || inBrand);
+      })
+      .slice(0, 3);
+  },
+});
 
 export const main_page_by_filter = query({
   args: {
@@ -9,69 +37,25 @@ export const main_page_by_filter = query({
       v.literal("Скидки"),
     ),
   },
-  handler: async (ctx, args) => {
-    const { filter } = args;
-
-    // Get active items sorted by the appropriate field
+  handler: async (ctx, { filter }) => {
     if (filter === "Хиты продаж") {
-      // Sort by orders count (most popular)
-      return await ctx.db
-        .query("new_items")
-        .withIndex("by_orders", (q) => q.eq("status", "active"))
-        .order("desc")
-        .take(3)
-    }
-
-    if (filter === "Новинки") {
-      // Sort by creation date (newest first)
-      return await ctx.db
-        .query("new_items")
-        .withIndex("by_status", (q) => q.eq("status", "active"))
-        .order("desc")
-        .take(3)
-     
-    }
-
-    if (filter === "Скидки") {
-      // Sort by discount amount (highest discount first)
-      return await ctx.db
-        .query("new_items")
-        .withIndex("by_discountAmount", (q) => q.eq("status", "active"))
-        .order("desc")
-        .take(3)
-     
-    }
-
-    return { items: [] };
-  },
-});
-
-
-export const search_items = query({
-  args: {
-    query: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const { query: searchQuery } = args;
-
-    // If no query provided, return 3 most popular items
-    if (!searchQuery || searchQuery.trim() === "") {
-      return await ctx.db
-        .query("new_items")
-        .withIndex("by_orders", (q) => q.eq("status", "active"))
+      const items = await ctx.db
+        .query("items")
+        .withIndex("by_orders")
         .order("desc")
         .take(3);
+      return { items, status: 200 };
     }
-
-    // Search items using the search_main index
-    // Filter by status: active to only show active items
-    const results = await ctx.db
-      .query("new_items")
-      .withSearchIndex("search_main", (q) =>
-        q.search("searchText", searchQuery).eq("status", "active")
-      )
-      .take(10); // Limit to 10 results for search preview
-
-    return results;
+    if (filter === "Скидки") {
+      const items = await ctx.db
+        .query("items")
+        .withIndex("by_sale")
+        .order("desc")
+        .take(3);
+      return { items, status: 200 };
+    }
+    // Новинки
+    const items = await ctx.db.query("items").order("desc").take(3);
+    return { items, status: 200 };
   },
-})
+});
