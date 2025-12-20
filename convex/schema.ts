@@ -99,6 +99,7 @@ const itemsTable = defineTable({
     filterFields: ["categoryId", "brandId", "status", "inStock"],
   })
   .index("by_orders", ["status", "ordersCount"])
+  .index("by_discountAmount", ["status", "discountAmount"])
   .index("by_category_price", ["categoryId", "status", "price"])
   .index("by_category_orders", ["categoryId", "status", "ordersCount"])
   .index("by_category_created", ["categoryId", "status"])
