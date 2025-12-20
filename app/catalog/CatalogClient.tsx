@@ -10,7 +10,12 @@ import CatalogResultsWrapper from "@/components/CatalogComponents/CatalogResults
 import DisclaimerMessage from "@/components/CatalogComponents/DisclaimerMessage";
 import CatalogFilters from "@/components/CatalogComponents/CatalogFilters";
 import CatalogResultsGrid from "@/components/CatalogComponents/CatalogResultsGrid";
-import { Preloaded, usePreloadedQuery, usePaginatedQuery, useQuery } from "convex/react";
+import {
+  Preloaded,
+  usePreloadedQuery,
+  usePaginatedQuery,
+  useQuery,
+} from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -36,7 +41,7 @@ function CatalogResults({
   onClearBrandFilter,
   groupByCollection,
 }: {
-  categoryId: Id<"categorys">;
+  categoryId: Id<"categories">;
   filter: "Хиты продаж" | "Новинки" | "Со скидкой";
   subcategory?: string | null;
   priceSort?: "asc" | "desc" | null;
@@ -45,15 +50,17 @@ function CatalogResults({
   onClearBrandFilter: () => void;
   groupByCollection: boolean;
 }) {
+  const effectiveCategoryId = subcategory
+    ? (subcategory as Id<"categories">)
+    : categoryId;
   const { results, status, isLoading, loadMore } = usePaginatedQuery(
     groupByCollection
       ? api.catalog.catalog_query_grouped_by_collection
       : api.catalog.catalog_query_based_on_category_and_filter,
     {
-      category: categoryId,
+      categoryId: effectiveCategoryId,
       filter,
-      subcategory: (subcategory as Id<"subcategorys">) ?? undefined,
-      brand: selectedBrand ?? undefined,
+      brandId: selectedBrand ? (selectedBrand as Id<"brands">) : undefined,
     },
     { initialNumItems: 12 },
   );
@@ -66,21 +73,6 @@ function CatalogResults({
     sortedResults.sort((a, b) => a.price - b.price);
   } else if (priceSort === "desc") {
     sortedResults.sort((a, b) => b.price - a.price);
-  }
-
-  // Sort by variant (as number) if selected
-  if (variantSort === "asc") {
-    sortedResults.sort((a, b) => {
-      const variantA = parseFloat(a.variant) || 0;
-      const variantB = parseFloat(b.variant) || 0;
-      return variantA - variantB;
-    });
-  } else if (variantSort === "desc") {
-    sortedResults.sort((a, b) => {
-      const variantA = parseFloat(a.variant) || 0;
-      const variantB = parseFloat(b.variant) || 0;
-      return variantB - variantA;
-    });
   }
 
   return (
@@ -100,7 +92,9 @@ export function CatalogClient({
   preloadedCategories,
   preloadedBrands,
 }: {
-  preloadedCategories: Preloaded<typeof api.catalog.catalog_list_all_categories>;
+  preloadedCategories: Preloaded<
+    typeof api.catalog.catalog_list_all_categories
+  >;
   preloadedBrands: Preloaded<typeof api.dashboard.show_all_brands>;
 }) {
   const router = useRouter();
@@ -130,7 +124,7 @@ export function CatalogClient({
   const subcategoriesData = useQuery(
     api.dashboard.show_subcategories_by_category,
     selectedCategoryId
-      ? { parent: selectedCategoryId as Id<"categorys"> }
+      ? { parentId: selectedCategoryId as Id<"categories"> }
       : "skip",
   );
   const subcategories = subcategoriesData?.subcategories ?? [];
@@ -221,7 +215,7 @@ export function CatalogClient({
       <DisclaimerMessage selectedSubcategory={selectedSubcategory} />
       {/* Paginated catalog results by category & filter */}
       <CatalogResultsWrapper
-        selectedCategoryId={selectedCategoryId as Id<"categorys"> | null}
+        selectedCategoryId={selectedCategoryId as Id<"categories"> | null}
         selectedFilter={selectedFilter}
         selectedSubcategory={selectedSubcategory}
         priceSort={priceSort}

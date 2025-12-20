@@ -18,7 +18,7 @@ export const Footer = () => {
     Phone,
     Email,
   ].filter(Boolean) as string[];
-  const categorys = [
+  const categories = [
     {
       name: "Каталог",
       link: "/catalog",
@@ -55,7 +55,7 @@ export const Footer = () => {
         <div className="flex flex-col gap-4 px-2 md:px-4 py-6 md:py-[80px] md:border-r">
           <h3 className="font-medium text-xl">Покупателям</h3>
           <div className="flex flex-col gap-2">
-            {categorys.map((cat, index) => (
+            {categories.map((cat, index) => (
               <Link key={index} href={cat.link}>
                 {cat.name}
               </Link>

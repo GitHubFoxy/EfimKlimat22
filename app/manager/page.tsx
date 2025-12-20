@@ -49,7 +49,7 @@ export default function ManagerPage() {
   // Auth verification: verify the stored managerId exists and has correct role
   const verifiedUser = useQuery(
     api.users.get_user_by_id,
-    managerId ? { id: managerId as Id<"users"> } : "skip"
+    managerId ? { id: managerId as Id<"users"> } : "skip",
   );
 
   // Auth guard: verify user exists and has manager/admin role
@@ -107,7 +107,7 @@ export default function ManagerPage() {
   } = usePaginatedQuery(
     api.manager.list_orders_by_status,
     { status },
-    { initialNumItems: 10 }
+    { initialNumItems: 10 },
   );
   const {
     results: myResults,
@@ -118,7 +118,7 @@ export default function ManagerPage() {
     managerId
       ? ({ managerId: managerId as Id<"users">, status } as const)
       : "skip",
-    { initialNumItems: 10 }
+    { initialNumItems: 10 },
   );
   const updateStatus = useMutation(api.manager.update_order_status);
   const claim = useMutation(api.manager.claim_order);
@@ -133,7 +133,7 @@ export default function ManagerPage() {
   } = usePaginatedQuery(
     api.consultants.list_consultants_by_status,
     { status: cStatus },
-    { initialNumItems: 10 }
+    { initialNumItems: 10 },
   );
   const {
     results: consultantsMine,
@@ -144,10 +144,10 @@ export default function ManagerPage() {
     managerId
       ? ({ managerId: managerId as Id<"users">, status: cStatus } as const)
       : "skip",
-    { initialNumItems: 10 }
+    { initialNumItems: 10 },
   );
   const updateConsultantStatus = useMutation(
-    api.consultants.update_consultant_status
+    api.consultants.update_consultant_status,
   );
   const claimConsultant = useMutation(api.consultants.claim_consultant);
   const unclaimConsultant = useMutation(api.consultants.unclaim_consultant);
@@ -155,10 +155,10 @@ export default function ManagerPage() {
   // Items admin
   // Filters for items section (must be declared before query usage)
   const [itemCategoryFilter, setItemCategoryFilter] = useState<
-    Id<"categorys"> | undefined
+    Id<"categories"> | undefined
   >(undefined);
   const [itemSubcategoryFilter, setItemSubcategoryFilter] = useState<
-    Id<"subcategorys"> | undefined
+    Id<"categories"> | undefined
   >(undefined);
   const [itemSearch, setItemSearch] = useState("");
   const [showOnlyIncomplete, setShowOnlyIncomplete] = useState(false);
@@ -169,11 +169,10 @@ export default function ManagerPage() {
   } = usePaginatedQuery(
     api.admin_items.list_items_paginated,
     {
-      category: itemCategoryFilter,
-      subcategory: itemSubcategoryFilter,
+      categoryId: itemSubcategoryFilter || itemCategoryFilter,
       search: itemSearch.trim() || undefined,
     },
-    { initialNumItems: 10 }
+    { initialNumItems: 10 },
   );
   // Use dashboard image-aware mutations for create & delete
   const generateUploadUrl = useMutation(api.dashboard.generateUploadUrl);
@@ -216,7 +215,7 @@ export default function ManagerPage() {
 
   // Edit states
   const [editingCategory, setEditingCategory] =
-    useState<Id<"categorys"> | null>(null);
+    useState<Id<"categories"> | null>(null);
   const [editCategoryName, setEditCategoryName] = useState("");
   const [editCategoryOrder, setEditCategoryOrder] = useState<number>(0);
   const [showEditCategoryDialog, setShowEditCategoryDialog] = useState(false);
@@ -224,11 +223,11 @@ export default function ManagerPage() {
     useState(false);
 
   const [editingSubcategory, setEditingSubcategory] =
-    useState<Id<"subcategorys"> | null>(null);
+    useState<Id<"categories"> | null>(null);
   const [editSubcategoryName, setEditSubcategoryName] = useState("");
   const [editSubcategoryOrder, setEditSubcategoryOrder] = useState<number>(0);
   const [editSubcategoryParent, setEditSubcategoryParent] =
-    useState<Id<"categorys"> | null>(null);
+    useState<Id<"categories"> | null>(null);
   const [showEditSubcategoryDialog, setShowEditSubcategoryDialog] =
     useState(false);
   const [showDeleteSubcategoryConfirm, setShowDeleteSubcategoryConfirm] =
@@ -237,7 +236,7 @@ export default function ManagerPage() {
   // Fetch subcategory data for editing
   const editingSubcategoryData = useQuery(
     api.dashboard.get_subcategory,
-    editingSubcategory ? { id: editingSubcategory } : "skip"
+    editingSubcategory ? { id: editingSubcategory } : "skip",
   );
 
   useEffect(() => {
@@ -477,9 +476,7 @@ export default function ManagerPage() {
       {section === "orders" && (
         <>
           <OrdersList
-            orders={
-              viewMine && myResults && managerId ? myResults : results
-            }
+            orders={viewMine && myResults && managerId ? myResults : results}
             managerId={managerId}
             role={role}
             updateStatus={updateStatus}
@@ -550,7 +547,7 @@ export default function ManagerPage() {
               if (!next) {
                 if (isAddItemFormDirty()) {
                   const ok = window.confirm(
-                    "Закрыть без сохранения? Изменения будут потеряны."
+                    "Закрыть без сохранения? Изменения будут потеряны.",
                   );
                   if (!ok) return;
                 }
@@ -683,13 +680,13 @@ export default function ManagerPage() {
                           // Use object URL for immediate preview; Convex will generate public URLs after create
                           const objUrl = URL.createObjectURL(f);
                           return { storageId, url: objUrl };
-                        })
+                        }),
                       );
                       setNewImages((prev) => [...prev, ...uploaded]);
                     }}
                     onChangeAction={(next) =>
                       setNewImages(
-                        next as { url: string; storageId: Id<"_storage"> }[]
+                        next as { url: string; storageId: Id<"_storage"> }[],
                       )
                     }
                   />
@@ -700,7 +697,7 @@ export default function ManagerPage() {
                     onClick={() => {
                       if (isAddItemFormDirty()) {
                         const ok = window.confirm(
-                          "Очистить форму? Изменения будут потеряны."
+                          "Очистить форму? Изменения будут потеряны.",
                         );
                         if (!ok) return;
                       }
@@ -836,13 +833,13 @@ export default function ManagerPage() {
                         // Use object URL for immediate preview; Convex will generate public URLs after create
                         const objUrl = URL.createObjectURL(f);
                         return { storageId, url: objUrl };
-                      })
+                      }),
                     );
                     setNewImages((prev) => [...prev, ...uploaded]);
                   }}
                   onChangeAction={(next) =>
                     setNewImages(
-                      next as { url: string; storageId: Id<"_storage"> }[]
+                      next as { url: string; storageId: Id<"_storage"> }[],
                     )
                   }
                 />
@@ -924,7 +921,7 @@ export default function ManagerPage() {
                     setShowAddCategoryDialog(true);
                   } else {
                     // When category changes, reset subcategory filter
-                    setItemCategoryFilter(v as unknown as Id<"categorys">);
+                    setItemCategoryFilter(v as unknown as Id<"categories">);
                     setItemSubcategoryFilter(undefined);
                   }
                 }}
@@ -949,7 +946,7 @@ export default function ManagerPage() {
                   size="icon"
                   onClick={() => {
                     const cat = categories?.find(
-                      (c: any) => String(c._id) === String(itemCategoryFilter)
+                      (c: any) => String(c._id) === String(itemCategoryFilter),
                     );
                     if (cat) {
                       setEditingCategory(cat._id);
@@ -1222,7 +1219,7 @@ export default function ManagerPage() {
                   editSubcategoryParent ? String(editSubcategoryParent) : ""
                 }
                 onValueChange={(v) =>
-                  setEditSubcategoryParent(v as Id<"categorys">)
+                  setEditSubcategoryParent(v as Id<"categories">)
                 }
               >
                 <SelectTrigger>

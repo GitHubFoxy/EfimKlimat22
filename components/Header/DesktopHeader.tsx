@@ -8,7 +8,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 export const DesktopHeader = ({ PhoneNumber }: { PhoneNumber: string }) => {
-  const Categorys = [
+  const categories = [
     {
       name: "Главная",
       link: "/",
@@ -94,7 +94,7 @@ export const DesktopHeader = ({ PhoneNumber }: { PhoneNumber: string }) => {
         </Link>
         <div className="lg:absolute lg:left-1/2 lg:transform lg:-translate-x-1/2">
           <div className="flex gap-9">
-            {Categorys.map((category, index) => {
+            {categories.map((category, index) => {
               return (
                 <Link
                   className="relative no-underline  transition-colors duration-300

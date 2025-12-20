@@ -111,7 +111,7 @@ async function seed() {
 
     // Map fields from test.json to mutation args
     const catName = item.category ? String(item.category) : undefined;
-    const subcategoryStr = item.subcategory ? String(item.subcategory) : undefined;
+    const subcategoriestr = item.subcategory ? String(item.subcategory) : undefined;
     const collectionStr = item.Collection ? String(item.Collection) : undefined;
 
     const args = {
@@ -123,7 +123,7 @@ async function seed() {
       variant: item.Variant ? String(item.Variant) : undefined,
       // Extract category and subcategory exactly as they appear in test.json
       category: catName,
-      subcategory: subcategoryStr,
+      subcategory: subcategoriestr,
       collection: collectionStr,
       partNumber: item.partNumber ? String(item.partNumber) : undefined,
       imageStorageIds: storageIds,

@@ -11,19 +11,19 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 
-interface SubcategorySelectProps {
-  categoryId?: Id<"categorys">;
-  value?: Id<"subcategorys">;
-  onChange: (v?: Id<"subcategorys">) => void;
+interface SubcategorieselectProps {
+  categoryId?: Id<"categories">;
+  value?: Id<"categories">;
+  onChange: (v?: Id<"categories">) => void;
   noneLabel?: string;
   onAddNew?: () => void;
-  onEdit?: (id: Id<"subcategorys">) => void;
+  onEdit?: (id: Id<"categories">) => void;
 }
 
-export default function SubcategorySelect(props: SubcategorySelectProps) {
+export default function Subcategorieselect(props: SubcategorieselectProps) {
   const { categoryId, value, onChange, noneLabel, onAddNew, onEdit } = props;
   const res = useQuery(api.dashboard.show_subcategories_by_category, {
-    parent: categoryId ?? undefined,
+    parentId: categoryId ?? undefined,
   });
   const subcategories = res?.subcategories ?? [];
   const selectValue = value ? String(value) : "__none__";
@@ -36,7 +36,7 @@ export default function SubcategorySelect(props: SubcategorySelectProps) {
             onAddNew?.();
           } else {
             onChange(
-              v === "__none__" ? undefined : (v as unknown as Id<"subcategorys">)
+              v === "__none__" ? undefined : (v as unknown as Id<"categories">),
             );
           }
         }}

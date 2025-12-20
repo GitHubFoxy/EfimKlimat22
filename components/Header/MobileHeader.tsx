@@ -9,7 +9,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 export function MobileHeader({ PhoneNumber }: { PhoneNumber: string }) {
-  const Categorys = [
+  const categories = [
     {
       name: "Главная",
       link: "/",
@@ -54,7 +54,7 @@ export function MobileHeader({ PhoneNumber }: { PhoneNumber: string }) {
       >
         <div className="flex flex-col gap-6 bg-white w-2/3 p-4">
           <div className="flex flex-col gap-2">
-            {Categorys.map((e, index) => {
+            {categories.map((e, index) => {
               return (
                 <Link
                   key={index}
