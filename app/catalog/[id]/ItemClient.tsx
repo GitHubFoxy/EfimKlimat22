@@ -29,7 +29,7 @@ export function ItemClient({
   itemId,
 }: {
   preloadedItem: Preloaded<typeof api.dashboard.show_item>;
-  itemId: Id<"items">;
+  itemId: Id<"new_items">;
 }) {
   // Use preloaded item data - server rendered and becomes reactive after hydration
   const item = usePreloadedQuery(preloadedItem);
@@ -38,9 +38,9 @@ export function ItemClient({
   const relatedItems = useQuery(
     api.dashboard.show_items_by_brand_and_collection,
     item
-      ? { itemId: itemId, brand: item.brand, collection: item.collection }
+      ? { itemId: itemId, brandId: item.brandId, categoryId: item.categoryId }
       : "skip",
-  ) as Doc<"items">[] | undefined;
+  ) as Doc<"new_items">[] | undefined;
 
   return (
     <div className="px-6 py-6 md:px-12 lg:px-28 xl:max-w-7xl xl:mx-auto">
@@ -69,7 +69,7 @@ export function ItemClient({
 
               <BreadcrumbItem>
                 <BreadcrumbPage>
-                  {item.brand ?? ""} {item.name}
+                  {item.brandId ? `Бренд ${item.brandId}` : ""} {item.name}
                 </BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
@@ -110,7 +110,7 @@ export function ItemClient({
                               <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200 hover:border-gray-300 transition-colors">
                                 <img
                                   src={
-                                    relatedItem.imagesUrls?.[0] ||
+                                    item.imagesUrl?.[0] ||
                                     "/not-found.jpg"
                                   }
                                   alt={relatedItem.name}
@@ -121,8 +121,7 @@ export function ItemClient({
                           </TooltipTrigger>
                           <TooltipContent>
                             <p className="font-medium">
-                              {relatedItem.brand} {relatedItem.name}{" "}
-                              {relatedItem.variant}
+                              {`ID: ${relatedItem._id}`} {relatedItem.name}
                             </p>
                           </TooltipContent>
                         </Tooltip>
@@ -135,7 +134,7 @@ export function ItemClient({
 
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex-1">
               <h1 className="text-2xl font-semibold mb-2">
-                {item.brand ?? ""} {item.name} {item.variant ?? ""}
+                {item.brandId ? `Бренд ${item.brandId}` : ""} {item.name}
               </h1>
 
               <p className="text-lg font-medium mb-2 text-amber-600">
@@ -150,9 +149,9 @@ export function ItemClient({
                 {item.description ?? "Описание отсутствует"}
               </div>
 
-              {item.sale ? (
+              {item.discountAmount ? (
                 <span className="text-sm text-red-600 font-medium">
-                  Скидка: {item.sale}%
+                  Скидка: {item.discountAmount}%
                 </span>
               ) : null}
             </div>

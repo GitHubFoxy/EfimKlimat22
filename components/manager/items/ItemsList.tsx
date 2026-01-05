@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import EmptyState from "@/components/ui/EmptyState";
 import ImageField from "@/components/manager/ImageField";
-import Subcategorieselect from "./Subcategorieselect";
+import SubcategorySelect from "./SubcategorySelect";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -25,8 +25,8 @@ interface ItemEdit {
   variant: string;
   collection: string;
   sale: number;
-  category?: Id<"categories">;
-  subcategory?: Id<"subcategories">;
+  category?: Id<"new_categories">;
+  subcategory?: Id<"new_categories">;
 }
 
 interface ItemsListProps {
@@ -37,9 +37,9 @@ interface ItemsListProps {
   onAddItem: () => void;
   onClearSearch: () => void;
   updateItem: (args: any) => Promise<any>;
-  deleteItemWithImages: (args: { id: Id<"items"> }) => Promise<any>;
+  deleteItemWithImages: (args: { id: Id<"new_items"> }) => Promise<any>;
   updateItemImages: (args: {
-    itemId: Id<"items">;
+    itemId: Id<"new_items">;
     imageStorageIds: Id<"_storage">[];
   }) => Promise<any>;
   generateUploadUrl: () => Promise<string>;
@@ -264,7 +264,7 @@ export default function ItemsList({
                       category:
                         v === "__none__"
                           ? undefined
-                          : (v as unknown as Id<"categories">),
+                          : (v as unknown as Id<"new_categories">),
                     },
                   }))
                 }
@@ -285,7 +285,7 @@ export default function ItemsList({
             </div>
             <div className="space-y-1">
               <Label>Подкатегория</Label>
-              <Subcategorieselect
+              <SubcategorySelect
                 categoryId={getEdit(it).category}
                 value={getEdit(it).subcategory}
                 onChange={(next) =>

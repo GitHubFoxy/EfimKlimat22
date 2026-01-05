@@ -3,7 +3,7 @@
 import { Id } from "@/convex/_generated/dataModel";
 
 interface CatalogResultsWrapperProps {
-  selectedCategoryId: Id<"categories"> | null;
+  selectedCategoryId: Id<"new_categories"> | null;
   selectedFilter: "Хиты продаж" | "Новинки" | "Со скидкой";
   selectedSubcategory: string | null;
   priceSort: "asc" | "desc" | null;
@@ -12,7 +12,7 @@ interface CatalogResultsWrapperProps {
   onClearBrandFilter: () => void;
   groupByCollection: boolean;
   CatalogResultsComponent: React.ComponentType<{
-    categoryId: Id<"categories">;
+    categoryId: Id<"new_categories">;
     filter: "Хиты продаж" | "Новинки" | "Со скидкой";
     subcategory?: string | null;
     priceSort?: "asc" | "desc" | null;

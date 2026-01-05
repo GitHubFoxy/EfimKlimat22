@@ -41,7 +41,7 @@ function CatalogResults({
   onClearBrandFilter,
   groupByCollection,
 }: {
-  categoryId: Id<"categories">;
+  categoryId: Id<"new_categories">;
   filter: "Хиты продаж" | "Новинки" | "Со скидкой";
   subcategory?: string | null;
   priceSort?: "asc" | "desc" | null;
@@ -51,16 +51,16 @@ function CatalogResults({
   groupByCollection: boolean;
 }) {
   const effectiveCategoryId = subcategory
-    ? (subcategory as Id<"categories">)
+    ? (subcategory as Id<"new_categories">)
     : categoryId;
   const { results, status, isLoading, loadMore } = usePaginatedQuery(
     groupByCollection
       ? api.catalog.catalog_query_grouped_by_collection
       : api.catalog.catalog_query_based_on_category_and_filter,
     {
-      categoryId: effectiveCategoryId,
+      category: effectiveCategoryId,
       filter,
-      brandId: selectedBrand ? (selectedBrand as Id<"brands">) : undefined,
+      brand: selectedBrand || undefined,
     },
     { initialNumItems: 12 },
   );
@@ -124,7 +124,7 @@ export function CatalogClient({
   const subcategoriesData = useQuery(
     api.dashboard.show_subcategories_by_category,
     selectedCategoryId
-      ? { parentId: selectedCategoryId as Id<"categories"> }
+      ? { parent: selectedCategoryId as Id<"new_categories"> }
       : "skip",
   );
   const subcategories = subcategoriesData?.subcategories ?? [];
@@ -215,7 +215,7 @@ export function CatalogClient({
       <DisclaimerMessage selectedSubcategory={selectedSubcategory} />
       {/* Paginated catalog results by category & filter */}
       <CatalogResultsWrapper
-        selectedCategoryId={selectedCategoryId as Id<"categories"> | null}
+        selectedCategoryId={selectedCategoryId as Id<"new_categories"> | null}
         selectedFilter={selectedFilter}
         selectedSubcategory={selectedSubcategory}
         priceSort={priceSort}

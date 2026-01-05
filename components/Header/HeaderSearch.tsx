@@ -66,8 +66,8 @@ export default function HeaderSearch({ className }: { className?: string }) {
                     {/* Thumbnail */}
                     <img
                       src={
-                        item.imagesUrls && item.imagesUrls.length > 0
-                          ? item.imagesUrls[0]
+                        item.imagesUrl && item.imagesUrl.length > 0
+                          ? item.imagesUrl[0]
                           : "/not-found.jpg"
                       }
                       alt={item.name}

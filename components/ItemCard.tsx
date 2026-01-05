@@ -20,17 +20,47 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { formatPrice } from "@/lib/utils";
 
+// Helper to get specification summary
+const getSpecificationSummary = (
+  specifications?: Record<string, string | number | boolean>,
+) => {
+  if (!specifications) return "";
+
+  // Try to find common specifications
+  const power =
+    specifications.power ||
+    specifications.moshchnost ||
+    specifications.capacity;
+  if (power) return `${power}`;
+
+  // Return first specification if available
+  const keys = Object.keys(specifications);
+  if (keys.length > 0) {
+    const firstKey = keys[0];
+    const value = specifications[firstKey];
+    if (value !== undefined && value !== null) {
+      return `${value}`;
+    }
+  }
+
+  return "";
+};
+
 // Strong type for catalog item documents
-type Item = Doc<"items"> & {
+type Item = Doc<"new_items"> & {
   variantsCount?: number;
   priceRange?: {
     min: number;
     max: number;
   };
-  variantRange?: {
-    min: number;
-    max: number;
-  };
+  // For compatibility with UI that expects brand string
+  brand?: string;
+  variant?: string;
+  // Old field names for backward compatibility
+  imagesUrls?: string[];
+  // Map new schema fields to old names for compatibility
+  collection?: string; // mapped from categoryId
+  sale?: number; // mapped from discountAmount
 };
 
 export const ItemCard = ({ e }: { e: Item }) => {
@@ -51,7 +81,7 @@ export const ItemCard = ({ e }: { e: Item }) => {
       });
 
       toast.success("Товар добавлен в корзину", {
-        description: `${e.brand ?? ""} "${e.name}" ${e.variant ?? ""}`,
+        description: `"${e.name}"`,
         action: {
           label: "Перейти в корзину",
           onClick: () => router.push("/checkout"),
@@ -78,34 +108,34 @@ export const ItemCard = ({ e }: { e: Item }) => {
       {/* Image + Carousel Section */}
       <Link href={href} className="block w-full">
         <div className="relative w-full h-[350px] flex items-center justify-center  transition-colors rounded-2xl overflow-hidden mb-3">
-          {/* Add badge for multiple variants */}
-          {e.variantsCount && e.variantsCount > 1 && (
+          {/* Add badge for multiple specifications */}
+          {e.specifications && Object.keys(e.specifications).length > 0 && (
             <div className="absolute top-2 right-2 z-10 bg-blue-500 text-white text-xs font-medium px-2 py-1 rounded-full shadow-md">
-              {e.variantsCount} вариантов
+              {Object.keys(e.specifications).length} параметра
             </div>
           )}
           <Carousel className="w-full h-full">
             <CarouselContent className="h-full">
-              {(e.imagesUrls && e.imagesUrls.length > 0
-                ? e.imagesUrls
+              {(e.imagesUrl && e.imagesUrl.length > 0
+                ? e.imagesUrl
                 : ["/not-found.jpg"]
               ).map((img: string, index: number) => (
                 <CarouselItem key={index}>
                   <div className="relative w-full h-[350px] flex items-center justify-center">
                     <Image
                       src={img ?? "/not-found.jpg"}
-                      alt={`${e.brand ?? ""} ${e.name} ${e.variant ?? ""} кВт`}
+                      alt={e.name}
                       fill
                       className="object-contain"
                       sizes="100vw"
-                      unoptimized={!e.imagesUrls || e.imagesUrls.length === 0}
+                      unoptimized={!e.imagesUrl || e.imagesUrl.length === 0}
                     />
                   </div>
                 </CarouselItem>
               ))}
             </CarouselContent>
             {/* Carousel controls - only show when images exist and card is hovered */}
-            {e.imagesUrls && e.imagesUrls.length > 0 && isHovered && (
+            {e.imagesUrl && e.imagesUrl.length > 0 && isHovered && (
               <div onClick={(e) => e.preventDefault()}>
                 <CarouselPrevious className="left-2 transition-opacity" />
                 <CarouselNext className="right-2 transition-opacity" />
@@ -117,19 +147,16 @@ export const ItemCard = ({ e }: { e: Item }) => {
 
       {/* Stars */}
       <div className="mb-2 flex justify-center">
-        <Stars stars={String(e.rating ?? 0)} />
+        <Stars stars="0" />
       </div>
 
       {/* Name and Price on same line */}
       <Link href={href} className="block mb-3">
         <div className="flex flex-col justify-between items-start gap-3 min-h-12">
           <p className="text-base leading-6 line-clamp-2 wrap-break-word flex-1 max-h-12 overflow-hidden">
-            {e.brand ?? ""} {e.name}{" "}
-            {e.variantRange
-              ? `${e.variantRange.min}${e.variantRange.min !== e.variantRange.max ? `-${e.variantRange.max}` : ""} кВт`
-              : e.variant
-                ? `${e.variant}`
-                : ""}
+            {e.name}
+            {getSpecificationSummary(e.specifications) &&
+              ` ${getSpecificationSummary(e.specifications)}`}
           </p>
           <p className="font-medium whitespace-nowrap shrink-0 text-right">
             {e.priceRange ? (

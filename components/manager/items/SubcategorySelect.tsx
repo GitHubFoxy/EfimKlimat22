@@ -12,12 +12,12 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 
 interface SubcategorieselectProps {
-  categoryId?: Id<"categories">;
-  value?: Id<"categories">;
-  onChange: (v?: Id<"categories">) => void;
+  categoryId?: Id<"new_categories">;
+  value?: Id<"new_categories">;
+  onChange: (v?: Id<"new_categories">) => void;
   noneLabel?: string;
   onAddNew?: () => void;
-  onEdit?: (id: Id<"categories">) => void;
+  onEdit?: (id: Id<"new_categories">) => void;
 }
 
 export default function Subcategorieselect(props: SubcategorieselectProps) {
@@ -36,7 +36,7 @@ export default function Subcategorieselect(props: SubcategorieselectProps) {
             onAddNew?.();
           } else {
             onChange(
-              v === "__none__" ? undefined : (v as unknown as Id<"categories">),
+              v === "__none__" ? undefined : (v as unknown as Id<"new_categories">),
             );
           }
         }}

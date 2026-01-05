@@ -1,6 +1,5 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-// import { authTables } from "@convex-dev/auth/server";
 
 const usersTable = defineTable({
   // Convex Auth required fields
@@ -58,8 +57,8 @@ const itemsTable = defineTable({
   sku: v.string(),
   description: v.string(),
 
-  brandId: v.id("new_brands"),
-  categoryId: v.id("new_categories"),
+  brandId: v.id("brands"),
+  categoryId: v.id("categories"),
 
   status: v.union(
     v.literal("active"),
@@ -99,7 +98,6 @@ const itemsTable = defineTable({
     filterFields: ["categoryId", "brandId", "status", "inStock"],
   })
   .index("by_orders", ["status", "ordersCount"])
-  .index("by_discountAmount", ["status", "discountAmount"])
   .index("by_category_price", ["categoryId", "status", "price"])
   .index("by_category_orders", ["categoryId", "status", "ordersCount"])
   .index("by_category_created", ["categoryId", "status"])
@@ -112,7 +110,7 @@ const itemsTable = defineTable({
 const categoryTable = defineTable({
   name: v.string(),
   slug: v.string(),
-  parentId: v.optional(v.id("new_categories")),
+  parentId: v.optional(v.id("categories")),
   level: v.number(),
   order: v.number(),
 
@@ -130,7 +128,7 @@ const categoryTable = defineTable({
   .index("by_legacyId", ["legacyId"]);
 
 const cartsTable = defineTable({
-  userId: v.optional(v.id("new_users")),
+  userId: v.optional(v.id("users")),
   sessionId: v.optional(v.string()),
 
   status: v.union(
@@ -149,16 +147,16 @@ const cartsTable = defineTable({
   .index("by_userId", ["userId", "status"]);
 
 const cartItemsTable = defineTable({
-  cartId: v.id("new_carts"),
-  itemId: v.id("new_items"),
+  cartId: v.id("carts"),
+  itemId: v.id("items"),
   quantity: v.number(),
 })
   .index("by_cart_added", ["cartId"])
   .index("by_cart_item", ["cartId", "itemId"]);
 
 const ordersTable = defineTable({
-  userId: v.optional(v.id("new_users")),
-  cartId: v.optional(v.id("new_carts")),
+  userId: v.optional(v.id("users")),
+  cartId: v.optional(v.id("carts")),
 
   publicNumber: v.number(),
 
@@ -205,7 +203,7 @@ const ordersTable = defineTable({
     v.literal("canceled"),
   ),
 
-  managerId: v.optional(v.id("new_users")),
+  managerId: v.optional(v.id("users")),
   comment: v.optional(v.string()),
   managerNote: v.optional(v.string()),
   updatedAt: v.number(),
@@ -216,8 +214,8 @@ const ordersTable = defineTable({
   .index("by_manager", ["managerId", "status"]);
 
 const orderItemsTable = defineTable({
-  orderId: v.id("new_orders"),
-  itemId: v.optional(v.id("new_items")),
+  orderId: v.id("orders"),
+  itemId: v.optional(v.id("items")),
   name: v.string(),
   sku: v.string(),
   price: v.number(),
@@ -236,7 +234,7 @@ const leadsTable = defineTable({
     v.literal("installation"),
   ),
 
-  relatedItemId: v.optional(v.id("new_items")),
+  relatedItemId: v.optional(v.id("items")),
   message: v.optional(v.string()),
 
   status: v.union(
@@ -250,7 +248,7 @@ const leadsTable = defineTable({
   isPublished: v.optional(v.boolean()),
   publicQuestion: v.optional(v.string()),
 
-  assignedManagerId: v.optional(v.id("new_users")),
+  assignedManagerId: v.optional(v.id("users")),
   managerNote: v.optional(v.string()),
   updatedAt: v.number(),
 })
@@ -259,8 +257,8 @@ const leadsTable = defineTable({
   .index("by_item", ["relatedItemId"]);
 
 const reviewsTable = defineTable({
-  itemId: v.id("new_items"),
-  userId: v.optional(v.id("new_users")),
+  itemId: v.id("items"),
+  userId: v.optional(v.id("users")),
 
   authorName: v.string(),
 
@@ -288,16 +286,16 @@ const reviewsTable = defineTable({
   export default defineSchema(
     {
       // ...authTables,
-      new_users: usersTable,
-      new_brands: brandTable,
-      new_items: itemsTable,
-      new_categories: categoryTable,
-      new_carts: cartsTable,
-      new_cartItems: cartItemsTable,
-      new_orders: ordersTable,
-      new_orderItems: orderItemsTable,
-      new_leads: leadsTable,
-      new_reviews: reviewsTable,
+      users: usersTable,
+      brands: brandTable,
+      items: itemsTable,
+      categories: categoryTable,
+      carts: cartsTable,
+      cartItems: cartItemsTable,
+      orders: ordersTable,
+      orderItems: orderItemsTable,
+      leads: leadsTable,
+      reviews: reviewsTable,
 
     },
     {

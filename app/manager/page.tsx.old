@@ -1,0 +1,1226 @@
+"use client";
+
+import { usePaginatedQuery, useMutation, useQuery } from "convex/react";
+import type { Id } from "@/convex/_generated/dataModel";
+import { api } from "@/convex/_generated/api";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Settings } from "lucide-react";
+import { useRole } from "@/hooks/useRole";
+import ManagerHeader from "@/components/manager/ManagerHeader";
+import ImageField from "@/components/manager/ImageField";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
+import AdminUsersPanel from "@/components/manager/AdminUsersPanel";
+import ManagerFilters, { Section } from "@/components/manager/ManagerFilters";
+import OrdersList, {
+  ORDER_STATUS_OPTIONS,
+} from "@/components/manager/orders/OrdersList";
+import ConsultantsList, {
+  CONSULTANT_STATUS_OPTIONS,
+} from "@/components/manager/consultants/ConsultantsList";
+import ItemsList from "@/components/manager/items/ItemsList";
+import SubcategorySelect from "@/components/manager/items/SubcategorySelect";
+
+type Status = "pending" | "processing" | "done";
+type ConsultantStatus = "new" | "processing" | "done";
+
+export default function ManagerPage() {
+  const router = useRouter();
+  const { role, setRole, managerId, setManagerId } = useRole();
+
+  const [status, setStatus] = useState<Status>("pending");
+  const [viewMine, setViewMine] = useState(false);
+  const [section, setSection] = useState<Section>("orders");
+
+  const {
+    results,
+    loadMore,
+    status: loadStatus,
+  } = usePaginatedQuery(
+    api.manager.list_orders_by_status,
+    { status },
+    { initialNumItems: 10 },
+  );
+  const {
+    results: myResults,
+    loadMore: loadMoreMine,
+    status: loadStatusMine,
+  } = usePaginatedQuery(
+    api.manager.list_my_orders_by_status,
+    managerId
+      ? ({ managerId: managerId as Id<"users">, status } as const)
+      : "skip",
+    { initialNumItems: 10 },
+  );
+  const updateStatus = useMutation(api.manager.update_order_status);
+  const claim = useMutation(api.manager.claim_order);
+  const unclaim = useMutation(api.manager.unclaim_order);
+
+  // Consultants data & actions
+  const [cStatus, setCStatus] = useState<ConsultantStatus>("new");
+  const {
+    results: consultantsAll,
+    loadMore: loadMoreConsultantsAll,
+    status: loadStatusConsultantsAll,
+  } = usePaginatedQuery(
+    api.consultants.list_consultants_by_status,
+    { status: cStatus },
+    { initialNumItems: 10 },
+  );
+  const {
+    results: consultantsMine,
+    loadMore: loadMoreConsultantsMine,
+    status: loadStatusConsultantsMine,
+  } = usePaginatedQuery(
+    api.consultants.list_my_consultants_by_status,
+    managerId
+      ? ({ managerId: managerId as Id<"users">, status: cStatus } as const)
+      : "skip",
+    { initialNumItems: 10 },
+  );
+  const updateConsultantStatus = useMutation(
+    api.consultants.update_consultant_status,
+  );
+  const claimConsultant = useMutation(api.consultants.claim_consultant);
+  const unclaimConsultant = useMutation(api.consultants.unclaim_consultant);
+
+  // Items admin
+  // Filters for items section (must be declared before query usage)
+  const [itemCategoryFilter, setItemCategoryFilter] = useState<
+    Id<"categories"> | undefined
+  >(undefined);
+  const [itemSubcategoryFilter, setItemSubcategoryFilter] = useState<
+    Id<"categories"> | undefined
+  >(undefined);
+  const [itemSearch, setItemSearch] = useState("");
+  const [showOnlyIncomplete, setShowOnlyIncomplete] = useState(false);
+  const {
+    results: items,
+    loadMore: loadMoreItems,
+    status: loadStatusItems,
+  } = usePaginatedQuery(
+    api.admin_items.list_items_paginated,
+    {
+      categoryId: itemSubcategoryFilter || itemCategoryFilter,
+      search: itemSearch.trim() || undefined,
+    },
+    { initialNumItems: 10 },
+  );
+  // Use dashboard image-aware mutations for create & delete
+  const generateUploadUrl = useMutation(api.dashboard.generateUploadUrl);
+  const addItemWithImages = useMutation(api.dashboard.addItemsPublic);
+  const deleteItemWithImages = useMutation(api.dashboard.deleteItem);
+  const updateItemImages = useMutation(api.dashboard.update_item_images);
+  const updateItem = useMutation(api.admin_items.update_item);
+
+  // Mutations for creating categories and subcategories
+  const createCategory = useMutation(api.dashboard.create_category);
+  const createSubcategory = useMutation(api.dashboard.create_subcategory);
+  const editCategory = useMutation(api.dashboard.edit_category);
+  const deleteCategory = useMutation(api.dashboard.delete_category);
+  const editSubcategory = useMutation(api.dashboard.edit_subcategory);
+  const deleteSubcategory = useMutation(api.dashboard.delete_subcategory);
+
+  const [newItem, setNewItem] = useState({
+    name: "",
+    brand: "",
+    price: 0,
+    quantity: 0,
+    description: "",
+    variant: "0",
+    collection: "",
+    sale: 0,
+  });
+  // New images state for create flow: ordered array of { url (object URL), storageId }
+  const [newImages, setNewImages] = useState<
+    { url: string; storageId: Id<"_storage"> }[]
+  >([]);
+  // Add Item dialog state and helpers
+  const [showAddItemDialog, setShowAddItemDialog] = useState(false);
+
+  // Category/Subcategory creation dialog states
+  const [showAddCategoryDialog, setShowAddCategoryDialog] = useState(false);
+  const [showAddSubcategoryDialog, setShowAddSubcategoryDialog] =
+    useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [newSubcategoryName, setNewSubcategoryName] = useState("");
+
+  // Edit states
+  const [editingCategory, setEditingCategory] =
+    useState<Id<"categories"> | null>(null);
+  const [editCategoryName, setEditCategoryName] = useState("");
+  const [editCategoryOrder, setEditCategoryOrder] = useState<number>(0);
+  const [showEditCategoryDialog, setShowEditCategoryDialog] = useState(false);
+  const [showDeleteCategoryConfirm, setShowDeleteCategoryConfirm] =
+    useState(false);
+
+  const [editingSubcategory, setEditingSubcategory] =
+    useState<Id<"categories"> | null>(null);
+  const [editSubcategoryName, setEditSubcategoryName] = useState("");
+  const [editSubcategoryOrder, setEditSubcategoryOrder] = useState<number>(0);
+  const [editSubcategoryParent, setEditSubcategoryParent] =
+    useState<Id<"categories"> | null>(null);
+  const [showEditSubcategoryDialog, setShowEditSubcategoryDialog] =
+    useState(false);
+  const [showDeleteSubcategoryConfirm, setShowDeleteSubcategoryConfirm] =
+    useState(false);
+
+  // Fetch subcategory data for editing
+  const editingSubcategoryData = useQuery(
+    api.dashboard.get_subcategory,
+    editingSubcategory ? { id: editingSubcategory } : "skip",
+  );
+
+  useEffect(() => {
+    if (editingSubcategoryData) {
+      setEditSubcategoryName(editingSubcategoryData.name);
+      setEditSubcategoryParent(editingSubcategoryData.parent);
+      setEditSubcategoryOrder(Math.floor(editingSubcategoryData.order));
+    }
+  }, [editingSubcategoryData]);
+
+  const defaultNewItem = {
+    name: "",
+    brand: "",
+    price: 0,
+    quantity: 0,
+    description: "",
+    variant: "default",
+    collection: "",
+    sale: 0,
+  };
+  const isAddItemFormDirty = () => {
+    const ni = newItem;
+    return (
+      ni.name !== "" ||
+      ni.brand !== "" ||
+      ni.price !== 0 ||
+      ni.quantity !== 0 ||
+      ni.description !== "" ||
+      (ni.variant && ni.variant !== "default") ||
+      ni.collection !== "" ||
+      (typeof ni.sale === "number" && ni.sale !== 0) ||
+      newImages.length > 0
+    );
+  };
+  // Deep-link: auto-open dialog when visiting /manager#add-item
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.hash === "#add-item") {
+      setShowAddItemDialog(true);
+    }
+  }, []);
+
+  // Unified create handler used by both "Подтвердить" and "Сохранить" buttons
+  const handleCreateItem = async () => {
+    const imageStorageIds = newImages.length
+      ? (newImages.map((x) => x.storageId) as Id<"_storage">[])
+      : undefined;
+    await addItemWithImages({
+      name: newItem.name,
+      brand: newItem.brand || undefined,
+      price: newItem.price,
+      quantity: newItem.quantity,
+      description: newItem.description,
+      variant: newItem.variant || "default",
+      collection: newItem.collection || undefined,
+      sale: newItem.sale || undefined,
+      imageStorageIds,
+    });
+    // Reset form
+    setNewItem(defaultNewItem);
+    // Revoke object URLs to avoid memory leaks
+    newImages.forEach((img) => {
+      try {
+        URL.revokeObjectURL(img.url);
+      } catch {}
+    });
+    setNewImages([]);
+    setShowAddItemDialog(false);
+    toast.success("Товар создан");
+  };
+
+  // Handler for creating new category
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) {
+      toast.error("Введите название категории");
+      return;
+    }
+    try {
+      await createCategory({ name: newCategoryName.trim() });
+      toast.success("Категория создана");
+      setNewCategoryName("");
+      setShowAddCategoryDialog(false);
+    } catch (error) {
+      toast.error("Ошибка при создании категории");
+      console.error(error);
+    }
+  };
+
+  // Handler for creating new subcategory
+  const handleCreateSubcategory = async () => {
+    if (!itemCategoryFilter) {
+      toast.error("Сначала выберите категорию");
+      return;
+    }
+    if (!newSubcategoryName.trim()) {
+      toast.error("Введите название подкатегории");
+      return;
+    }
+    try {
+      await createSubcategory({
+        name: newSubcategoryName.trim(),
+        parent: itemCategoryFilter,
+      });
+      toast.success("Подкатегория создана");
+      setNewSubcategoryName("");
+      setShowAddSubcategoryDialog(false);
+    } catch (error) {
+      toast.error("Ошибка при создании подкатегории");
+      console.error(error);
+    }
+  };
+
+  const handleEditCategory = async () => {
+    if (!editingCategory || !editCategoryName.trim()) return;
+    try {
+      await editCategory({
+        id: editingCategory,
+        name: editCategoryName.trim(),
+        order: editCategoryOrder,
+      });
+      toast.success("Категория обновлена");
+      setShowEditCategoryDialog(false);
+    } catch (e) {
+      toast.error("Ошибка при обновлении категории");
+    }
+  };
+
+  const handleDeleteCategory = async () => {
+    if (!editingCategory) return;
+    try {
+      await deleteCategory({ id: editingCategory });
+      toast.success("Категория удалена");
+      setShowDeleteCategoryConfirm(false);
+      setShowEditCategoryDialog(false);
+      if (itemCategoryFilter === editingCategory) {
+        setItemCategoryFilter(undefined);
+        setItemSubcategoryFilter(undefined);
+      }
+    } catch (e) {
+      toast.error("Ошибка при удалении категории");
+    }
+  };
+
+  const handleEditSubcategory = async () => {
+    if (
+      !editingSubcategory ||
+      !editSubcategoryName.trim() ||
+      !editSubcategoryParent
+    )
+      return;
+    try {
+      await editSubcategory({
+        id: editingSubcategory,
+        name: editSubcategoryName.trim(),
+        parent: editSubcategoryParent,
+        order: Math.trunc(editSubcategoryOrder) | 0,
+      });
+      toast.success("Подкатегория обновлена");
+      setShowEditSubcategoryDialog(false);
+    } catch (e) {
+      toast.error("Ошибка при обновлении подкатегории");
+    }
+  };
+
+  const handleDeleteSubcategory = async () => {
+    if (!editingSubcategory) return;
+    try {
+      await deleteSubcategory({ id: editingSubcategory });
+      toast.success("Подкатегория удалена");
+      setShowDeleteSubcategoryConfirm(false);
+      setShowEditSubcategoryDialog(false);
+      if (itemSubcategoryFilter === editingSubcategory) {
+        setItemSubcategoryFilter(undefined);
+      }
+    } catch (e) {
+      toast.error("Ошибка при удалении подкатегории");
+    }
+  };
+
+  const formatVariant = (value: string): string => {
+    if (!value) return value;
+    const trimmed = value.trim();
+    if (trimmed && !trimmed.includes("кВт")) {
+      return trimmed + " кВт";
+    }
+    return trimmed;
+  };
+
+  // Categories lookup for display
+  const categories = useQuery(api.catalog.catalog_list_all_categories);
+
+  return (
+    <div className="container mx-auto max-w-4xl p-4 space-y-6">
+      <ManagerHeader
+        onLogout={() => {
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("userToken");
+            localStorage.removeItem("managerId");
+            localStorage.removeItem("role");
+          }
+          router.replace("/auth");
+        }}
+        onAddItem={() => setShowAddItemDialog(true)}
+      />
+
+      <ManagerFilters
+        section={section}
+        setSection={setSection}
+        role={role}
+        showStatusFilter={section === "orders" || section === "consultants"}
+        statusValue={section === "orders" ? status : cStatus}
+        onStatusChange={
+          section === "orders"
+            ? (v: Status) => setStatus(v)
+            : (v: ConsultantStatus) => setCStatus(v)
+        }
+        statusOptions={
+          section === "orders"
+            ? ORDER_STATUS_OPTIONS
+            : CONSULTANT_STATUS_OPTIONS
+        }
+        showViewFilter={section === "orders" || section === "consultants"}
+        viewMine={viewMine}
+        setViewMine={setViewMine}
+        managerId={managerId}
+      />
+
+      {section === "orders" && (
+        <>
+          <OrdersList
+            orders={viewMine && myResults && managerId ? myResults : results}
+            managerId={managerId}
+            role={role}
+            updateStatus={updateStatus}
+            claim={claim}
+            unclaim={unclaim}
+            onResetStatus={() => setStatus("pending")}
+          />
+
+          <div className="flex justify-center gap-3 mt-4">
+            <Button
+              variant="ghost"
+              disabled={loadStatus !== "CanLoadMore"}
+              onClick={() => loadMore(10)}
+            >
+              Загрузить ещё (Все)
+            </Button>
+            <Button
+              variant="ghost"
+              disabled={loadStatusMine !== "CanLoadMore"}
+              onClick={() => loadMoreMine(10)}
+            >
+              Загрузить ещё (Мои)
+            </Button>
+          </div>
+        </>
+      )}
+
+      {section === "consultants" && (
+        <>
+          <ConsultantsList
+            consultants={
+              viewMine && consultantsMine && managerId
+                ? consultantsMine
+                : consultantsAll
+            }
+            managerId={managerId}
+            role={role}
+            updateStatus={updateConsultantStatus}
+            claim={claimConsultant}
+            unclaim={unclaimConsultant}
+            onResetStatus={() => setCStatus("new")}
+          />
+          <div className="flex justify-center gap-3 mt-4">
+            <Button
+              variant="ghost"
+              disabled={loadStatusConsultantsAll !== "CanLoadMore"}
+              onClick={() => loadMoreConsultantsAll(10)}
+            >
+              Загрузить ещё (Все)
+            </Button>
+            <Button
+              variant="ghost"
+              disabled={loadStatusConsultantsMine !== "CanLoadMore"}
+              onClick={() => loadMoreConsultantsMine(10)}
+            >
+              Загрузить ещё (Мои)
+            </Button>
+          </div>
+        </>
+      )}
+
+      {section === "items" && (
+        <>
+          {/* Add Item Dialog */}
+          <Dialog
+            open={showAddItemDialog}
+            onOpenChange={(next) => {
+              if (!next) {
+                if (isAddItemFormDirty()) {
+                  const ok = window.confirm(
+                    "Закрыть без сохранения? Изменения будут потеряны.",
+                  );
+                  if (!ok) return;
+                }
+                setShowAddItemDialog(false);
+              } else {
+                setShowAddItemDialog(true);
+              }
+            }}
+          >
+            <DialogContent className="sm:max-w-2xl w-full sm:w-auto max-h-[85vh] overflow-auto">
+              <DialogHeader>
+                <DialogTitle>Добавить товар</DialogTitle>
+              </DialogHeader>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="name">Название</Label>
+                  <Input
+                    id="name"
+                    value={newItem.name}
+                    onChange={(e) =>
+                      setNewItem({ ...newItem, name: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="brand">Бренд</Label>
+                  <Input
+                    id="brand"
+                    value={newItem.brand}
+                    onChange={(e) =>
+                      setNewItem({ ...newItem, brand: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="price">Цена</Label>
+                  <Input
+                    id="price"
+                    type="number"
+                    value={newItem.price}
+                    onChange={(e) =>
+                      setNewItem({ ...newItem, price: Number(e.target.value) })
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="quantity">Количество</Label>
+                  <Input
+                    id="quantity"
+                    type="number"
+                    value={newItem.quantity}
+                    onChange={(e) =>
+                      setNewItem({
+                        ...newItem,
+                        quantity: Number(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="variant">Мощность</Label>
+                  <Input
+                    id="variant"
+                    value={newItem.variant}
+                    onChange={(e) =>
+                      setNewItem({
+                        ...newItem,
+                        variant: formatVariant(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="collection">Коллекция</Label>
+                  <Input
+                    id="collection"
+                    placeholder="Похожие товары должны иметь одинаковую коллекцию"
+                    value={newItem.collection}
+                    onChange={(e) =>
+                      setNewItem({
+                        ...newItem,
+                        collection: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="sale">Скидка %</Label>
+                  <Input
+                    id="sale"
+                    type="number"
+                    value={newItem.sale}
+                    onChange={(e) =>
+                      setNewItem({ ...newItem, sale: Number(e.target.value) })
+                    }
+                  />
+                </div>
+                <div className="space-y-1 md:col-span-2">
+                  <Label htmlFor="description">Описание</Label>
+                  <Textarea
+                    id="description"
+                    value={newItem.description}
+                    onChange={(e) =>
+                      setNewItem({ ...newItem, description: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <ImageField
+                    itemName={newItem.name || "Товар"}
+                    images={newImages}
+                    max={15}
+                    onDropFilesAction={async (fs) => {
+                      // Enforce max 15 images; only accept up to remaining slots
+                      const remaining = 15 - newImages.length;
+                      const files = fs
+                        .filter((f) => f.type.startsWith("image/"))
+                        .slice(0, Math.max(0, remaining));
+                      if (!files.length) return;
+                      const uploaded = await Promise.all(
+                        files.map(async (f) => {
+                          const url = await generateUploadUrl();
+                          const res = await fetch(url, {
+                            method: "POST",
+                            headers: { "Content-Type": f.type },
+                            body: f,
+                          });
+                          const json = await res.json();
+                          const storageId = json.storageId as Id<"_storage">;
+                          // Use object URL for immediate preview; Convex will generate public URLs after create
+                          const objUrl = URL.createObjectURL(f);
+                          return { storageId, url: objUrl };
+                        }),
+                      );
+                      setNewImages((prev) => [...prev, ...uploaded]);
+                    }}
+                    onChangeAction={(next) =>
+                      setNewImages(
+                        next as { url: string; storageId: Id<"_storage"> }[],
+                      )
+                    }
+                  />
+                </div>
+                <div className="md:col-span-2 sticky bottom-0 w-full bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/80 border-t pt-3 pb-3 flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      if (isAddItemFormDirty()) {
+                        const ok = window.confirm(
+                          "Очистить форму? Изменения будут потеряны.",
+                        );
+                        if (!ok) return;
+                      }
+                      setNewItem(defaultNewItem);
+                      newImages.forEach((img) => {
+                        try {
+                          URL.revokeObjectURL(img.url);
+                        } catch {}
+                      });
+                      setNewImages([]);
+                    }}
+                  >
+                    Отмена
+                  </Button>
+                  <Button onClick={handleCreateItem}>Сохранить</Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+          {/* Inline Add Item form is now moved to a dialog; keep anchor hidden to preserve hash deep-link compatibility */}
+          <div id="add-item" className="hidden border rounded p-3 space-y-3">
+            <h2 className="text-lg font-semibold">Добавить товар</h2>
+            <div className="grid grid-cols-1 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="name">Название</Label>
+                <Input
+                  id="name"
+                  value={newItem.name}
+                  onChange={(e) =>
+                    setNewItem({ ...newItem, name: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="brand">Бренд</Label>
+                <Input
+                  id="brand"
+                  value={newItem.brand}
+                  onChange={(e) =>
+                    setNewItem({ ...newItem, brand: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="price">Цена</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  value={newItem.price}
+                  onChange={(e) =>
+                    setNewItem({ ...newItem, price: Number(e.target.value) })
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="quantity">Количество</Label>
+                <Input
+                  id="quantity"
+                  type="number"
+                  value={newItem.quantity}
+                  onChange={(e) =>
+                    setNewItem({ ...newItem, quantity: Number(e.target.value) })
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="variant">Мощность</Label>
+                <Input
+                  id="variant"
+                  value={newItem.variant}
+                  onChange={(e) =>
+                    setNewItem({
+                      ...newItem,
+                      variant: formatVariant(e.target.value),
+                    })
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="collection-bulk">Коллекция</Label>
+                <Input
+                  id="collection-bulk"
+                  placeholder="Похожие товары должны иметь одинаковую коллекцию"
+                  value={newItem.collection}
+                  onChange={(e) =>
+                    setNewItem({ ...newItem, collection: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="sale">Скидка %</Label>
+                <Input
+                  id="sale"
+                  type="number"
+                  value={newItem.sale}
+                  onChange={(e) =>
+                    setNewItem({ ...newItem, sale: Number(e.target.value) })
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="description">Описание</Label>
+                <Textarea
+                  id="description"
+                  value={newItem.description}
+                  onChange={(e) =>
+                    setNewItem({ ...newItem, description: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <ImageField
+                  itemName={newItem.name || "Товар"}
+                  images={newImages}
+                  max={15}
+                  onDropFilesAction={async (fs) => {
+                    // Enforce max 15 images; only accept up to remaining slots
+                    const remaining = 15 - newImages.length;
+                    const files = fs
+                      .filter((f) => f.type.startsWith("image/"))
+                      .slice(0, Math.max(0, remaining));
+                    if (!files.length) return;
+                    const uploaded = await Promise.all(
+                      files.map(async (f) => {
+                        const url = await generateUploadUrl();
+                        const res = await fetch(url, {
+                          method: "POST",
+                          headers: { "Content-Type": f.type },
+                          body: f,
+                        });
+                        const json = await res.json();
+                        const storageId = json.storageId as Id<"_storage">;
+                        // Use object URL for immediate preview; Convex will generate public URLs after create
+                        const objUrl = URL.createObjectURL(f);
+                        return { storageId, url: objUrl };
+                      }),
+                    );
+                    setNewImages((prev) => [...prev, ...uploaded]);
+                  }}
+                  onChangeAction={(next) =>
+                    setNewImages(
+                      next as { url: string; storageId: Id<"_storage"> }[],
+                    )
+                  }
+                />
+              </div>
+              <div>
+                <Button
+                  onClick={async () => {
+                    // Create item with selected image storage ids (preserving order)
+                    const imageStorageIds = newImages.length
+                      ? (newImages.map((x) => x.storageId) as Id<"_storage">[])
+                      : undefined;
+                    await addItemWithImages({
+                      name: newItem.name,
+                      brand: newItem.brand || undefined,
+                      price: newItem.price,
+                      quantity: newItem.quantity,
+                      description: newItem.description,
+                      variant: newItem.variant || "0",
+                      sale: newItem.sale || undefined,
+                      imageStorageIds,
+                    });
+                    // Reset form
+                    setNewItem({
+                      name: "",
+                      brand: "",
+                      price: 0,
+                      quantity: 0,
+                      description: "",
+                      variant: "0",
+                      collection: "",
+                      sale: 0,
+                    });
+                    // Revoke object URLs to avoid memory leaks
+                    newImages.forEach((img) => {
+                      try {
+                        URL.revokeObjectURL(img.url);
+                      } catch {}
+                    });
+                    setNewImages([]);
+                  }}
+                >
+                  Создать
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 mt-4">
+            <Label htmlFor="item-search">Поиск товаров</Label>
+            <Input
+              id="item-search"
+              placeholder="Поиск по названию, бренду, мощности"
+              value={itemSearch}
+              onChange={(e) => setItemSearch(e.target.value)}
+            />
+          </div>
+          <div className="flex items-center gap-3 mt-2">
+            <Switch
+              id="filter-incomplete"
+              checked={showOnlyIncomplete}
+              onCheckedChange={setShowOnlyIncomplete}
+            />
+            <Label htmlFor="filter-incomplete">Не законченные</Label>
+          </div>
+
+          {/* Filters: Category & Subcategory */}
+          <div className="flex items-center gap-3 mt-2">
+            <Label>Категория</Label>
+            <div className="flex items-center gap-2 flex-1">
+              <Select
+                value={
+                  itemCategoryFilter ? String(itemCategoryFilter) : "__all__"
+                }
+                onValueChange={(v: string) => {
+                  if (v === "__all__") {
+                    setItemCategoryFilter(undefined);
+                    setItemSubcategoryFilter(undefined);
+                  } else if (v === "__add_new__") {
+                    setShowAddCategoryDialog(true);
+                  } else {
+                    // When category changes, reset subcategory filter
+                    setItemCategoryFilter(v as unknown as Id<"categories">);
+                    setItemSubcategoryFilter(undefined);
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Все категории</SelectItem>
+                  {Array.isArray(categories) &&
+                    categories.map((c: any) => (
+                      <SelectItem key={String(c._id)} value={String(c._id)}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  <SelectItem value="__add_new__">Добавить новую</SelectItem>
+                </SelectContent>
+              </Select>
+              {itemCategoryFilter && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    const cat = categories?.find(
+                      (c: any) => String(c._id) === String(itemCategoryFilter),
+                    );
+                    if (cat) {
+                      setEditingCategory(cat._id);
+                      setEditCategoryName(cat.name);
+                      setEditCategoryOrder(cat.order);
+                      setShowEditCategoryDialog(true);
+                    }
+                  }}
+                  title="Настройки категории"
+                >
+                  <Settings className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-3 mt-2">
+            <Label>Подкатегория</Label>
+            <div className="flex items-center gap-2">
+              <SubcategorySelect
+                categoryId={itemCategoryFilter}
+                value={itemSubcategoryFilter}
+                onChange={(next) => setItemSubcategoryFilter(next)}
+                noneLabel="Все подкатегории"
+                onAddNew={() => setShowAddSubcategoryDialog(true)}
+                onEdit={(id) => {
+                  setEditingSubcategory(id);
+                  setShowEditSubcategoryDialog(true);
+                }}
+              />
+            </div>
+          </div>
+
+          <ItemsList
+            items={items}
+            categories={categories}
+            itemSearch={itemSearch}
+            showOnlyIncomplete={showOnlyIncomplete}
+            onAddItem={() => setShowAddItemDialog(true)}
+            onClearSearch={() => setItemSearch("")}
+            updateItem={updateItem}
+            deleteItemWithImages={deleteItemWithImages}
+            updateItemImages={updateItemImages}
+            generateUploadUrl={generateUploadUrl}
+          />
+
+          <div className="flex justify-center mt-4">
+            <Button
+              variant="ghost"
+              disabled={loadStatusItems !== "CanLoadMore"}
+              onClick={() => loadMoreItems(10)}
+            >
+              Загрузить ещё товары
+            </Button>
+          </div>
+        </>
+      )}
+
+      {section === "users" && role === "admin" && (
+        <>
+          <div className="border rounded p-3 space-y-3">
+            <h2 className="text-lg font-semibold">Пользователи</h2>
+            {/* Create user */}
+            <AdminUsersPanel />
+          </div>
+        </>
+      )}
+
+      {/* Dialog for adding new category */}
+      <Dialog
+        open={showAddCategoryDialog}
+        onOpenChange={setShowAddCategoryDialog}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Добавить категорию</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="category-name">Название категории</Label>
+              <Input
+                id="category-name"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="Введите название"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleCreateCategory();
+                  }
+                }}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowAddCategoryDialog(false);
+                  setNewCategoryName("");
+                }}
+              >
+                Отмена
+              </Button>
+              <Button onClick={handleCreateCategory}>Сохранить</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog for adding new subcategory */}
+      <Dialog
+        open={showAddSubcategoryDialog}
+        onOpenChange={setShowAddSubcategoryDialog}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Добавить подкатегорию</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {!itemCategoryFilter && (
+              <p className="text-sm text-red-500">Сначала выберите категорию</p>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="subcategory-name">Название подкатегории</Label>
+              <Input
+                id="subcategory-name"
+                value={newSubcategoryName}
+                onChange={(e) => setNewSubcategoryName(e.target.value)}
+                placeholder="Введите название"
+                disabled={!itemCategoryFilter}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleCreateSubcategory();
+                  }
+                }}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowAddSubcategoryDialog(false);
+                  setNewSubcategoryName("");
+                }}
+              >
+                Отмена
+              </Button>
+              <Button
+                onClick={handleCreateSubcategory}
+                disabled={!itemCategoryFilter}
+              >
+                Сохранить
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog for editing category */}
+      <Dialog
+        open={showEditCategoryDialog}
+        onOpenChange={setShowEditCategoryDialog}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Редактировать категорию</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-category-name">Название категории</Label>
+              <Input
+                id="edit-category-name"
+                value={editCategoryName}
+                onChange={(e) => setEditCategoryName(e.target.value)}
+                placeholder="Введите название"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-category-order">Порядок сортировки</Label>
+              <Input
+                id="edit-category-order"
+                type="number"
+                value={editCategoryOrder}
+                onChange={(e) => setEditCategoryOrder(Number(e.target.value))}
+                placeholder="Порядок"
+              />
+            </div>
+            <div className="flex justify-between items-center pt-4">
+              <Button
+                variant="destructive"
+                onClick={() => setShowDeleteCategoryConfirm(true)}
+              >
+                Удалить категорию
+              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowEditCategoryDialog(false)}
+                >
+                  Отмена
+                </Button>
+                <Button onClick={handleEditCategory}>Сохранить</Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmation dialog for deleting category */}
+      <Dialog
+        open={showDeleteCategoryConfirm}
+        onOpenChange={setShowDeleteCategoryConfirm}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Вы уверены?</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p>Это действие нельзя отменить. Категория будет удалена.</p>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteCategoryConfirm(false)}
+            >
+              Отмена
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteCategory}>
+              Удалить
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog for editing subcategory */}
+      <Dialog
+        open={showEditSubcategoryDialog}
+        onOpenChange={setShowEditSubcategoryDialog}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Редактировать подкатегорию</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-subcategory-name">
+                Название подкатегории
+              </Label>
+              <Input
+                id="edit-subcategory-name"
+                value={editSubcategoryName}
+                onChange={(e) => setEditSubcategoryName(e.target.value)}
+                placeholder="Введите название"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-subcategory-order">Порядок сортировки</Label>
+              <Input
+                id="edit-subcategory-order"
+                type="number"
+                value={editSubcategoryOrder}
+                onChange={(e) =>
+                  setEditSubcategoryOrder(Math.floor(Number(e.target.value)))
+                }
+                placeholder="Порядок"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Родительская категория</Label>
+              <Select
+                value={
+                  editSubcategoryParent ? String(editSubcategoryParent) : ""
+                }
+                onValueChange={(v) =>
+                  setEditSubcategoryParent(v as Id<"categories">)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Выберите категорию" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.isArray(categories) &&
+                    categories.map((c: any) => (
+                      <SelectItem key={String(c._id)} value={String(c._id)}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-between items-center pt-4">
+              <Button
+                variant="destructive"
+                onClick={() => setShowDeleteSubcategoryConfirm(true)}
+              >
+                Удалить подкатегорию
+              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowEditSubcategoryDialog(false)}
+                >
+                  Отмена
+                </Button>
+                <Button onClick={handleEditSubcategory}>Сохранить</Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmation dialog for deleting subcategory */}
+      <Dialog
+        open={showDeleteSubcategoryConfirm}
+        onOpenChange={setShowDeleteSubcategoryConfirm}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Вы уверены?</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p>Это действие нельзя отменить. Подкатегория будет удалена.</p>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteSubcategoryConfirm(false)}
+            >
+              Отмена
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteSubcategory}>
+              Удалить
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
