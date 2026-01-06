@@ -108,67 +108,88 @@ export interface Item {
   price: number;
 }
 
-export const itemColumns: ColumnDef<Item>[] = [
-  {
-    accessorKey: "name",
-    header: "Товар",
-    cell: ({ row }) => {
-      const name = row.getValue("name") as string;
-      const sku = row.original as any;
-      return (
-        <div>
-          <div className="font-medium">{name}</div>
-          {sku.sku && <div className="text-xs text-gray-500">{sku.sku}</div>}
-        </div>
-      );
+// Provide a factory to create item columns so parent components can pass handlers
+export const getItemColumns = (handlers?: {
+  onEdit?: (item: any) => void;
+  onDelete?: (id: any, name: string) => void;
+}): ColumnDef<Item>[] => {
+  const { onEdit, onDelete } = handlers || {};
+
+  return [
+    {
+      accessorKey: "name",
+      header: "Товар",
+      cell: ({ row }) => {
+        const name = row.getValue("name") as string;
+        const sku = row.original as any;
+        return (
+          <div>
+            <div className="font-medium">{name}</div>
+            {sku.sku && <div className="text-xs text-gray-500">{sku.sku}</div>}
+          </div>
+        );
+      },
     },
-  },
-  {
-    accessorKey: "brand",
-    header: "Бренд",
-    cell: ({ row }) => {
-      const brand = row.getValue("brand") as string;
-      return <div>{brand}</div>;
+    {
+      accessorKey: "brand",
+      header: "Бренд",
+      cell: ({ row }) => {
+        const brand = row.getValue("brand") as string;
+        return <div>{brand}</div>;
+      },
     },
-  },
-  {
-    accessorKey: "quantity",
-    header: "Количество",
-  },
-  {
-    accessorKey: "price",
-    header: "Цена",
-    cell: ({ row }) => {
-      const amount = parseFloat(row.getValue("price") as any);
-      const formatted = new Intl.NumberFormat("ru-RU", {
-        style: "currency",
-        currency: "RUB",
-      }).format(amount);
-      return <div className="font-medium">{formatted}</div>;
+    {
+      accessorKey: "quantity",
+      header: "Количество",
     },
-  },
-  {
-    id: "actions",
-    cell: () => {
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Открыть меню</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Действия</DropdownMenuLabel>
-            <DropdownMenuItem>Редактировать товар</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>Удалить товар</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
+    {
+      accessorKey: "price",
+      header: "Цена",
+      cell: ({ row }) => {
+        const amount = parseFloat(row.getValue("price") as any);
+        const formatted = new Intl.NumberFormat("ru-RU", {
+          style: "currency",
+          currency: "RUB",
+        }).format(amount);
+        return <div className="font-medium">{formatted}</div>;
+      },
     },
-  },
-];
+    {
+      id: "actions",
+      cell: ({ row }) => {
+        const item = row.original as any;
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Открыть меню</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Действия</DropdownMenuLabel>
+              <DropdownMenuItem
+                onClick={() => {
+                  if (onEdit) onEdit(item);
+                }}
+              >
+                Редактировать товар
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => {
+                  if (onDelete) onDelete(item._id, item.name);
+                }}
+              >
+                Удалить товар
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      },
+    },
+  ];
+};
 
 export interface Lead {
   _id: string;

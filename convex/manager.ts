@@ -413,3 +413,89 @@ export const search_by_type = query({
     };
   },
 });
+
+export const create_item = mutation({
+  args: {
+    name: v.string(),
+    sku: v.string(),
+    description: v.string(),
+    brandId: v.id("brands"),
+    categoryId: v.id("categories"),
+    price: v.number(),
+    quantity: v.number(),
+    status: v.union(
+      v.literal("active"),
+      v.literal("draft"),
+      v.literal("archived"),
+      v.literal("preorder"),
+    ),
+    inStock: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const slug = args.name.toLowerCase().replace(/ /g, "-").replace(/[^\w-]+/g, "");
+    const itemId = await ctx.db.insert("items", {
+      ...args,
+      slug,
+      ordersCount: 0,
+      searchText: `${args.name} ${args.sku}`.toLowerCase(),
+    });
+    return itemId;
+  },
+});
+
+export const update_item = mutation({
+  args: {
+    id: v.id("items"),
+    name: v.optional(v.string()),
+    sku: v.optional(v.string()),
+    description: v.optional(v.string()),
+    brandId: v.optional(v.id("brands")),
+    categoryId: v.optional(v.id("categories")),
+    price: v.optional(v.number()),
+    quantity: v.optional(v.number()),
+    status: v.optional(v.union(
+      v.literal("active"),
+      v.literal("draft"),
+      v.literal("archived"),
+      v.literal("preorder"),
+    )),
+    inStock: v.optional(v.boolean()),
+  },
+  handler: async (ctx, { id, ...args }) => {
+    const existing = await ctx.db.get(id);
+    if (!existing) throw new Error("Item not found");
+
+    const patch: any = { ...args };
+    if (args.name) {
+      patch.slug = args.name.toLowerCase().replace(/ /g, "-").replace(/[^\w-]+/g, "");
+    }
+    
+    if (args.name || args.sku) {
+      const name = args.name ?? existing.name;
+      const sku = args.sku ?? existing.sku;
+      patch.searchText = `${name} ${sku}`.toLowerCase();
+    }
+
+    await ctx.db.patch(id, patch);
+    return id;
+  },
+});
+
+export const delete_item = mutation({
+  args: { id: v.id("items") },
+  handler: async (ctx, { id }) => {
+    await ctx.db.patch(id, { status: "archived" });
+  },
+});
+
+export const list_brands_all = query({
+  handler: async (ctx) => {
+    return await ctx.db.query("brands").collect();
+  },
+});
+
+export const list_categories_all = query({
+  handler: async (ctx) => {
+    return await ctx.db.query("categories").collect();
+  },
+});

@@ -10,7 +10,8 @@ import { Download, Plus, Search } from "lucide-react";
 import { ItemsTableContent } from "./items-table-content";
 import { LeadsTableContent } from "./leads-table-content";
 import { OrdersTableContent } from "./orders-table-content";
-
+import { ItemFormDialog } from "./item-form-dialog";
+import { DeleteItemDialog } from "./delete-item-dialog";
 
 
 type Section = "orders" | "items" | "leads";
@@ -23,6 +24,15 @@ export function ManagerPageClient({ itemsPreload }: ManagerPageClientProps) {
   const [activeSection, setActiveSection] = useState<Section>("items");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  // Dialog state for create/edit
+  const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<any | null>(null);
+
+  // Dialog state for delete
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deletingItemId, setDeletingItemId] = useState<any | null>(null);
+  const [deletingItemName, setDeletingItemName] = useState<string>("");
 
   // Simple debounce implementation
   useEffect(() => {
@@ -46,6 +56,22 @@ export function ManagerPageClient({ itemsPreload }: ManagerPageClientProps) {
     }
   };
 
+  const openCreateDialog = () => {
+    setEditingItem(null);
+    setIsItemDialogOpen(true);
+  };
+
+  const handleEditItem = (item: any) => {
+    setEditingItem(item);
+    setIsItemDialogOpen(true);
+  };
+
+  const handleDeleteItem = (id: any, name: string) => {
+    setDeletingItemId(id);
+    setDeletingItemName(name);
+    setIsDeleteDialogOpen(true);
+  };
+
   return (
     <>
       <AppSidebar
@@ -66,6 +92,7 @@ export function ManagerPageClient({ itemsPreload }: ManagerPageClientProps) {
               <Button
                 size="sm"
                 className="bg-gray-900 hover:bg-gray-800 text-white"
+                onClick={openCreateDialog}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Добавить
@@ -122,6 +149,8 @@ export function ManagerPageClient({ itemsPreload }: ManagerPageClientProps) {
                 <ItemsTableContent 
                   itemsPreload={itemsPreload} 
                   searchQuery={activeSection === "items" ? debouncedSearch : ""}
+                  onEditItem={handleEditItem}
+                  onDeleteItem={handleDeleteItem}
                 />
               </div>
             </TabsContent>
@@ -149,6 +178,28 @@ export function ManagerPageClient({ itemsPreload }: ManagerPageClientProps) {
           </Tabs>
         </main>
       </div>
+
+      {/* Item Form Dialog (Create / Edit) */}
+      <ItemFormDialog
+        isOpen={isItemDialogOpen}
+        onClose={() => {
+          setIsItemDialogOpen(false);
+          setEditingItem(null);
+        }}
+        item={editingItem ?? undefined}
+      />
+
+      {/* Delete Confirmation */}
+      <DeleteItemDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => {
+          setIsDeleteDialogOpen(false);
+          setDeletingItemId(null);
+          setDeletingItemName("");
+        }}
+        itemId={deletingItemId}
+        itemName={deletingItemName}
+      />
     </>
   );
 }

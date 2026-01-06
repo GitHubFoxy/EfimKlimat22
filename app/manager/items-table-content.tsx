@@ -1,19 +1,27 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { DataTable } from "./data-table";
-import { itemColumns, type Item } from "./columns";
 import { useQuery, usePreloadedQuery, Preloaded } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { DataTable } from "./data-table";
+import { getItemColumns, type Item } from "./columns";
+import { useState, useEffect } from "react";
 
 interface ItemsTableContentProps {
   itemsPreload: Preloaded<typeof api.manager.list_items>;
   searchQuery?: string;
+  onEditItem?: (item: any) => void;
+  onDeleteItem?: (id: any, name: string) => void;
 }
 
-export function ItemsTableContent({ itemsPreload, searchQuery = "" }: ItemsTableContentProps) {
+export function ItemsTableContent({
+  itemsPreload,
+  searchQuery = "",
+  onEditItem,
+  onDeleteItem,
+}: ItemsTableContentProps) {
   const [cursor, setCursor] = useState<string | null>(null);
 
   // Reset cursor when search query changes
@@ -24,28 +32,30 @@ export function ItemsTableContent({ itemsPreload, searchQuery = "" }: ItemsTable
   // Use preloaded query on initial page load
   const itemsDataPreloaded = usePreloadedQuery(itemsPreload);
 
-  // When navigating pages, fetch new data
+  // Fetch items reactively (so list updates after mutations)
   const itemsDataQuery = useQuery(api.manager.list_items, {
     paginationOpts: { numItems: 24, cursor },
   });
 
   // Search query
-  const searchDataQuery = useQuery(api.manager.search_items, 
-    searchQuery ? {
-      query: searchQuery,
-      paginationOpts: { numItems: 24, cursor },
-    } : "skip"
+  const searchDataQuery = useQuery(
+    api.manager.search_items,
+    searchQuery
+      ? {
+          query: searchQuery,
+          paginationOpts: { numItems: 24, cursor },
+        }
+      : "skip",
   );
 
-  const itemsData = searchQuery 
-    ? searchDataQuery 
-    : (cursor !== null ? itemsDataQuery : itemsDataPreloaded);
+  // Prefer reactive query if available, fallback to preloaded for initial render
+  const itemsData = searchQuery
+    ? searchDataQuery
+    : itemsDataQuery ?? itemsDataPreloaded;
 
   if (!itemsData) {
     return (
-      <div className="p-4 text-center text-gray-500">
-        Загрузка...
-      </div>
+      <div className="p-4 text-center text-gray-500">Загрузка...</div>
     );
   }
 
@@ -57,16 +67,15 @@ export function ItemsTableContent({ itemsPreload, searchQuery = "" }: ItemsTable
     );
   }
 
-  // Transform Convex item data to match Item interface
-  const transformedItems: (Item & { sku?: string; brandId?: string })[] =
+  // Keep full item data on each row but normalize some display fields
+  const transformedItems: (Item & { sku?: string; brandId?: string; [k: string]: any })[] =
     itemsData.page.map((item: any) => ({
+      ...item,
       _id: item._id,
       name: item.name || "Unknown",
       brand: item.brandName || item.brand || "Unknown",
       quantity: item.quantity || 0,
       price: item.price || 0,
-      sku: item.sku,
-      brandId: item.brandId,
     }));
 
   const handleNextPage = () => {
@@ -81,12 +90,22 @@ export function ItemsTableContent({ itemsPreload, searchQuery = "" }: ItemsTable
     window.scrollTo(0, 0);
   };
 
+  const columns = getItemColumns({
+    onEdit: (item: any) => {
+      // Item row contains full backend item because we spread ...item above
+      if (onEditItem) onEditItem(item);
+    },
+    onDelete: (id: any, name: string) => {
+      if (onDeleteItem) onDeleteItem(id, name);
+    },
+  });
+
   return (
     <>
       <div className="text-sm text-gray-600 mb-4">
         Показано {itemsData.page.length} товаров
       </div>
-      <DataTable columns={itemColumns} data={transformedItems} />
+      <DataTable columns={columns} data={transformedItems} />
 
       {/* Pagination Controls */}
       <div className="flex items-center justify-between mt-6">
