@@ -209,3 +209,172 @@ export const list_orders = query({
     return orders;
   },
 });
+
+// Global search across all tables
+export const global_search = query({
+  args: {
+    searchText: v.string(),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, { searchText, paginationOpts }) => {
+    const query = searchText.trim().toLowerCase();
+    if (!query) {
+      return { page: [], isDone: true, continueCursor: null };
+    }
+
+    const results: Array<{
+      type: "item" | "order" | "lead" | "category";
+      data: any;
+      relevance: number;
+    }> = [];
+
+    // Search items using full-text search
+    try {
+      const itemsResult = await ctx.db
+        .query("items")
+        .search("search_main", (q) => q.search("searchText", query))
+        .collect();
+
+      itemsResult.forEach((item) => {
+        results.push({
+          type: "item",
+          data: item,
+          relevance: 1.0, // Full-text search already ranks by relevance
+        });
+      });
+    } catch (e) {
+      // Search index might not be ready, continue with other searches
+    }
+
+    // Search categories by name
+    try {
+      const categoriesResult = await ctx.db
+        .query("categories")
+        .search("search_name", (q) => q.search("name", query))
+        .collect();
+
+      categoriesResult.forEach((category) => {
+        results.push({
+          type: "category",
+          data: category,
+          relevance: 0.9,
+        });
+      });
+    } catch (e) {
+      // Continue
+    }
+
+    // Search orders by client info (manual filtering since no search index)
+    const allOrders = await ctx.db.query("orders").collect();
+    allOrders.forEach((order) => {
+      const searchText = `${order.clientName} ${order.clientPhone} ${order.clientEmail || ""} ${order.publicNumber}`.toLowerCase();
+      if (searchText.includes(query)) {
+        results.push({
+          type: "order",
+          data: order,
+          relevance: 0.7,
+        });
+      }
+    });
+
+    // Search leads by name/phone/email (manual filtering)
+    const allLeads = await ctx.db.query("leads").collect();
+    allLeads.forEach((lead) => {
+      const searchText = `${lead.name} ${lead.phone} ${lead.email || ""}`.toLowerCase();
+      if (searchText.includes(query)) {
+        results.push({
+          type: "lead",
+          data: lead,
+          relevance: 0.7,
+        });
+      }
+    });
+
+    // Sort by relevance and apply pagination
+    results.sort((a, b) => b.relevance - a.relevance);
+
+    const start = (paginationOpts.pageNum - 1) * paginationOpts.pageSize;
+    const end = start + paginationOpts.pageSize;
+    const paginatedResults = results.slice(start, end);
+    const isDone = end >= results.length;
+
+    // Format results for return
+    const formattedResults = paginatedResults.map((result) => ({
+      type: result.type,
+      item: result.data,
+      relevance: result.relevance,
+    }));
+
+    return {
+      page: formattedResults,
+      isDone: isDone,
+      continueCursor: isDone ? null : start + paginationOpts.pageSize,
+    };
+  },
+});
+
+// Type-specific search for filtered results
+export const search_by_type = query({
+  args: {
+    searchText: v.string(),
+    type: v.union(
+      v.literal("item"),
+      v.literal("order"),
+      v.literal("lead"),
+      v.literal("category"),
+    ),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, { searchText, type, paginationOpts }) => {
+    const query = searchText.trim().toLowerCase();
+    if (!query) {
+      return { page: [], isDone: true, continueCursor: null };
+    }
+
+    let results: any[] = [];
+
+    if (type === "item") {
+      try {
+        results = await ctx.db
+          .query("items")
+          .search("search_main", (q) => q.search("searchText", query))
+          .collect();
+      } catch (e) {
+        results = [];
+      }
+    } else if (type === "category") {
+      try {
+        results = await ctx.db
+          .query("categories")
+          .search("search_name", (q) => q.search("name", query))
+          .collect();
+      } catch (e) {
+        results = [];
+      }
+    } else if (type === "order") {
+      const allOrders = await ctx.db.query("orders").collect();
+      results = allOrders.filter((order) => {
+        const searchText = `${order.clientName} ${order.clientPhone} ${order.clientEmail || ""} ${order.publicNumber}`.toLowerCase();
+        return searchText.includes(query);
+      });
+    } else if (type === "lead") {
+      const allLeads = await ctx.db.query("leads").collect();
+      results = allLeads.filter((lead) => {
+        const searchText = `${lead.name} ${lead.phone} ${lead.email || ""}`.toLowerCase();
+        return searchText.includes(query);
+      });
+    }
+
+    // Apply pagination
+    const start = (paginationOpts.pageNum - 1) * paginationOpts.pageSize;
+    const end = start + paginationOpts.pageSize;
+    const paginatedResults = results.slice(start, end);
+    const isDone = end >= results.length;
+
+    return {
+      page: paginatedResults,
+      isDone: isDone,
+      continueCursor: isDone ? null : start + paginationOpts.pageSize,
+    };
+  },
+});
