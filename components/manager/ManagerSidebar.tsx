@@ -28,7 +28,10 @@ export default function ManagerSidebar({
   return (
     <aside className="w-60 bg-yellow-50 border-r border-yellow-200 min-h-screen p-6 flex flex-col">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">EfimKlimat</h1>
+        <div className="flex items-center gap-3 mb-2">
+          <img src="/logo_.jpg" alt="Logo" className="w-12 h-12 object-contain" />
+          <h1 className="text-2xl font-bold text-gray-900">Климат22</h1>
+        </div>
         <p className="text-sm text-gray-600">Manager</p>
       </div>
 

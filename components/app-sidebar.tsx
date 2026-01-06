@@ -45,10 +45,8 @@ export function AppSidebar({
     <Sidebar className="border-r">
       <SidebarHeader>
         <div className="flex items-center gap-2 px-2">
-          <div className="w-8 h-8 bg-gray-900 rounded flex items-center justify-center">
-            <span className="text-white text-sm font-medium">E</span>
-          </div>
-          <span className="font-medium text-sm">EfimKlimat</span>
+          <img src="/logo_.jpg" alt="Logo" className="w-12 h-12 object-contain" />
+          <span className="font-medium text-sm">Климат22</span>
         </div>
       </SidebarHeader>
       <SidebarContent>

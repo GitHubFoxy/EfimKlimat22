@@ -159,3 +159,53 @@ export const get_item_with_brand = query({
     };
   },
 });
+
+// List leads with pagination
+export const list_leads = query({
+  args: {
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, { paginationOpts }) => {
+    const leads = await ctx.db
+      .query("leads")
+      .order("desc")
+      .paginate(paginationOpts);
+
+    return leads;
+  },
+});
+
+// List leads by status with pagination
+export const list_leads_by_status = query({
+  args: {
+    status: v.union(
+      v.literal("new"),
+      v.literal("processing"),
+      v.literal("success"),
+      v.literal("failed"),
+    ),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, { status, paginationOpts }) => {
+    return await ctx.db
+      .query("leads")
+      .withIndex("by_status_date", (q) => q.eq("status", status))
+      .order("desc")
+      .paginate(paginationOpts);
+  },
+});
+
+// List orders with pagination
+export const list_orders = query({
+  args: {
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, { paginationOpts }) => {
+    const orders = await ctx.db
+      .query("orders")
+      .order("desc")
+      .paginate(paginationOpts);
+
+    return orders;
+  },
+});
