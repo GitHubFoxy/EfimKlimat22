@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,16 @@ interface ManagerPageClientProps {
 export function ManagerPageClient({ itemsPreload }: ManagerPageClientProps) {
   const [activeSection, setActiveSection] = useState<Section>("items");
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  // Simple debounce implementation
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const getTitle = () => {
     switch (activeSection) {
@@ -109,7 +119,10 @@ export function ManagerPageClient({ itemsPreload }: ManagerPageClientProps) {
                 </div>
 
                 {/* Items Table */}
-                <ItemsTableContent itemsPreload={itemsPreload} />
+                <ItemsTableContent 
+                  itemsPreload={itemsPreload} 
+                  searchQuery={activeSection === "items" ? debouncedSearch : ""}
+                />
               </div>
             </TabsContent>
 

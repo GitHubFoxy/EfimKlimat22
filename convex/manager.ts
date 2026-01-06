@@ -175,6 +175,35 @@ export const list_leads = query({
   },
 });
 
+// Search items for inventory management
+export const search_items = query({
+  args: {
+    query: v.string(),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, { query, paginationOpts }) => {
+    const searchResults = await ctx.db
+      .query("items")
+      .withSearchIndex("search_main", (q) => q.search("searchText", query))
+      .paginate(paginationOpts);
+
+    const itemsWithBrands = await Promise.all(
+      searchResults.page.map(async (item) => {
+        const brand = await ctx.db.get(item.brandId);
+        return {
+          ...item,
+          brandName: brand?.name || "Неизвестно",
+        };
+      }),
+    );
+
+    return {
+      ...searchResults,
+      page: itemsWithBrands,
+    };
+  },
+});
+
 // List leads by status with pagination
 export const list_leads_by_status = query({
   args: {
@@ -214,7 +243,10 @@ export const list_orders = query({
 export const global_search = query({
   args: {
     searchText: v.string(),
-    paginationOpts: paginationOptsValidator,
+    paginationOpts: v.object({
+      pageNum: v.number(),
+      pageSize: v.number(),
+    }),
   },
   handler: async (ctx, { searchText, paginationOpts }) => {
     const query = searchText.trim().toLowerCase();
@@ -232,7 +264,7 @@ export const global_search = query({
     try {
       const itemsResult = await ctx.db
         .query("items")
-        .search("search_main", (q) => q.search("searchText", query))
+        .withSearchIndex("search_main", (q) => q.search("searchText", query))
         .collect();
 
       itemsResult.forEach((item) => {
@@ -250,7 +282,7 @@ export const global_search = query({
     try {
       const categoriesResult = await ctx.db
         .query("categories")
-        .search("search_name", (q) => q.search("name", query))
+        .withSearchIndex("search_name", (q) => q.search("name", query))
         .collect();
 
       categoriesResult.forEach((category) => {
@@ -323,7 +355,10 @@ export const search_by_type = query({
       v.literal("lead"),
       v.literal("category"),
     ),
-    paginationOpts: paginationOptsValidator,
+    paginationOpts: v.object({
+      pageNum: v.number(),
+      pageSize: v.number(),
+    }),
   },
   handler: async (ctx, { searchText, type, paginationOpts }) => {
     const query = searchText.trim().toLowerCase();
@@ -337,7 +372,7 @@ export const search_by_type = query({
       try {
         results = await ctx.db
           .query("items")
-          .search("search_main", (q) => q.search("searchText", query))
+          .withSearchIndex("search_main", (q) => q.search("searchText", query))
           .collect();
       } catch (e) {
         results = [];
@@ -346,7 +381,7 @@ export const search_by_type = query({
       try {
         results = await ctx.db
           .query("categories")
-          .search("search_name", (q) => q.search("name", query))
+          .withSearchIndex("search_name", (q) => q.search("name", query))
           .collect();
       } catch (e) {
         results = [];

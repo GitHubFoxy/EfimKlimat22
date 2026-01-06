@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DataTable } from "./data-table";
 import { itemColumns, type Item } from "./columns";
 import { useQuery, usePreloadedQuery, Preloaded } from "convex/react";
@@ -10,10 +10,16 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface ItemsTableContentProps {
   itemsPreload: Preloaded<typeof api.manager.list_items>;
+  searchQuery?: string;
 }
 
-export function ItemsTableContent({ itemsPreload }: ItemsTableContentProps) {
+export function ItemsTableContent({ itemsPreload, searchQuery = "" }: ItemsTableContentProps) {
   const [cursor, setCursor] = useState<string | null>(null);
+
+  // Reset cursor when search query changes
+  useEffect(() => {
+    setCursor(null);
+  }, [searchQuery]);
 
   // Use preloaded query on initial page load
   const itemsDataPreloaded = usePreloadedQuery(itemsPreload);
@@ -23,12 +29,22 @@ export function ItemsTableContent({ itemsPreload }: ItemsTableContentProps) {
     paginationOpts: { numItems: 24, cursor },
   });
 
-  const itemsData = cursor !== null ? itemsDataQuery : itemsDataPreloaded;
+  // Search query
+  const searchDataQuery = useQuery(api.manager.search_items, 
+    searchQuery ? {
+      query: searchQuery,
+      paginationOpts: { numItems: 24, cursor },
+    } : "skip"
+  );
+
+  const itemsData = searchQuery 
+    ? searchDataQuery 
+    : (cursor !== null ? itemsDataQuery : itemsDataPreloaded);
 
   if (!itemsData) {
     return (
       <div className="p-4 text-center text-gray-500">
-        Товары не найдены в базе данных
+        Загрузка...
       </div>
     );
   }
