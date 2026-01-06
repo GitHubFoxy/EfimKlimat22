@@ -50,6 +50,9 @@ export function ItemFormDialog({ isOpen, onClose, item }: ItemFormDialogProps) {
     inStock: true,
   });
 
+  // Control whether the description textarea is expanded (full editor) or collapsed (preview)
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+
   useEffect(() => {
     if (item) {
       setFormData({
@@ -63,6 +66,8 @@ export function ItemFormDialog({ isOpen, onClose, item }: ItemFormDialogProps) {
         status: item.status || "active",
         inStock: item.inStock !== undefined ? item.inStock : true,
       });
+      // start with collapsed description to save space
+      setIsDescriptionExpanded(false);
     } else {
       setFormData({
         name: "",
@@ -75,6 +80,7 @@ export function ItemFormDialog({ isOpen, onClose, item }: ItemFormDialogProps) {
         status: "active",
         inStock: true,
       });
+      setIsDescriptionExpanded(false);
     }
   }, [item, isOpen]);
 
@@ -110,6 +116,11 @@ export function ItemFormDialog({ isOpen, onClose, item }: ItemFormDialogProps) {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const truncate = (text: string, max = 200) => {
+    if (!text) return "";
+    return text.length > max ? text.slice(0, max) + "..." : text;
   };
 
   return (
@@ -212,15 +223,43 @@ export function ItemFormDialog({ isOpen, onClose, item }: ItemFormDialogProps) {
               />
             </div>
           </div>
+
+          {/* Description: collapsed preview + expand to full editor */}
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="min-h-[100px]"
-            />
+
+            {isDescriptionExpanded ? (
+              <div>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="min-h-[140px]"
+                />
+                <div className="flex justify-end mt-2">
+                  <Button variant="ghost" size="sm" onClick={() => setIsDescriptionExpanded(false)}>
+                    Collapse
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="rounded-md border bg-muted/5 p-3 min-h-[56px] text-sm text-gray-700">
+                  {formData.description ? (
+                    <div className="whitespace-pre-wrap">{truncate(formData.description, 250)}</div>
+                  ) : (
+                    <span className="text-gray-400">No description</span>
+                  )}
+                </div>
+                <div className="flex justify-end mt-2">
+                  <Button variant="ghost" size="sm" onClick={() => setIsDescriptionExpanded(true)}>
+                    {formData.description ? "Edit description" : "Add description"}
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
