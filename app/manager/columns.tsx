@@ -24,7 +24,7 @@ export interface Order {
 export const columns: ColumnDef<Order>[] = [
   {
     accessorKey: "name",
-    header: "Customer",
+    header: "Клиент",
   },
   {
     accessorKey: "email",
@@ -32,37 +32,44 @@ export const columns: ColumnDef<Order>[] = [
   },
   {
     accessorKey: "status",
-    header: "Status",
+    header: "Статус",
     cell: ({ row }) => {
       const status = row.getValue("status") as string;
+      const statusMap: { [key: string]: string } = {
+        new: "Новый",
+        processing: "В обработке",
+        completed: "Завершен",
+      };
       return (
-        <span className={`px-2 py-0.5 rounded text-xs ${
-          status === "new"
-            ? "bg-gray-100 text-gray-700"
-            : status === "processing"
-              ? "bg-gray-200 text-gray-700"
-              : "bg-gray-900 text-white"
-        }`}>
-          {status}
+        <span
+          className={`px-2 py-0.5 rounded text-xs ${
+            status === "new"
+              ? "bg-gray-100 text-gray-700"
+              : status === "processing"
+                ? "bg-gray-200 text-gray-700"
+                : "bg-gray-900 text-white"
+          }`}
+        >
+          {statusMap[status] || status}
         </span>
       );
     },
   },
   {
     accessorKey: "value",
-    header: "Value",
+    header: "Сумма",
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue("value") as any);
-      const formatted = new Intl.NumberFormat("en-US", {
+      const formatted = new Intl.NumberFormat("ru-RU", {
         style: "currency",
-        currency: "USD",
+        currency: "RUB",
       }).format(amount);
       return <div className="font-medium">{formatted}</div>;
     },
   },
   {
     accessorKey: "createdAt",
-    header: "Date",
+    header: "Дата",
   },
   {
     id: "actions",
@@ -72,20 +79,20 @@ export const columns: ColumnDef<Order>[] = [
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
+              <span className="sr-only">Открыть меню</span>
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuLabel>Действия</DropdownMenuLabel>
             <DropdownMenuItem
               onClick={() => navigator.clipboard.writeText(order._id)}
             >
-              Copy order ID
+              Копировать ID заказа
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>View order</DropdownMenuItem>
-            <DropdownMenuItem>Edit order</DropdownMenuItem>
+            <DropdownMenuItem>Просмотр заказа</DropdownMenuItem>
+            <DropdownMenuItem>Редактировать заказ</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );
@@ -104,7 +111,7 @@ export interface Item {
 export const itemColumns: ColumnDef<Item>[] = [
   {
     accessorKey: "name",
-    header: "Product",
+    header: "Товар",
     cell: ({ row }) => {
       const name = row.getValue("name") as string;
       const sku = row.original as any;
@@ -118,24 +125,24 @@ export const itemColumns: ColumnDef<Item>[] = [
   },
   {
     accessorKey: "brand",
-    header: "Brand",
+    header: "Бренд",
     cell: ({ row }) => {
       const brand = row.getValue("brand") as string;
-      return <div className="capitalize">{brand}</div>;
+      return <div>{brand}</div>;
     },
   },
   {
     accessorKey: "quantity",
-    header: "Quantity",
+    header: "Количество",
   },
   {
     accessorKey: "price",
-    header: "Price",
+    header: "Цена",
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue("price") as any);
-      const formatted = new Intl.NumberFormat("en-US", {
+      const formatted = new Intl.NumberFormat("ru-RU", {
         style: "currency",
-        currency: "USD",
+        currency: "RUB",
       }).format(amount);
       return <div className="font-medium">{formatted}</div>;
     },
@@ -147,15 +154,15 @@ export const itemColumns: ColumnDef<Item>[] = [
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
+              <span className="sr-only">Открыть меню</span>
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem>Edit item</DropdownMenuItem>
+            <DropdownMenuLabel>Действия</DropdownMenuLabel>
+            <DropdownMenuItem>Редактировать товар</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Delete item</DropdownMenuItem>
+            <DropdownMenuItem>Удалить товар</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );

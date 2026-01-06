@@ -109,11 +109,26 @@ export const list_items = query({
     paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, { paginationOpts }) => {
-    return await ctx.db
+    const items = await ctx.db
       .query("items")
       .filter((q) => q.neq(q.field("status"), "archived"))
       .order("desc")
       .paginate(paginationOpts);
+
+    const itemsWithBrands = await Promise.all(
+      items.page.map(async (item: any) => {
+        const brand = await ctx.db.get(item.brandId);
+        return {
+          ...item,
+          brandName: (brand as any)?.name || "Неизвестно",
+        };
+      }),
+    );
+
+    return {
+      ...items,
+      page: itemsWithBrands,
+    };
   },
 });
 
@@ -125,7 +140,7 @@ export const get_item_with_brand = query({
   handler: async (ctx, { itemId }) => {
     const item = await ctx.db.get(itemId);
     if (!item) throw new Error("Item not found");
-    
+
     const brand = await ctx.db.get((item as any).brandId as any);
     if (!brand) throw new Error("Brand not found");
 

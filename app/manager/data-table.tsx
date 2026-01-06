@@ -36,7 +36,10 @@ export function DataTable<TData, TValue>({
       <Table>
         <TableHeader className="bg-gray-50">
           {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id} className="border-b hover:bg-gray-50">
+            <TableRow
+              key={headerGroup.id}
+              className="border-b hover:bg-gray-50"
+            >
               {headerGroup.headers.map((header) => {
                 return (
                   <TableHead key={header.id}>
@@ -44,7 +47,7 @@ export function DataTable<TData, TValue>({
                       ? null
                       : flexRender(
                           header.column.columnDef.header,
-                          header.getContext()
+                          header.getContext(),
                         )}
                   </TableHead>
                 );
@@ -69,8 +72,11 @@ export function DataTable<TData, TValue>({
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={columns.length} className="h-24 text-center text-gray-500">
-                No results.
+              <TableCell
+                colSpan={columns.length}
+                className="h-24 text-center text-gray-500"
+              >
+                Нет результатов.
               </TableCell>
             </TableRow>
           )}

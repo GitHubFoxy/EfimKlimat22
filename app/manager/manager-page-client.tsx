@@ -150,19 +150,22 @@ export function ManagerPageClient({ itemsPreload }: ManagerPageClientProps) {
   const getTitle = () => {
     switch (activeSection) {
       case "orders":
-        return "Orders";
+        return "Заказы";
       case "items":
-        return "Inventory";
+        return "Товары";
       case "leads":
-        return "Leads";
+        return "Лиды";
       default:
-        return "Manager";
+        return "Менеджер";
     }
   };
 
   return (
     <>
-      <AppSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
+      <AppSidebar
+        activeSection={activeSection}
+        onSectionChange={setActiveSection}
+      />
       <div className="flex flex-col flex-1">
         {/* Header */}
         <header className="border-b-2 bg-white">
@@ -176,11 +179,14 @@ export function ManagerPageClient({ itemsPreload }: ManagerPageClientProps) {
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm">
                 <Download className="w-4 h-4 mr-2" />
-                Export
+                Экспорт
               </Button>
-              <Button size="sm" className="bg-gray-900 hover:bg-gray-800 text-white">
+              <Button
+                size="sm"
+                className="bg-gray-900 hover:bg-gray-800 text-white"
+              >
                 <Plus className="w-4 h-4 mr-2" />
-                Add New
+                Добавить
               </Button>
             </div>
           </div>
@@ -201,7 +207,7 @@ export function ManagerPageClient({ itemsPreload }: ManagerPageClientProps) {
                   <div className="flex-1 relative max-w-md">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <Input
-                      placeholder="Search orders..."
+                      placeholder="Поиск заказов..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="pl-10"
@@ -212,16 +218,16 @@ export function ManagerPageClient({ itemsPreload }: ManagerPageClientProps) {
                 {/* Order Status Tabs */}
                 <div className="flex gap-2 mb-2">
                   <button className="px-3 py-1.5 text-sm font-medium rounded bg-gray-900 text-white">
-                    All
+                    Все
                   </button>
                   <button className="px-3 py-1.5 text-sm font-medium rounded text-gray-600 hover:bg-gray-100">
-                    New
+                    Новые
                   </button>
                   <button className="px-3 py-1.5 text-sm font-medium rounded text-gray-600 hover:bg-gray-100">
-                    Processing
+                    В обработке
                   </button>
                   <button className="px-3 py-1.5 text-sm font-medium rounded text-gray-600 hover:bg-gray-100">
-                    Completed
+                    Завершенные
                   </button>
                 </div>
 
@@ -238,7 +244,7 @@ export function ManagerPageClient({ itemsPreload }: ManagerPageClientProps) {
                   <div className="flex-1 relative max-w-md">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <Input
-                      placeholder="Search items..."
+                      placeholder="Поиск товаров..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="pl-10"
@@ -259,7 +265,7 @@ export function ManagerPageClient({ itemsPreload }: ManagerPageClientProps) {
                   <div className="flex-1 relative max-w-md">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <Input
-                      placeholder="Search leads..."
+                      placeholder="Поиск лидов..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="pl-10"
@@ -270,19 +276,19 @@ export function ManagerPageClient({ itemsPreload }: ManagerPageClientProps) {
                 {/* Lead Status Tabs */}
                 <div className="flex gap-2 mb-2">
                   <button className="px-3 py-1.5 text-sm font-medium rounded bg-gray-900 text-white">
-                    All
+                    Все
                   </button>
                   <button className="px-3 py-1.5 text-sm font-medium rounded text-gray-600 hover:bg-gray-100">
-                    New
+                    Новые
                   </button>
                   <button className="px-3 py-1.5 text-sm font-medium rounded text-gray-600 hover:bg-gray-100">
-                    Contacted
+                    Связались
                   </button>
                   <button className="px-3 py-1.5 text-sm font-medium rounded text-gray-600 hover:bg-gray-100">
-                    Qualified
+                    Квалифицированные
                   </button>
                   <button className="px-3 py-1.5 text-sm font-medium rounded text-gray-600 hover:bg-gray-100">
-                    Lost
+                    Потерянные
                   </button>
                 </div>
 

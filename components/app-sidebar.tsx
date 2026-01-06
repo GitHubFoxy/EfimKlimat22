@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  ShoppingCart,
-  BoxesIcon,
-  Users,
-} from "lucide-react";
+import { ShoppingCart, BoxesIcon, Users } from "lucide-react";
 
 import {
   Sidebar,
@@ -25,23 +21,26 @@ interface AppSidebarProps {
 
 const items = [
   {
-    title: "Items",
+    title: "Товары",
     id: "items",
     icon: BoxesIcon,
   },
   {
-    title: "Leads",
+    title: "Лиды",
     id: "leads",
     icon: Users,
   },
   {
-    title: "Orders",
+    title: "Заказы",
     id: "orders",
     icon: ShoppingCart,
   },
 ];
 
-export function AppSidebar({ activeSection = "orders", onSectionChange }: AppSidebarProps) {
+export function AppSidebar({
+  activeSection = "orders",
+  onSectionChange,
+}: AppSidebarProps) {
   return (
     <Sidebar className="border-r">
       <SidebarHeader>
@@ -55,16 +54,18 @@ export function AppSidebar({ activeSection = "orders", onSectionChange }: AppSid
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className="text-xs text-gray-500 uppercase tracking-wide">
-            Menu
+            Меню
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
+                  <SidebarMenuButton
                     onClick={() => onSectionChange?.(item.id)}
                     className={`text-gray-600 hover:bg-gray-100 cursor-pointer ${
-                      activeSection === item.id ? "bg-gray-100 text-gray-900" : ""
+                      activeSection === item.id
+                        ? "bg-gray-100 text-gray-900"
+                        : ""
                     }`}
                   >
                     <item.icon className="w-4 h-4" />
