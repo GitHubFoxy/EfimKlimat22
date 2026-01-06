@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { DataTable } from "./data-table";
 import { getItemColumns, type Item } from "./columns";
-import { useState, useEffect } from "react";
 
 interface ItemsTableContentProps {
   itemsPreload: Preloaded<typeof api.manager.list_items>;
