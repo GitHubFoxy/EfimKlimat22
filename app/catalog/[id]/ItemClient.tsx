@@ -28,19 +28,19 @@ export function ItemClient({
   preloadedItem,
   itemId,
 }: {
-  preloadedItem: Preloaded<typeof api.dashboard.show_item>;
-  itemId: Id<"new_items">;
+  preloadedItem: Preloaded<typeof api.catalog.show_item>;
+  itemId: Id<"items">;
 }) {
   // Use preloaded item data - server rendered and becomes reactive after hydration
   const item = usePreloadedQuery(preloadedItem);
 
   // Fetch related items by brand and collection (client-side for reactivity)
   const relatedItems = useQuery(
-    api.dashboard.show_items_by_brand_and_collection,
+    api.catalog.show_items_by_brand_and_collection,
     item
       ? { itemId: itemId, brandId: item.brandId, categoryId: item.categoryId }
       : "skip",
-  ) as Doc<"new_items">[] | undefined;
+  ) as Doc<"items">[] | undefined;
 
   return (
     <div className="px-6 py-6 md:px-12 lg:px-28 xl:max-w-7xl xl:mx-auto">

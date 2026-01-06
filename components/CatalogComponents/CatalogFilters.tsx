@@ -82,29 +82,31 @@ export default function CatalogFilters({
           </Select>
         </div>
 
-        <div className="flex items-center gap-3 flex-1">
-          <span className="text-sm text-gray-600 whitespace-nowrap">
-            Подкатегория:
-          </span>
-          <Select
-            value={selectedSubcategory ?? undefined}
-            onValueChange={(val) =>
-              onSubcategoryChange(val === "none" ? null : val)
-            }
-          >
-            <SelectTrigger className="w-full sm:min-w-[200px]">
-              <SelectValue placeholder="Выберите подкатегорию" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">Без подкатегории</SelectItem>
-              {subcategories.map((sc: any) => (
-                <SelectItem key={sc._id} value={sc._id}>
-                  {sc.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {subcategories.length > 0 && (
+          <div className="flex items-center gap-3 flex-1">
+            <span className="text-sm text-gray-600 whitespace-nowrap">
+              Подкатегория:
+            </span>
+            <Select
+              value={selectedSubcategory ?? undefined}
+              onValueChange={(val) =>
+                onSubcategoryChange(val === "none" ? null : val)
+              }
+            >
+              <SelectTrigger className="w-full sm:min-w-[200px]">
+                <SelectValue placeholder="Выберите подкатегорию" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Без подкатегории</SelectItem>
+                {subcategories.map((sc: any) => (
+                  <SelectItem key={sc._id} value={sc._id}>
+                    {sc.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
       {/* Second Row: Brand and Sort options */}

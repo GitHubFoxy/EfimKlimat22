@@ -40,8 +40,10 @@ function CatalogResults({
   selectedBrand,
   onClearBrandFilter,
   groupByCollection,
+  preloadedItemsData,
+  isInitialLoad,
 }: {
-  categoryId: Id<"new_categories">;
+  categoryId: Id<"categories">;
   filter: "Хиты продаж" | "Новинки" | "Со скидкой";
   subcategory?: string | null;
   priceSort?: "asc" | "desc" | null;
@@ -49,11 +51,15 @@ function CatalogResults({
   selectedBrand?: string | null;
   onClearBrandFilter: () => void;
   groupByCollection: boolean;
+  preloadedItemsData?: any;
+  isInitialLoad?: boolean;
 }) {
   const effectiveCategoryId = subcategory
-    ? (subcategory as Id<"new_categories">)
+    ? (subcategory as Id<"categories">)
     : categoryId;
-  const { results, status, isLoading, loadMore } = usePaginatedQuery(
+
+  // Use paginated query for catalog items
+  const paginatedQuery = usePaginatedQuery(
     groupByCollection
       ? api.catalog.catalog_query_grouped_by_collection
       : api.catalog.catalog_query_based_on_category_and_filter,
@@ -64,6 +70,18 @@ function CatalogResults({
     },
     { initialNumItems: 12 },
   );
+
+  // Use preloaded data on initial load if available
+  let results = paginatedQuery.results;
+  let status = paginatedQuery.status;
+  let isLoading = paginatedQuery.isLoading;
+  let loadMore = paginatedQuery.loadMore;
+
+  if (isInitialLoad && preloadedItemsData?.page) {
+    results = preloadedItemsData.page;
+    status = preloadedItemsData.status;
+    isLoading = false;
+  }
 
   // Apply client-side sorting only (brand filtering is now done in query)
   let sortedResults = [...results];
@@ -91,11 +109,15 @@ function CatalogResults({
 export function CatalogClient({
   preloadedCategories,
   preloadedBrands,
+  preloadedItems,
 }: {
   preloadedCategories: Preloaded<
     typeof api.catalog.catalog_list_all_categories
   >;
-  preloadedBrands: Preloaded<typeof api.dashboard.show_all_brands>;
+  preloadedBrands: Preloaded<typeof api.catalog.show_all_brands>;
+  preloadedItems: Preloaded<
+    typeof api.catalog.catalog_query_grouped_by_collection
+  > | null;
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -106,6 +128,7 @@ export function CatalogClient({
   // that becomes reactive after hydration
   const categories = usePreloadedQuery(preloadedCategories) ?? [];
   const brands = usePreloadedQuery(preloadedBrands) ?? [];
+  const preloadedItemsData = preloadedItems ? usePreloadedQuery(preloadedItems) : null;
 
   // Cart data for floating button
   const itemsData = useQuery(
@@ -122,9 +145,9 @@ export function CatalogClient({
 
   // Subcategories data
   const subcategoriesData = useQuery(
-    api.dashboard.show_subcategories_by_category,
+    api.catalog.show_subcategories_by_category,
     selectedCategoryId
-      ? { parent: selectedCategoryId as Id<"new_categories"> }
+      ? { parent: selectedCategoryId as Id<"categories"> }
       : "skip",
   );
   const subcategories = subcategoriesData?.subcategories ?? [];
@@ -215,7 +238,7 @@ export function CatalogClient({
       <DisclaimerMessage selectedSubcategory={selectedSubcategory} />
       {/* Paginated catalog results by category & filter */}
       <CatalogResultsWrapper
-        selectedCategoryId={selectedCategoryId as Id<"new_categories"> | null}
+        selectedCategoryId={selectedCategoryId as Id<"categories"> | null}
         selectedFilter={selectedFilter}
         selectedSubcategory={selectedSubcategory}
         priceSort={priceSort}
@@ -224,6 +247,8 @@ export function CatalogClient({
         onClearBrandFilter={() => setSelectedBrand(null)}
         groupByCollection={groupByCollection}
         CatalogResultsComponent={CatalogResults}
+        preloadedItemsData={preloadedItemsData}
+        isInitialLoad={!selectedBrand && selectedFilter === "Новинки" && !selectedSubcategory}
       />
 
       <div id="free-consult">

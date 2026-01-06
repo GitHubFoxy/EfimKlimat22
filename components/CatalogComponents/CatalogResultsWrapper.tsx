@@ -3,7 +3,7 @@
 import { Id } from "@/convex/_generated/dataModel";
 
 interface CatalogResultsWrapperProps {
-  selectedCategoryId: Id<"new_categories"> | null;
+  selectedCategoryId: Id<"categories"> | null;
   selectedFilter: "Хиты продаж" | "Новинки" | "Со скидкой";
   selectedSubcategory: string | null;
   priceSort: "asc" | "desc" | null;
@@ -12,7 +12,7 @@ interface CatalogResultsWrapperProps {
   onClearBrandFilter: () => void;
   groupByCollection: boolean;
   CatalogResultsComponent: React.ComponentType<{
-    categoryId: Id<"new_categories">;
+    categoryId: Id<"categories">;
     filter: "Хиты продаж" | "Новинки" | "Со скидкой";
     subcategory?: string | null;
     priceSort?: "asc" | "desc" | null;
@@ -20,7 +20,11 @@ interface CatalogResultsWrapperProps {
     selectedBrand?: string | null;
     onClearBrandFilter: () => void;
     groupByCollection: boolean;
+    preloadedItemsData?: any;
+    isInitialLoad?: boolean;
   }>;
+  preloadedItemsData?: any;
+  isInitialLoad?: boolean;
 }
 
 export default function CatalogResultsWrapper({
@@ -33,6 +37,8 @@ export default function CatalogResultsWrapper({
   onClearBrandFilter,
   groupByCollection,
   CatalogResultsComponent,
+  preloadedItemsData,
+  isInitialLoad,
 }: CatalogResultsWrapperProps) {
   if (!selectedCategoryId) {
     return (
@@ -52,6 +58,8 @@ export default function CatalogResultsWrapper({
       selectedBrand={selectedBrand}
       onClearBrandFilter={onClearBrandFilter}
       groupByCollection={groupByCollection}
+      preloadedItemsData={preloadedItemsData}
+      isInitialLoad={isInitialLoad}
     />
   );
 }

@@ -6,6 +6,7 @@ import { Button } from "../ui/button";
 import HeaderSearch from "./HeaderSearch";
 import Image from "next/image";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 export const DesktopHeader = ({ PhoneNumber }: { PhoneNumber: string }) => {
   const categories = [
@@ -97,12 +98,14 @@ export const DesktopHeader = ({ PhoneNumber }: { PhoneNumber: string }) => {
             {categories.map((category, index) => {
               return (
                 <Link
-                  className="relative no-underline  transition-colors duration-300
-               before:content-[''] before:absolute before:w-1 before:h-0.5 before:bg-blackish
-               before:bottom-0 before:left-0 before:opacity-0
-               hover:before:w-full hover:before:opacity-100 before:transition-all before:duration-300"
-                  key={index}
-                  href={category.link}
+                   className={cn(
+                     "relative no-underline transition-colors duration-300",
+                     "before:content-[''] before:absolute before:w-1 before:h-0.5 before:bg-blackish",
+                     "before:bottom-0 before:left-0 before:opacity-0",
+                     "hover:before:w-full hover:before:opacity-100 before:transition-all before:duration-300"
+                   )}
+                   key={index}
+                   href={category.link}
                   onClick={(e) => {
                     if (category.link.includes('#')) {
                       e.preventDefault();

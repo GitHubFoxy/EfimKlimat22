@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Stars from "./stars";
 import { Button } from "./ui/button";
 import { useCartSessionId } from "@/hooks/useCartSession";
@@ -14,11 +14,13 @@ import {
 import { Doc } from "@/convex/_generated/dataModel";
 import Link from "next/link";
 import Image from "next/image";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { formatPrice } from "@/lib/utils";
+import { Minus, Plus } from "lucide-react";
+import { Input } from "./ui/input";
 
 // Helper to get specification summary
 const getSpecificationSummary = (
@@ -47,27 +49,38 @@ const getSpecificationSummary = (
 };
 
 // Strong type for catalog item documents
-type Item = Doc<"new_items"> & {
+type Item = Doc<"items"> & {
+  // Compatibility fields for UI
   variantsCount?: number;
   priceRange?: {
     min: number;
     max: number;
   };
-  // For compatibility with UI that expects brand string
   brand?: string;
   variant?: string;
-  // Old field names for backward compatibility
   imagesUrls?: string[];
-  // Map new schema fields to old names for compatibility
-  collection?: string; // mapped from categoryId
-  sale?: number; // mapped from discountAmount
+  collection?: string;
+  sale?: number;
+  // Added fields from queries
+  brandName?: string;
 };
 
 export const ItemCard = ({ e }: { e: Item }) => {
   const [isHovered, setIsHovered] = useState(false);
   const sessionId = useCartSessionId();
   const addItem = useMutation(api.cart.addItem);
+  const updateQty = useMutation(api.cart.updateQty);
+  const removeItem = useMutation(api.cart.removeItem);
   const router = useRouter();
+
+  // Get cart items to find current item (only if sessionId is available)
+  const cartItems = useQuery(api.cart.listItems, sessionId ? { sessionId } : "skip");
+  const cartItemData = cartItems ? cartItems.items?.find(
+    (item) => item.itemId === e._id
+  ) : undefined;
+
+  // Debounce timer for quantity changes
+  const debounceTimer = useRef<NodeJS.Timeout>();
 
   const onAdd = async (event: React.MouseEvent) => {
     event.preventDefault();
@@ -95,6 +108,29 @@ export const ItemCard = ({ e }: { e: Item }) => {
         duration: 6000,
       });
     }
+  };
+
+  const inc = (quantity: number) => {
+    if (cartItemData) {
+      updateQty({ cartItemId: cartItemData._id, quantity: quantity + 1 });
+    }
+  };
+
+  const dec = (quantity: number) => {
+    if (cartItemData) {
+      updateQty({ cartItemId: cartItemData._id, quantity: quantity - 1 });
+    }
+  };
+
+  const onQtyChange = (value: string) => {
+    if (!cartItemData) return;
+    const q = Math.max(0, Math.min(99, parseInt(value || "0", 10) || 0));
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+    debounceTimer.current = setTimeout(() => {
+      updateQty({ cartItemId: cartItemData._id, quantity: q });
+    }, 300);
   };
 
   const href = `/catalog/${e._id?.toString?.() ?? ""}`;
@@ -151,13 +187,13 @@ export const ItemCard = ({ e }: { e: Item }) => {
       </div>
 
       {/* Name and Price on same line */}
-      <Link href={href} className="block mb-3">
-        <div className="flex flex-col justify-between items-start gap-3 min-h-12">
-          <p className="text-base leading-6 line-clamp-2 wrap-break-word flex-1 max-h-12 overflow-hidden">
-            {e.name}
-            {getSpecificationSummary(e.specifications) &&
-              ` ${getSpecificationSummary(e.specifications)}`}
-          </p>
+       <Link href={href} className="block mb-3">
+         <div className="flex flex-col justify-between items-start gap-3">
+           <p className="text-base leading-6 line-clamp-2 h-12 overflow-hidden">
+             {e.name}
+             {getSpecificationSummary(e.specifications) &&
+               ` ${getSpecificationSummary(e.specifications)}`}
+           </p>
           <p className="font-medium whitespace-nowrap shrink-0 text-right">
             {e.priceRange ? (
               <>
@@ -174,14 +210,39 @@ export const ItemCard = ({ e }: { e: Item }) => {
         </div>
       </Link>
 
-      {/* Add to Cart Button */}
-      <Button
-        className="bg-light-orange w-full rounded-full h-14 cursor-pointer hover:bg-amber-500 transition-colors"
-        onClick={onAdd}
-        disabled={!sessionId}
-      >
-        В корзину
-      </Button>
+      {/* Add to Cart Button or Quantity Controls */}
+      {cartItemData ? (
+        <div className="flex items-center justify-center gap-4 bg-orange-100 rounded-full h-14 px-4">
+          <button
+            onClick={() => dec(cartItemData.quantity)}
+            className="flex items-center justify-center w-12 h-12 rounded-full bg-light-orange hover:bg-amber-500 transition-all hover:shadow-lg text-white font-bold text-2xl leading-none"
+          >
+            −
+          </button>
+          <Input
+            type="number"
+            value={cartItemData.quantity}
+            className="w-16 h-10 p-0 text-center rounded-lg border-0 bg-white font-bold text-lg focus:outline-none focus:ring-2 focus:ring-light-orange"
+            onChange={(e) => onQtyChange(e.target.value)}
+            min="1"
+            max="99"
+          />
+          <button
+            onClick={() => inc(cartItemData.quantity)}
+            className="flex items-center justify-center w-12 h-12 rounded-full bg-light-orange hover:bg-amber-500 transition-all hover:shadow-lg text-white font-bold text-2xl leading-none"
+          >
+            +
+          </button>
+        </div>
+      ) : (
+        <Button
+          className="bg-light-orange w-full rounded-full h-14 cursor-pointer hover:bg-amber-500 transition-colors font-semibold text-base"
+          onClick={onAdd}
+          disabled={!sessionId}
+        >
+          В корзину
+        </Button>
+      )}
     </div>
   );
 };

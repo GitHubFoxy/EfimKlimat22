@@ -23,8 +23,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ru" className={`${inter.variable} font-inter `}>
-      <body className={`antialiased`}>
+    <html lang="ru" className={`${inter.variable} font-inter `} suppressHydrationWarning>
+      <body className={`antialiased`} suppressHydrationWarning>
         <ConvexClientProvider>{children}</ConvexClientProvider>
       </body>
     </html>

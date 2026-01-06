@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "bun run --bun dev:frontend & bun run --bun dev:backend",
-    "dev:frontend": "next dev --turbopack",
+    "dev:frontend": "next dev --turbo",
     "dev:backend": "convex dev",
     "predev": "convex dev --until-success",
     "build": "next build",

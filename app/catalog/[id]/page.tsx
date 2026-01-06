@@ -22,7 +22,7 @@ export default async function ItemPage({
   const convexId = id as unknown as Id<"items">;
 
   // Preload item data on the server for better SEO and initial load performance
-  const preloadedItem = await preloadQuery(api.dashboard.show_item, {
+  const preloadedItem = await preloadQuery(api.catalog.show_item, {
     id: convexId,
   });
 

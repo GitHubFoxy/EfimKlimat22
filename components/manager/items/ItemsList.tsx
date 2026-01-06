@@ -25,8 +25,8 @@ interface ItemEdit {
   variant: string;
   collection: string;
   sale: number;
-  category?: Id<"new_categories">;
-  subcategory?: Id<"new_categories">;
+  category?: Id<"categories">;
+  subcategory?: Id<"categories">;
 }
 
 interface ItemsListProps {
@@ -37,9 +37,9 @@ interface ItemsListProps {
   onAddItem: () => void;
   onClearSearch: () => void;
   updateItem: (args: any) => Promise<any>;
-  deleteItemWithImages: (args: { id: Id<"new_items"> }) => Promise<any>;
+  deleteItemWithImages: (args: { id: Id<"items"> }) => Promise<any>;
   updateItemImages: (args: {
-    itemId: Id<"new_items">;
+    itemId: Id<"items">;
     imageStorageIds: Id<"_storage">[];
   }) => Promise<any>;
   generateUploadUrl: () => Promise<string>;
@@ -264,7 +264,7 @@ export default function ItemsList({
                       category:
                         v === "__none__"
                           ? undefined
-                          : (v as unknown as Id<"new_categories">),
+                          : (v as unknown as Id<"categories">),
                     },
                   }))
                 }

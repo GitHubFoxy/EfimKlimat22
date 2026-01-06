@@ -68,19 +68,19 @@ export function BestDealsClient({
             Скидки
           </Button>
         </div>
-        <div className="flex gap-6 flex-col md:flex-row">
-          {!data && <div className="w-full text-center py-8">Загрузка...</div>}
-          {data?.items?.map((e: any, index: number) => {
-            return (
-              <div
-                key={index}
-                className="  flex items-center flex-col justify-center w-full "
-              >
-                <Card e={e} />
-              </div>
-            );
-          })}
-        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+           {!data && <div className="col-span-full text-center py-8">Загрузка...</div>}
+           {data?.items?.map((e: any, index: number) => {
+             return (
+               <div
+                 key={index}
+                 className="flex items-center flex-col justify-center"
+               >
+                 <Card e={e} />
+               </div>
+             );
+           })}
+         </div>
       </div>
     </section>
   );
