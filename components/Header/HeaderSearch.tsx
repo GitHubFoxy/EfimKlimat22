@@ -44,18 +44,17 @@ export default function HeaderSearch({ className }: { className?: string }) {
         <div className="absolute left-0 top-full mt-2 w-[min(28rem,80vw)] max-h-80 overflow-auto rounded-2xl border border-gray-200 bg-white shadow-lg z-20">
           <ul className="divide-y">
             {results.map((item: any) => {
-              const id =
-                typeof item._id === "string" ? item._id : String(item._id);
-              return (
-                <li
-                  key={id}
-                  onMouseDown={(e) => {
-                    // Prevent input blur so click navigates cleanly.
-                    e.preventDefault();
-                  }}
-                >
-                  <Link
-                    href={`/catalog/${id}`}
+                const slug = item.slug || "";
+                return (
+                  <li
+                    key={item._id}
+                    onMouseDown={(e) => {
+                      // Prevent input blur so click navigates cleanly.
+                      e.preventDefault();
+                    }}
+                  >
+                    <Link
+                      href={`/catalog/${slug}`}
                     className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer"
                     onClick={() => {
                       setSearchValue(item.name);

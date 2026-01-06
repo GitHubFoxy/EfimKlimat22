@@ -133,7 +133,7 @@ export const ItemCard = ({ e }: { e: Item }) => {
     }, 300);
   };
 
-  const href = `/catalog/${e._id?.toString?.() ?? ""}`;
+  const href = `/catalog/${e.slug ?? ""}`;
 
   return (
     <div
@@ -187,7 +187,7 @@ export const ItemCard = ({ e }: { e: Item }) => {
       </div>
 
       {/* Name and Price on same line */}
-       <Link href={href} className="block mb-3">
+      <Link href={href} className="block mb-3">
          <div className="flex flex-col justify-between items-start gap-3">
            <p className="text-base leading-6 line-clamp-2 h-12 overflow-hidden">
              {e.name}

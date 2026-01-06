@@ -1,3 +1,5 @@
+"use client";
+
 import { telegramLink, whatsappLink } from "@/lib/consts";
 import { MapPin, Phone } from "lucide-react";
 import { useState } from "react";

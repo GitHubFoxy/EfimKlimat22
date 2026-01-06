@@ -1,3 +1,5 @@
+"use client";
+
 import { Email, FullAdress, Phone, CompanyName, INN } from "@/lib/consts";
 import Image from "next/image";
 import Link from "next/link";

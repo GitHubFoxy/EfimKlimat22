@@ -192,6 +192,29 @@ export const show_item = query({
   },
 });
 
+// Get single item by slug with all details
+export const show_item_by_slug = query({
+  args: {
+    slug: v.string(),
+  },
+  handler: async (ctx, { slug }) => {
+    const item = await ctx.db
+      .query("items")
+      .withIndex("by_slug", (q) => q.eq("slug", slug))
+      .first();
+
+    if (!item) return null;
+
+    // Fetch brand details
+    const brand = await ctx.db.get(item.brandId);
+
+    return {
+      ...item,
+      brandName: brand?.name || "Неизвестно",
+    };
+  },
+});
+
 // Get items by brand and category (related items for product page)
 export const show_items_by_brand_and_collection = query({
   args: {

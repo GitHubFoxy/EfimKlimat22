@@ -4,7 +4,7 @@ import Header from "@/components/Header/Header";
 import ItemCard from "@/components/ItemCard";
 import { Preloaded, usePreloadedQuery, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Doc, Id } from "@/convex/_generated/dataModel";
+import { Doc } from "@/convex/_generated/dataModel";
 import Link from "next/link";
 import { formatPrice } from "@/lib/utils";
 import {
@@ -26,10 +26,10 @@ import { Footer } from "@/components/Footer";
 
 export function ItemClient({
   preloadedItem,
-  itemId,
+  itemSlug,
 }: {
-  preloadedItem: Preloaded<typeof api.catalog.show_item>;
-  itemId: Id<"items">;
+  preloadedItem: Preloaded<typeof api.catalog.show_item_by_slug>;
+  itemSlug: string;
 }) {
   // Use preloaded item data - server rendered and becomes reactive after hydration
   const item = usePreloadedQuery(preloadedItem);
@@ -38,7 +38,7 @@ export function ItemClient({
   const relatedItems = useQuery(
     api.catalog.show_items_by_brand_and_collection,
     item
-      ? { itemId: itemId, brandId: item.brandId, categoryId: item.categoryId }
+      ? { itemId: item._id, brandId: item.brandId, categoryId: item.categoryId }
       : "skip",
   ) as Doc<"items">[] | undefined;
 
@@ -69,7 +69,7 @@ export function ItemClient({
 
               <BreadcrumbItem>
                 <BreadcrumbPage>
-                  {item.brandId ? `Бренд ${item.brandId}` : ""} {item.name}
+                  {item.brandName ? item.brandName : ""} {item.name}
                 </BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
@@ -104,7 +104,7 @@ export function ItemClient({
                         <Tooltip key={relatedItem._id}>
                           <TooltipTrigger asChild>
                             <Link
-                              href={`/catalog/${relatedItem._id}`}
+                              href={`/catalog/${relatedItem.slug}`}
                               className="block min-w-20"
                             >
                               <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200 hover:border-gray-300 transition-colors">
@@ -121,7 +121,7 @@ export function ItemClient({
                           </TooltipTrigger>
                           <TooltipContent>
                             <p className="font-medium">
-                              {`ID: ${relatedItem._id}`} {relatedItem.name}
+                              {relatedItem.name}
                             </p>
                           </TooltipContent>
                         </Tooltip>
@@ -134,8 +134,8 @@ export function ItemClient({
 
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex-1">
               <h1 className="text-2xl font-semibold mb-2">
-                {item.brandId ? `Бренд ${item.brandId}` : ""} {item.name}
-              </h1>
+                 {item.brandName ? item.brandName : ""} {item.name}
+               </h1>
 
               <p className="text-lg font-medium mb-2 text-amber-600">
                 {formatPrice(item.price)} руб.
