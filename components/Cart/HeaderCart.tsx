@@ -137,7 +137,6 @@ export default function Cart({ className }: { className?: string }) {
                   </div>
                   <hr className="my-4" />
                 </div>
-
               ))}
               <div className="flex justify-between">
                 <div className="flex flex-col gap-2">
@@ -161,7 +160,7 @@ export default function Cart({ className }: { className?: string }) {
         <DialogFooter>
           <Button
             variant={"outline"}
-            className="border-blackish rounded-full h-12"
+            className="border-blackish rounded-full h-12 cursor-pointer"
             onClick={() => {
               if (itemsData && itemsData.count > 0) {
                 router.push("/checkout");
