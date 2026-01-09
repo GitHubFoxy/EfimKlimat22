@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuthActions, useAuthToken } from "@convex-dev/auth/react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,7 @@ export function SignInForm() {
   const [showPasswordChange, setShowPasswordChange] = useState(false);
 
   const currentUser = useQuery(api.users.getCurrentUser);
-  const changePassword = useMutation(api.users.changePassword);
+  const changePassword = useAction(api.users.changePassword);
 
   if (isAuthenticated && currentUser !== undefined) {
     if (currentUser?.tempPassword) {
@@ -40,7 +40,7 @@ export function SignInForm() {
     return (
       <ChangePasswordForm
         onSubmit={async (newPassword) => {
-          await changePassword({ newPassword });
+          await changePassword({ currentPassword: password, newPassword });
         }}
       />
     );

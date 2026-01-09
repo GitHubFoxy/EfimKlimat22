@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { getAuthUserId } from "@convex-dev/auth/server";
 
 // Get or create cart for session
 export const getOrCreateCart = mutation({
@@ -339,6 +340,92 @@ export const get = query({
   },
 });
 
+// Merge anonymous session cart to authenticated user
+export const mergeSessionCartToUser = mutation({
+  args: {
+    sessionId: v.string(),
+  },
+  handler: async (ctx, { sessionId }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Not authenticated");
+    }
+
+    // Get session cart
+    const sessionCart = await ctx.db
+      .query("carts")
+      .withIndex("by_sessionId", (q) =>
+        q.eq("sessionId", sessionId).eq("status", "active"),
+      )
+      .first();
+
+    if (!sessionCart) {
+      return { success: true, merged: false };
+    }
+
+    // Get or create user cart
+    let userCart = await ctx.db
+      .query("carts")
+      .withIndex("by_userId", (q) =>
+        q.eq("userId", userId).eq("status", "active"),
+      )
+      .first();
+
+    if (!userCart) {
+      const userCartId = await ctx.db.insert("carts", {
+        userId,
+        status: "active",
+        updatedAt: Date.now(),
+      });
+      userCart = await ctx.db.get(userCartId);
+    }
+
+    if (!userCart) {
+      throw new Error("Failed to create user cart");
+    }
+
+    // Get session cart items
+    const sessionCartItems = await ctx.db
+      .query("cartItems")
+      .withIndex("by_cart_added", (q) => q.eq("cartId", sessionCart._id))
+      .collect();
+
+    // Merge items into user cart
+    for (const sessionItem of sessionCartItems) {
+      const existingUserItem = await ctx.db
+        .query("cartItems")
+        .withIndex("by_cart_item", (q) =>
+          q.eq("cartId", userCart!._id).eq("itemId", sessionItem.itemId),
+        )
+        .first();
+
+      if (existingUserItem) {
+        await ctx.db.patch(existingUserItem._id, {
+          quantity: existingUserItem.quantity + sessionItem.quantity,
+        });
+      } else {
+        await ctx.db.insert("cartItems", {
+          cartId: userCart._id,
+          itemId: sessionItem.itemId,
+          quantity: sessionItem.quantity,
+        });
+      }
+
+      await ctx.db.delete(sessionItem._id);
+    }
+
+    // Mark session cart as merged
+    await ctx.db.patch(sessionCart._id, {
+      status: "merged",
+      updatedAt: Date.now(),
+    });
+
+    await ctx.db.patch(userCart._id, { updatedAt: Date.now() });
+
+    return { success: true, merged: true };
+  },
+});
+
 // Create order from cart
 export const createOrder = mutation({
   args: {
@@ -430,10 +517,7 @@ export const createOrder = mutation({
     }
 
     // Get next order number
-    const lastOrder = await ctx.db
-      .query("orders")
-      .order("desc")
-      .first();
+    const lastOrder = await ctx.db.query("orders").order("desc").first();
     const nextPublicNumber = (lastOrder?.publicNumber ?? 0) + 1;
 
     // Create the order
@@ -467,7 +551,10 @@ export const createOrder = mutation({
     }
 
     // Mark cart as completed
-    await ctx.db.patch(cart._id, { status: "completed", updatedAt: Date.now() });
+    await ctx.db.patch(cart._id, {
+      status: "completed",
+      updatedAt: Date.now(),
+    });
 
     return {
       orderId,

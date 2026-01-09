@@ -1,30 +1,64 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { useConvexAuth } from "convex/react";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 import { v4 as uuidv4 } from "uuid";
 
-/**
- * Provides a stable anonymous cart sessionId stored in localStorage.
- * Generates once using `crypto.randomUUID()` and persists across refreshes.
- */
+function getOrCreateSessionId(): string | undefined {
+  if (typeof window === "undefined") return undefined;
+  const existing = window.localStorage.getItem("cartSessionId");
+  if (existing && existing.length > 0) return existing;
+  const id = uuidv4();
+  window.localStorage.setItem("cartSessionId", id);
+  return id;
+}
+
 export function useCartSessionId() {
-  const [sessionId, setSessionId] = useState<string | undefined>(undefined);
+  return getOrCreateSessionId();
+}
 
-  // Generate synchronously during first render if possible.
-  const getInitialId = () => {
-    if (typeof window === "undefined") return undefined;
-    const existing = window.localStorage.getItem("cartSessionId");
-    if (existing && existing.length > 0) return existing;
-    const id = uuidv4();
-    window.localStorage.setItem("cartSessionId", id);
-    return id;
+export function useCartSession() {
+  const { isAuthenticated } = useConvexAuth();
+  const sessionId = useCartSessionId();
+
+  return {
+    sessionId,
+    isAuthenticated,
   };
+}
 
-  const initialId = getInitialId();
+/**
+ * Hook to merge anonymous cart to authenticated user after login.
+ * Call this after successful authentication to transfer cart items.
+ */
+export function useMergeCartOnAuth() {
+  const { isAuthenticated } = useConvexAuth();
+  const mergeCarts = useMutation(api.cart.mergeSessionCartToUser);
+  const [hasMerged, setHasMerged] = useState(false);
 
-  useEffect(() => {
-    if (initialId && !sessionId) setSessionId(initialId);
-  }, [initialId, sessionId]);
+  const merge = useCallback(
+    async (userId: string) => {
+      if (hasMerged) return;
 
-  return sessionId;
+      const sessionId = window.localStorage.getItem("cartSessionId");
+      if (!sessionId) return;
+
+      try {
+        await mergeCarts({ sessionId, userId });
+        setHasMerged(true);
+      } catch (error) {
+        console.error("Failed to merge cart:", error);
+      }
+    },
+    [mergeCarts, hasMerged],
+  );
+
+  const clearSessionCart = useCallback(() => {
+    window.localStorage.removeItem("cartSessionId");
+  }, []);
+
+  return { merge, clearSessionCart, hasMerged };
 }
