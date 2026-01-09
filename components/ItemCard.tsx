@@ -20,7 +20,6 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { formatPrice } from "@/lib/utils";
 import { Minus, Plus } from "lucide-react";
-import { Input } from "./ui/input";
 
 // Helper to get specification summary
 const getSpecificationSummary = (
@@ -74,13 +73,16 @@ export const ItemCard = ({ e }: { e: Item }) => {
   const router = useRouter();
 
   // Get cart items to find current item (only if sessionId is available)
-  const cartItems = useQuery(api.cart.listItems, sessionId ? { sessionId } : "skip");
-  const cartItemData = cartItems ? cartItems.items?.find(
-    (item) => item.itemId === e._id
-  ) : undefined;
+  const cartItems = useQuery(
+    api.cart.listItems,
+    sessionId ? { sessionId } : "skip",
+  );
+  const cartItemData = cartItems
+    ? cartItems.items?.find((item) => item.itemId === e._id)
+    : undefined;
 
   // Debounce timer for quantity changes
-  const debounceTimer = useRef<NodeJS.Timeout>();
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
   const onAdd = async (event: React.MouseEvent) => {
     event.preventDefault();
@@ -188,12 +190,12 @@ export const ItemCard = ({ e }: { e: Item }) => {
 
       {/* Name and Price on same line */}
       <Link href={href} className="block mb-3">
-         <div className="flex flex-col justify-between items-start gap-3">
-           <p className="text-base leading-6 line-clamp-2 h-12 overflow-hidden">
-             {e.name}
-             {getSpecificationSummary(e.specifications) &&
-               ` ${getSpecificationSummary(e.specifications)}`}
-           </p>
+        <div className="flex flex-col justify-between items-start gap-3">
+          <p className="text-base leading-6 line-clamp-2 h-12 overflow-hidden">
+            {e.name}
+            {getSpecificationSummary(e.specifications) &&
+              ` ${getSpecificationSummary(e.specifications)}`}
+          </p>
           <p className="font-medium whitespace-nowrap shrink-0 text-right">
             {e.priceRange ? (
               <>
@@ -212,26 +214,33 @@ export const ItemCard = ({ e }: { e: Item }) => {
 
       {/* Add to Cart Button or Quantity Controls */}
       {cartItemData ? (
-        <div className="flex items-center justify-center gap-4 bg-orange-100 rounded-full h-14 px-4">
+        <div className="flex items-center justify-between bg-light-orange text-white rounded-full h-14 px-2 w-full shadow-sm">
           <button
-            onClick={() => dec(cartItemData.quantity)}
-            className="flex items-center justify-center w-12 h-12 rounded-full bg-light-orange hover:bg-amber-500 transition-all hover:shadow-lg text-white font-bold text-2xl leading-none"
+            onClick={(e) => {
+              e.preventDefault();
+              dec(cartItemData.quantity);
+            }}
+            className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/20 active:scale-95 transition-all cursor-pointer"
           >
-            −
+            <Minus className="w-5 h-5 stroke-[3px]" />
           </button>
-          <Input
+
+          <input
             type="number"
             value={cartItemData.quantity}
-            className="w-16 h-10 p-0 text-center rounded-lg border-0 bg-white font-bold text-lg focus:outline-none focus:ring-2 focus:ring-light-orange"
+            className="w-full bg-transparent text-center font-bold text-xl outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             onChange={(e) => onQtyChange(e.target.value)}
-            min="1"
-            max="99"
+            onClick={(e) => e.preventDefault()}
           />
+
           <button
-            onClick={() => inc(cartItemData.quantity)}
-            className="flex items-center justify-center w-12 h-12 rounded-full bg-light-orange hover:bg-amber-500 transition-all hover:shadow-lg text-white font-bold text-2xl leading-none"
+            onClick={(e) => {
+              e.preventDefault();
+              inc(cartItemData.quantity);
+            }}
+            className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/20 active:scale-95 transition-all cursor-pointer"
           >
-            +
+            <Plus className="w-5 h-5 stroke-[3px]" />
           </button>
         </div>
       ) : (
