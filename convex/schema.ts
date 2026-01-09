@@ -22,6 +22,9 @@ const usersTable = defineTable({
     v.union(v.literal("user"), v.literal("manager"), v.literal("admin")),
   ),
 
+  // Temp password for first-login password change detection
+  tempPassword: v.optional(v.string()),
+
   // B2B
   isWholesale: v.optional(v.boolean()),
 
@@ -38,6 +41,36 @@ const usersTable = defineTable({
 })
   .index("email", ["email"])
   .index("phone", ["phone"]);
+
+// Auth tables defined inline to avoid TypeScript spread incompatibility
+const authSessionsTable = defineTable({
+  userId: v.id("users"),
+  expirationTime: v.number(),
+}).index("userId", ["userId"]);
+
+const authAccountsTable = defineTable({
+  userId: v.id("users"),
+  provider: v.string(),
+  providerAccountId: v.string(),
+  secret: v.optional(v.string()),
+  emailVerified: v.optional(v.string()),
+  phoneVerified: v.optional(v.string()),
+})
+  .index("userIdAndProvider", ["userId", "provider"])
+  .index("providerAndAccountId", ["provider", "providerAccountId"]);
+
+const authRateLimitsTable = defineTable({
+  identifier: v.string(),
+  lastAttemptTime: v.number(),
+  attemptsLeft: v.number(),
+}).index("identifier", ["identifier"]);
+
+const authRefreshTokensTable = defineTable({
+  sessionId: v.id("authSessions"),
+  expirationTime: v.number(),
+  parentRefreshTokenId: v.optional(v.id("authRefreshTokens")),
+  firstUsedTime: v.optional(v.number()),
+}).index("sessionId", ["sessionId"]);
 
 const brandTable = defineTable({
   name: v.string(),
@@ -283,22 +316,19 @@ const reviewsTable = defineTable({
   .index("by_status", ["status"])
   .index("by_user", ["userId"]);
 
-  export default defineSchema(
-    {
-      // ...authTables,
-      users: usersTable,
-      brands: brandTable,
-      items: itemsTable,
-      categories: categoryTable,
-      carts: cartsTable,
-      cartItems: cartItemsTable,
-      orders: ordersTable,
-      orderItems: orderItemsTable,
-      leads: leadsTable,
-      reviews: reviewsTable,
-
-    },
-    {
-      schemaValidation: true,
-    },
-  );
+export default defineSchema({
+  users: usersTable,
+  authSessions: authSessionsTable,
+  authAccounts: authAccountsTable,
+  authRateLimits: authRateLimitsTable,
+  authRefreshTokens: authRefreshTokensTable,
+  brands: brandTable,
+  items: itemsTable,
+  categories: categoryTable,
+  carts: cartsTable,
+  cartItems: cartItemsTable,
+  orders: ordersTable,
+  orderItems: orderItemsTable,
+  leads: leadsTable,
+  reviews: reviewsTable,
+});
