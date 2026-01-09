@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { ShoppingCart, BoxesIcon, Users } from "lucide-react";
 
 import {
@@ -44,10 +45,12 @@ export function AppSidebar({
   return (
     <Sidebar className="border-r">
       <SidebarHeader>
-        <div className="flex items-center gap-2 px-2">
-          <img src="/logo_.jpg" alt="Logo" className="w-12 h-12 object-contain" />
-          <span className="font-medium text-sm">Климат22</span>
-        </div>
+        <Link href="/">
+          <div className="flex items-center gap-2 px-2 cursor-pointer hover:opacity-80 transition-opacity">
+            <img src="/logo_.jpg" alt="Logo" className="w-12 h-12 object-contain" />
+            <span className="font-medium text-sm">Климат22</span>
+          </div>
+        </Link>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
