@@ -107,27 +107,108 @@ export const unclaim_order = mutation({
 export const list_items = query({
   args: {
     paginationOpts: paginationOptsValidator,
+    sortBy: v.optional(
+      v.union(
+        v.literal("name"),
+        v.literal("price"),
+        v.literal("quantity"),
+        v.literal("ordersCount"),
+        v.literal("createdAt"),
+      ),
+    ),
+    sortOrder: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
+    // Filter arguments
+    brandId: v.optional(v.id("brands")),
+    categoryId: v.optional(v.id("categories")),
+    status: v.optional(
+      v.union(v.literal("active"), v.literal("draft"), v.literal("preorder")),
+    ),
   },
-  handler: async (ctx, { paginationOpts }) => {
-    const items = await ctx.db
-      .query("items")
-      .filter((q) => q.neq(q.field("status"), "archived"))
-      .order("desc")
-      .paginate(paginationOpts);
+  handler: async (
+    ctx,
+    {
+      paginationOpts,
+      sortBy = "createdAt",
+      sortOrder = "desc",
+      brandId,
+      categoryId,
+      status,
+    },
+  ) => {
+    let itemsQuery;
 
-    const itemsWithBrands = await Promise.all(
+    // Choose index based on filters
+    if (categoryId && status) {
+      // Use by_category_price index for category + status filter
+      itemsQuery = ctx.db
+        .query("items")
+        .withIndex("by_category_price", (q) =>
+          q.eq("categoryId", categoryId).eq("status", status),
+        );
+    } else if (brandId && status) {
+      // Use by_brand_status for brand + status filter
+      itemsQuery = ctx.db
+        .query("items")
+        .withIndex("by_brand_status", (q) =>
+          q.eq("status", status).eq("brandId", brandId),
+        );
+    } else if (status) {
+      // Use by_status index
+      itemsQuery = ctx.db
+        .query("items")
+        .withIndex("by_status", (q) => q.eq("status", status));
+    } else {
+      // Default: exclude archived
+      itemsQuery = ctx.db
+        .query("items")
+        .filter((q) => q.neq(q.field("status"), "archived"));
+    }
+
+    // Apply additional filters not covered by index
+    if (brandId) {
+      itemsQuery = itemsQuery.filter((q) => q.eq(q.field("brandId"), brandId));
+    }
+    if (categoryId) {
+      itemsQuery = itemsQuery.filter((q) =>
+        q.eq(q.field("categoryId"), categoryId),
+      );
+    }
+
+    // Apply sort order
+    const orderedQuery =
+      sortOrder === "asc" ? itemsQuery.order("asc") : itemsQuery.order("desc");
+
+    const items = await orderedQuery.paginate(paginationOpts);
+
+    // Enrich with brand and category names
+    const itemsWithDetails = await Promise.all(
       items.page.map(async (item: any) => {
-        const brand = await ctx.db.get(item.brandId);
+        const [brand, category] = await Promise.all([
+          ctx.db.get(item.brandId),
+          ctx.db.get(item.categoryId),
+        ]);
         return {
           ...item,
           brandName: (brand as any)?.name || "Неизвестно",
+          categoryName: (category as any)?.name || "Без категории",
         };
       }),
     );
 
+    let page = itemsWithDetails;
+    if (sortBy !== "createdAt") {
+      page = [...itemsWithDetails].sort((a, b) => {
+        const aVal = a[sortBy];
+        const bVal = b[sortBy];
+        if (aVal === bVal) return 0;
+        const comparison = aVal < bVal ? -1 : 1;
+        return sortOrder === "asc" ? comparison : -comparison;
+      });
+    }
+
     return {
       ...items,
-      page: itemsWithBrands,
+      page,
     };
   },
 });
@@ -180,8 +261,21 @@ export const search_items = query({
   args: {
     query: v.string(),
     paginationOpts: paginationOptsValidator,
+    sortBy: v.optional(
+      v.union(
+        v.literal("name"),
+        v.literal("price"),
+        v.literal("quantity"),
+        v.literal("ordersCount"),
+        v.literal("createdAt"),
+      ),
+    ),
+    sortOrder: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
   },
-  handler: async (ctx, { query, paginationOpts }) => {
+  handler: async (
+    ctx,
+    { query, paginationOpts, sortBy = "createdAt", sortOrder = "desc" },
+  ) => {
     const searchResults = await ctx.db
       .query("items")
       .withSearchIndex("search_main", (q) => q.search("searchText", query))
@@ -197,9 +291,20 @@ export const search_items = query({
       }),
     );
 
+    let page = itemsWithBrands;
+    if (sortBy !== "createdAt") {
+      page = [...itemsWithBrands].sort((a, b) => {
+        const aVal = a[sortBy];
+        const bVal = b[sortBy];
+        if (aVal === bVal) return 0;
+        const comparison = aVal < bVal ? -1 : 1;
+        return sortOrder === "asc" ? comparison : -comparison;
+      });
+    }
+
     return {
       ...searchResults,
-      page: itemsWithBrands,
+      page,
     };
   },
 });
@@ -299,7 +404,8 @@ export const global_search = query({
     // Search orders by client info (manual filtering since no search index)
     const allOrders = await ctx.db.query("orders").collect();
     allOrders.forEach((order) => {
-      const searchText = `${order.clientName} ${order.clientPhone} ${order.clientEmail || ""} ${order.publicNumber}`.toLowerCase();
+      const searchText =
+        `${order.clientName} ${order.clientPhone} ${order.clientEmail || ""} ${order.publicNumber}`.toLowerCase();
       if (searchText.includes(query)) {
         results.push({
           type: "order",
@@ -312,7 +418,8 @@ export const global_search = query({
     // Search leads by name/phone/email (manual filtering)
     const allLeads = await ctx.db.query("leads").collect();
     allLeads.forEach((lead) => {
-      const searchText = `${lead.name} ${lead.phone} ${lead.email || ""}`.toLowerCase();
+      const searchText =
+        `${lead.name} ${lead.phone} ${lead.email || ""}`.toLowerCase();
       if (searchText.includes(query)) {
         results.push({
           type: "lead",
@@ -389,13 +496,15 @@ export const search_by_type = query({
     } else if (type === "order") {
       const allOrders = await ctx.db.query("orders").collect();
       results = allOrders.filter((order) => {
-        const searchText = `${order.clientName} ${order.clientPhone} ${order.clientEmail || ""} ${order.publicNumber}`.toLowerCase();
+        const searchText =
+          `${order.clientName} ${order.clientPhone} ${order.clientEmail || ""} ${order.publicNumber}`.toLowerCase();
         return searchText.includes(query);
       });
     } else if (type === "lead") {
       const allLeads = await ctx.db.query("leads").collect();
       results = allLeads.filter((lead) => {
-        const searchText = `${lead.name} ${lead.phone} ${lead.email || ""}`.toLowerCase();
+        const searchText =
+          `${lead.name} ${lead.phone} ${lead.email || ""}`.toLowerCase();
         return searchText.includes(query);
       });
     }
@@ -432,7 +541,10 @@ export const create_item = mutation({
     inStock: v.boolean(),
   },
   handler: async (ctx, args) => {
-    const slug = args.name.toLowerCase().replace(/ /g, "-").replace(/[^\w-]+/g, "");
+    const slug = args.name
+      .toLowerCase()
+      .replace(/ /g, "-")
+      .replace(/[^\w-]+/g, "");
     const itemId = await ctx.db.insert("items", {
       ...args,
       slug,
@@ -453,12 +565,14 @@ export const update_item = mutation({
     categoryId: v.optional(v.id("categories")),
     price: v.optional(v.number()),
     quantity: v.optional(v.number()),
-    status: v.optional(v.union(
-      v.literal("active"),
-      v.literal("draft"),
-      v.literal("archived"),
-      v.literal("preorder"),
-    )),
+    status: v.optional(
+      v.union(
+        v.literal("active"),
+        v.literal("draft"),
+        v.literal("archived"),
+        v.literal("preorder"),
+      ),
+    ),
     inStock: v.optional(v.boolean()),
   },
   handler: async (ctx, { id, ...args }) => {
@@ -467,9 +581,12 @@ export const update_item = mutation({
 
     const patch: any = { ...args };
     if (args.name) {
-      patch.slug = args.name.toLowerCase().replace(/ /g, "-").replace(/[^\w-]+/g, "");
+      patch.slug = args.name
+        .toLowerCase()
+        .replace(/ /g, "-")
+        .replace(/[^\w-]+/g, "");
     }
-    
+
     if (args.name || args.sku) {
       const name = args.name ?? existing.name;
       const sku = args.sku ?? existing.sku;
