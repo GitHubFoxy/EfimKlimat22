@@ -72,7 +72,7 @@ export const catalog_query_based_on_category_and_filter = query({
     const itemsQuery = ctx.db
       .query("items")
       .filter((q) => {
-        let conditions = [
+        const conditions = [
           q.eq(q.field("categoryId"), category),
           q.eq(q.field("status"), "active"),
           q.eq(q.field("inStock"), true),
@@ -130,7 +130,7 @@ export const catalog_query_grouped_by_collection = query({
     const itemsQuery = ctx.db
       .query("items")
       .filter((q) => {
-        let conditions = [
+        const conditions = [
           q.eq(q.field("categoryId"), category),
           q.eq(q.field("status"), "active"),
           q.eq(q.field("inStock"), true),
@@ -238,5 +238,34 @@ export const show_items_by_brand_and_collection = query({
       .take(8);
 
     return relatedItems;
+  },
+});
+
+// Get brands that have items in a specific category
+export const catalog_brands_by_category = query({
+  args: {
+    categoryId: v.id("categories"),
+  },
+  handler: async (ctx, { categoryId }) => {
+    // 1. Get all items in this category
+    const items = await ctx.db
+      .query("items")
+      .withIndex("by_category_price", (q) =>
+        q.eq("categoryId", categoryId).eq("status", "active"),
+      )
+      .collect();
+
+    // 2. Extract unique brand IDs
+    const brandIds = Array.from(new Set(items.map((i) => i.brandId)));
+
+    // 3. Fetch brand details
+    const brands = await Promise.all(
+      brandIds.map(async (id) => {
+        const brand = await ctx.db.get(id);
+        return brand;
+      }),
+    );
+
+    return brands.filter((b) => b !== null && b.status === "active");
   },
 });

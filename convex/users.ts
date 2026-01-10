@@ -144,3 +144,93 @@ export const changePassword = action({
     return { success: true };
   },
 });
+
+// Create a user with role (for admin panel)
+export const create_user_with_role = action({
+  args: {
+    name: v.string(),
+    phone: v.string(),
+    role: v.union(v.literal("user"), v.literal("manager"), v.literal("admin")),
+  },
+  handler: async (ctx, { name, phone, role }) => {
+    const currentUserId = await getAuthUserId(ctx);
+    if (!currentUserId) {
+      throw new ConvexError("Not authenticated");
+    }
+
+    const currentUser = await ctx.runQuery(api.users.getCurrentUser);
+    if (!currentUser || currentUser.role !== "admin") {
+      throw new ConvexError("Only admins can create users");
+    }
+
+    const tempPassword = generateTempPassword();
+
+    try {
+      await createAccount(ctx, {
+        provider: "password",
+        account: { id: phone, secret: tempPassword },
+        profile: {
+          phone,
+          name,
+          role,
+          tempPassword,
+          status: "active",
+        },
+      });
+    } catch (e) {
+      throw new ConvexError(
+        "Failed to create user account. User might already exist.",
+      );
+    }
+
+    return { phone, tempPassword };
+  },
+});
+
+// Update user (for admin panel)
+export const update_user = mutation({
+  args: {
+    id: v.id("users"),
+    name: v.string(),
+    phone: v.string(),
+    role: v.union(v.literal("user"), v.literal("manager"), v.literal("admin")),
+  },
+  handler: async (ctx, { id, name, phone, role }) => {
+    await ctx.db.patch(id, { name, phone, role });
+    return { success: true };
+  },
+});
+
+// Delete user (for admin panel)
+export const delete_user = mutation({
+  args: {
+    id: v.id("users"),
+  },
+  handler: async (ctx, { id }) => {
+    await ctx.db.delete(id);
+    return { success: true };
+  },
+});
+
+// List users by role (for admin panel)
+export const list_users_by_role = query({
+  args: {
+    role: v.union(v.literal("user"), v.literal("manager"), v.literal("admin")),
+  },
+  handler: async (ctx, { role }) => {
+    return await ctx.db
+      .query("users")
+      .filter((q) => q.eq(q.field("role"), role))
+      .collect();
+  },
+});
+
+// Get user by ID
+export const get_user_by_id = query({
+  args: {
+    id: v.id("users"),
+  },
+  handler: async (ctx, { id }) => {
+    return await ctx.db.get(id);
+  },
+});

@@ -1,3 +1,4 @@
+/* global fetch, console */
 // Seed script: reads public/test.json, converts images to WebP using sharp,
 // uploads to Convex storage, then inserts items via dashboard.addItemsPublic.
 // If an item's image folder is missing or contains no images, the item is inserted without images.
@@ -90,7 +91,7 @@ async function seed() {
       const imagesDirAbs = path.join(publicRoot, imagesDirRel);
       try {
         files = await getDirImages(imagesDirAbs);
-      } catch (e) {
+      } catch {
         console.warn(`Images directory not found at ${imagesDirAbs} for ${item.name}, inserting without images`);
       }
       if (!files.length) {

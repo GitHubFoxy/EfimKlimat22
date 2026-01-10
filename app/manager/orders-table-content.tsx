@@ -2,18 +2,34 @@
 
 import { useState } from "react";
 import { DataTable } from "./data-table";
-import { orderColumns, type ConvexOrder } from "./columns";
-import { useQuery } from "convex/react";
+import { getOrderColumns, type ConvexOrder } from "./columns";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { toast } from "sonner";
 
 export function OrdersTableContent() {
   const [cursor, setCursor] = useState<string | null>(null);
+  const updateStatus = useMutation(api.manager.update_order_status);
 
   // Fetch orders data with pagination
   const ordersData = useQuery(api.manager.list_orders, {
     paginationOpts: { numItems: 24, cursor },
+  });
+
+  const handleStatusChange = async (orderId: any, status: ConvexOrder["status"]) => {
+    try {
+      await updateStatus({ orderId, status });
+      toast.success("Статус заказа обновлен");
+    } catch (error) {
+      console.error("Failed to update status:", error);
+      toast.error("Ошибка при обновлении статуса");
+    }
+  };
+
+  const orderColumns = getOrderColumns({
+    onStatusChange: handleStatusChange,
   });
 
   if (!ordersData) {

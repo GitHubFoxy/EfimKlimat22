@@ -7,6 +7,7 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "../ui/button";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function HeaderSearch({ className }: { className?: string }) {
   const [searchValue, setSearchValue] = useState("");
@@ -63,13 +64,15 @@ export default function HeaderSearch({ className }: { className?: string }) {
                     aria-label={`Открыть ${item.name}`}
                   >
                     {/* Thumbnail */}
-                    <img
+                    <Image
                       src={
                         item.imagesUrl && item.imagesUrl.length > 0
                           ? item.imagesUrl[0]
                           : "/not-found.jpg"
                       }
                       alt={item.name}
+                      width={40}
+                      height={40}
                       className="w-10 h-10 rounded-md object-cover"
                     />
                     {/* Title & Price */}

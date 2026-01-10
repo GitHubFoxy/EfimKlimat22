@@ -16,6 +16,7 @@ import type * as dashboard from "../dashboard.js";
 import type * as http from "../http.js";
 import type * as main from "../main.js";
 import type * as manager from "../manager.js";
+import type * as orders from "../orders.js";
 import type * as users from "../users.js";
 
 import type {
@@ -33,6 +34,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   main: typeof main;
   manager: typeof manager;
+  orders: typeof orders;
   users: typeof users;
 }>;
 

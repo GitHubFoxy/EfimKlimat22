@@ -36,8 +36,12 @@ export default function CheckoutPage() {
     name: "",
     phone: "",
     email: "",
-    address: "",
+    city: "",
+    street: "",
+    addressDetails: "",
     comment: "",
+    deliveryType: "courier" as "pickup" | "courier" | "transport",
+    paymentMethod: "card_online" as "card_online" | "cash_on_delivery" | "card_on_delivery" | "b2b_invoice",
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -60,14 +64,25 @@ export default function CheckoutPage() {
     setIsSubmitting(true);
 
     try {
+      // Build address object only for non-pickup delivery
+      const address = formData.deliveryType !== "pickup" && formData.city && formData.street
+        ? {
+            city: formData.city,
+            street: formData.street,
+            details: formData.addressDetails || undefined,
+          }
+        : undefined;
+
       // Create order in backend (Convex)
       const res = await createOrder({
         sessionId,
-        name: formData.name,
-        phone: formData.phone,
-        email: formData.email || undefined,
-        address: formData.address || undefined,
-        comment: formData.comment || undefined,
+        clientName: formData.name,
+        clientPhone: formData.phone,
+        clientEmail: formData.email || undefined,
+        deliveryType: formData.deliveryType,
+        address,
+        paymentMethod: formData.paymentMethod,
+        deliveryPrice: 0, // Will be calculated by manager
       });
 
       // Optionally ensure local cart state clears
@@ -75,10 +90,10 @@ export default function CheckoutPage() {
 
       setOrderComplete(true);
 
-      // Redirect to home after 3 seconds
+      // Redirect to order confirmation page after 2 seconds
       setTimeout(() => {
-        router.push("/");
-      }, 3000);
+        router.push(`/order/${res.orderId}`);
+      }, 2000);
     } catch (error) {
       console.error("Error submitting order:", error);
       alert("Произошла ошибка при оформлении заказа. Попробуйте еще раз.");
@@ -249,8 +264,8 @@ export default function CheckoutPage() {
                           </li>
                           <li>
                             Транспортной компанией по России: Мы отправляем
-                            заказы по всей России через ТК "СДЭК" и "Деловые
-                            Линии" до пункта выдачи или до вашего адреса.
+                            заказы по всей России через ТК &quot;СДЭК&quot; и &quot;Деловые
+                            Линии&quot; до пункта выдачи или до вашего адреса.
                           </li>
                           <li>
                             Самовывоз: Вы можете забрать ваш заказ
@@ -359,18 +374,65 @@ export default function CheckoutPage() {
               </div>
 
               <div>
-                <Label htmlFor="address">Адрес доставки *</Label>
-                <Input
-                  id="address"
-                  name="address"
-                  type="text"
+                <Label htmlFor="deliveryType">Способ доставки *</Label>
+                <select
+                  id="deliveryType"
+                  name="deliveryType"
                   required
-                  value={formData.address}
-                  onChange={handleInputChange}
-                  placeholder="г. Барнаул, ул. Примерная, д. 1, кв. 1"
-                  className="mt-1"
-                />
+                  value={formData.deliveryType}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, deliveryType: e.target.value as "pickup" | "courier" | "transport" }))}
+                  className="mt-1 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                >
+                  <option value="pickup">Самовывоз</option>
+                  <option value="courier">Курьером</option>
+                  <option value="transport">Транспортной компанией</option>
+                </select>
               </div>
+
+              {formData.deliveryType !== "pickup" && (
+                <>
+                  <div>
+                    <Label htmlFor="city">Город *</Label>
+                    <Input
+                      id="city"
+                      name="city"
+                      type="text"
+                      required
+                      value={formData.city}
+                      onChange={handleInputChange}
+                      placeholder="Барнаул"
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="street">Улица, дом *</Label>
+                    <Input
+                      id="street"
+                      name="street"
+                      type="text"
+                      required
+                      value={formData.street}
+                      onChange={handleInputChange}
+                      placeholder="ул. Примерная, д. 1"
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="addressDetails">Квартира, подъезд, этаж</Label>
+                    <Input
+                      id="addressDetails"
+                      name="addressDetails"
+                      type="text"
+                      value={formData.addressDetails}
+                      onChange={handleInputChange}
+                      placeholder="кв. 1, подъезд 2, этаж 3"
+                      className="mt-1"
+                    />
+                  </div>
+                </>
+              )}
 
               <div>
                 <Label htmlFor="comment">Комментарий к заказу</Label>
@@ -383,6 +445,23 @@ export default function CheckoutPage() {
                   className="mt-1"
                   rows={4}
                 />
+              </div>
+
+              <div>
+                <Label htmlFor="paymentMethod">Способ оплаты *</Label>
+                <select
+                  id="paymentMethod"
+                  name="paymentMethod"
+                  required
+                  value={formData.paymentMethod}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, paymentMethod: e.target.value as any }))}
+                  className="mt-1 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                >
+                  <option value="card_online">Картой онлайн (ВТБ)</option>
+                  <option value="cash_on_delivery">Наличными при получении</option>
+                  <option value="card_on_delivery">Картой при получении</option>
+                  <option value="b2b_invoice">Счет на оплату (для юрлиц)</option>
+                </select>
               </div>
 
               <div className="mt-2">
@@ -399,9 +478,9 @@ export default function CheckoutPage() {
                         <DialogTitle>Безопасность онлайн-платежей</DialogTitle>
                       </DialogHeader>
                       <div className="space-y-3 text-sm text-gray-800">
-                        <p>При выборе формы оплаты с помощью банковской карты проведение платежа производится непосредственно после оформления заказа.</p>
+                        <p>После завершения оформления заказа в нашем магазине, вы будете автоматически перенаправлены на защищенную страницу платежного шлюза ПАО &quot;ВТБ&quot; для ввода данных вашей банковской карты.</p>
                         <ul className="list-disc pl-5 space-y-1">
-                          <li>После завершения оформления заказа в нашем магазине, вы будете автоматически перенаправлены на защищенную страницу платежного шлюза ПАО «ВТБ» для ввода данных вашей банковской карты.</li>
+                          <li>После завершения оформления заказа в нашем магазине, вы будете автоматически перенаправлены на защищенную страницу платежного шлюза ПАО &quot;ВТБ&quot; для ввода данных вашей банковской карты.</li>
                           <li>Соединение с платежным шлюзом и передача информации осуществляется в защищенном режиме с использованием протокола шифрования SSL/TLS.</li>
                           <li>Все операции с вашей картой происходят на стороне банка. Наш интернет-магазин не получает, не обрабатывает и не хранит какие-либо данные вашей банковской карты.</li>
                           <li>Введенные вами данные полностью защищены в соответствии с требованиями стандарта безопасности PCI DSS и никто, включая сотрудников нашего магазина, не может их получить.</li>

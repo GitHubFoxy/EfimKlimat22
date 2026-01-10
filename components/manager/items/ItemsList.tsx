@@ -450,7 +450,9 @@ export default function ItemsList({
                       if (img.url?.startsWith("blob:")) {
                         try {
                           URL.revokeObjectURL(img.url);
-                        } catch {}
+                        } catch {
+                          // Ignore revocation errors
+                        }
                       }
                     });
                     setImagesDraft((prev) => {

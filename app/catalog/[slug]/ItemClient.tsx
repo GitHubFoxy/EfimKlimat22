@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/tooltip";
 import FreeConsultmant from "@/components/FreeConsultmant";
 import { Footer } from "@/components/Footer";
+import Image from "next/image";
 
 export function ItemClient({
   preloadedItem,
@@ -107,14 +108,15 @@ export function ItemClient({
                               href={`/catalog/${relatedItem.slug}`}
                               className="block min-w-20"
                             >
-                              <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200 hover:border-gray-300 transition-colors">
-                                <img
+                              <div className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200 hover:border-gray-300 transition-colors">
+                                <Image
                                   src={
                                     item.imagesUrl?.[0] ||
                                     "/not-found.jpg"
                                   }
                                   alt={relatedItem.name}
-                                  className="w-full h-full object-cover"
+                                  fill
+                                  className="object-cover"
                                 />
                               </div>
                             </Link>
@@ -148,6 +150,23 @@ export function ItemClient({
               <div className="text-sm text-gray-700 whitespace-pre-line mb-4">
                 {item.description ?? "Описание отсутствует"}
               </div>
+
+              {/* Specifications Table */}
+              {item.specifications && Object.keys(item.specifications).length > 0 && (
+                <div className="mt-6">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3 border-b pb-2">
+                    Характеристики
+                  </h3>
+                  <div className="space-y-2">
+                    {Object.entries(item.specifications).map(([key, value]) => (
+                      <div key={key} className="flex justify-between text-sm py-1 border-b border-gray-50 last:border-0">
+                        <span className="text-gray-500">{key}</span>
+                        <span className="font-medium text-gray-900">{String(value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {item.discountAmount ? (
                 <span className="text-sm text-red-600 font-medium">

@@ -24,8 +24,8 @@ export default function Cart({ className }: { className?: string }) {
   const router = useRouter();
   const sessionId = useCartSessionId();
 
-  const itemsData = useQuery(api.cart.listItems, { sessionId });
-  const summary = useQuery(api.cart.get, { sessionId });
+  const itemsData = useQuery(api.cart.listItems, sessionId ? { sessionId } : "skip");
+  const summary = useQuery(api.cart.get, sessionId ? { sessionId } : "skip");
 
   const updateQty = useMutation(api.cart.updateQty);
   // TODO: optimistic UI updates for quantity can be re-added here later
@@ -39,13 +39,13 @@ export default function Cart({ className }: { className?: string }) {
   // Debounce map per cart item
   const debounceTimers = useRef<Record<string, any>>({});
 
-  const inc = (cartItemId: Id<"cart_items">, quantity: number) => {
+  const inc = (cartItemId: Id<"cartItems">, quantity: number) => {
     updateQty({ cartItemId, quantity: quantity + 1 });
   };
-  const dec = (cartItemId: Id<"cart_items">, quantity: number) => {
+  const dec = (cartItemId: Id<"cartItems">, quantity: number) => {
     updateQty({ cartItemId, quantity: quantity - 1 });
   };
-  const onQtyChange = (cartItemId: Id<"cart_items">, value: string) => {
+  const onQtyChange = (cartItemId: Id<"cartItems">, value: string) => {
     const q = Math.max(0, Math.min(99, parseInt(value || "0", 10) || 0));
     if (debounceTimers.current[cartItemId]) {
       clearTimeout(debounceTimers.current[cartItemId]);

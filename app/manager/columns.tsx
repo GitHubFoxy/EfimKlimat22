@@ -300,118 +300,155 @@ export interface ConvexOrder {
   updatedAt: number;
 }
 
-export const orderColumns: ColumnDef<ConvexOrder>[] = [
-  {
-    accessorKey: "publicNumber",
-    header: "№ Заказа",
-    cell: ({ row }) => {
-      const number = row.getValue("publicNumber") as number;
-      return <div className="font-medium">#{number}</div>;
+export const getOrderColumns = (handlers?: {
+  onStatusChange?: (orderId: any, status: ConvexOrder["status"]) => void;
+}): ColumnDef<ConvexOrder>[] => {
+  const { onStatusChange } = handlers || {};
+
+  return [
+    {
+      accessorKey: "publicNumber",
+      header: "№ Заказа",
+      cell: ({ row }) => {
+        const number = row.getValue("publicNumber") as number;
+        return <div className="font-medium">#{number}</div>;
+      },
     },
-  },
-  {
-    accessorKey: "clientName",
-    header: "Клиент",
-    cell: ({ row }) => {
-      const name = row.getValue("clientName") as string;
-      return <div className="font-medium">{name}</div>;
+    {
+      accessorKey: "clientName",
+      header: "Клиент",
+      cell: ({ row }) => {
+        const name = row.getValue("clientName") as string;
+        return <div className="font-medium">{name}</div>;
+      },
     },
-  },
-  {
-    accessorKey: "clientPhone",
-    header: "Телефон",
-  },
-  {
-    accessorKey: "status",
-    header: "Статус",
-    cell: ({ row }) => {
-      const status = row.getValue("status") as string;
-      const statusMap: { [key: string]: string } = {
-        new: "Новый",
-        confirmed: "Подтвержден",
-        processing: "В обработке",
-        shipping: "Отправлен",
-        done: "Завершен",
-        canceled: "Отменен",
-      };
-      return (
-        <span
-          className={`px-2 py-0.5 rounded text-xs ${
-            status === "new"
-              ? "bg-blue-100 text-blue-700"
-              : status === "confirmed"
-                ? "bg-purple-100 text-purple-700"
-                : status === "processing"
+    {
+      accessorKey: "clientPhone",
+      header: "Телефон",
+    },
+    {
+      accessorKey: "status",
+      header: "Статус",
+      cell: ({ row }) => {
+        const status = row.getValue("status") as string;
+        const statusMap: { [key: string]: string } = {
+          new: "Новый",
+          confirmed: "Подтвержден",
+          processing: "В обработке",
+          shipping: "Отправлен",
+          done: "Завершен",
+          canceled: "Отменен",
+        };
+        return (
+          <span
+            className={`px-2 py-0.5 rounded text-xs ${
+              status === "new"
+                ? "bg-blue-100 text-blue-700"
+                : status === "confirmed"
+                  ? "bg-purple-100 text-purple-700"
+                  : status === "processing"
+                    ? "bg-yellow-100 text-yellow-700"
+                    : status === "shipping"
+                      ? "bg-cyan-100 text-cyan-700"
+                      : status === "done"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-red-100 text-red-700"
+            }`}
+          >
+            {statusMap[status] || status}
+          </span>
+        );
+      },
+    },
+    {
+      accessorKey: "totalAmount",
+      header: "Сумма",
+      cell: ({ row }) => {
+        const amount = parseFloat(row.getValue("totalAmount") as any);
+        const formatted = new Intl.NumberFormat("ru-RU", {
+          style: "currency",
+          currency: "RUB",
+        }).format(amount);
+        return <div className="font-medium">{formatted}</div>;
+      },
+    },
+    {
+      accessorKey: "paymentStatus",
+      header: "Оплата",
+      cell: ({ row }) => {
+        const paymentStatus = row.getValue("paymentStatus") as string;
+        const paymentMap: { [key: string]: string } = {
+          pending: "Ожидание",
+          paid: "Оплачено",
+          failed: "Ошибка",
+          refunded: "Возврат",
+        };
+        return (
+          <span
+            className={`px-2 py-0.5 rounded text-xs ${
+              paymentStatus === "paid"
+                ? "bg-green-100 text-green-700"
+                : paymentStatus === "pending"
                   ? "bg-yellow-100 text-yellow-700"
-                  : status === "shipping"
-                    ? "bg-cyan-100 text-cyan-700"
-                    : status === "done"
-                      ? "bg-green-100 text-green-700"
-                      : "bg-red-100 text-red-700"
-          }`}
-        >
-          {statusMap[status] || status}
-        </span>
-      );
+                  : "bg-red-100 text-red-700"
+            }`}
+          >
+            {paymentMap[paymentStatus] || paymentStatus}
+          </span>
+        );
+      },
     },
-  },
-  {
-    accessorKey: "totalAmount",
-    header: "Сумма",
-    cell: ({ row }) => {
-      const amount = parseFloat(row.getValue("totalAmount") as any);
-      const formatted = new Intl.NumberFormat("ru-RU", {
-        style: "currency",
-        currency: "RUB",
-      }).format(amount);
-      return <div className="font-medium">{formatted}</div>;
+    {
+      id: "actions",
+      cell: ({ row }) => {
+        const order = row.original;
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Открыть меню</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Действия</DropdownMenuLabel>
+              <DropdownMenuItem
+                onClick={() => navigator.clipboard.writeText(order._id)}
+              >
+                Копировать ID заказа
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Изменить статус</DropdownMenuLabel>
+              <DropdownMenuItem
+                onClick={() => onStatusChange?.(order._id, "confirmed")}
+              >
+                Подтвердить
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onStatusChange?.(order._id, "processing")}
+              >
+                В обработку
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onStatusChange?.(order._id, "shipping")}
+              >
+                Отправлено
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onStatusChange?.(order._id, "done")}
+              >
+                Завершить
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="text-red-600"
+                onClick={() => onStatusChange?.(order._id, "canceled")}
+              >
+                Отменить
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      },
     },
-  },
-  {
-    accessorKey: "paymentStatus",
-    header: "Оплата",
-    cell: ({ row }) => {
-      const paymentStatus = row.getValue("paymentStatus") as string;
-      const paymentMap: { [key: string]: string } = {
-        pending: "Ожидание",
-        paid: "Оплачено",
-        failed: "Ошибка",
-        refunded: "Возврат",
-      };
-      return (
-        <span
-          className={`px-2 py-0.5 rounded text-xs ${
-            paymentStatus === "paid"
-              ? "bg-green-100 text-green-700"
-              : paymentStatus === "pending"
-                ? "bg-yellow-100 text-yellow-700"
-                : "bg-red-100 text-red-700"
-          }`}
-        >
-          {paymentMap[paymentStatus] || paymentStatus}
-        </span>
-      );
-    },
-  },
-  {
-    id: "actions",
-    cell: () => {
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Открыть меню</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Действия</DropdownMenuLabel>
-            <DropdownMenuItem>Просмотр заказа</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>Редактировать заказ</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
-    },
-  },
-];
+  ];
+};

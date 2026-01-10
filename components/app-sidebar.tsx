@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { ShoppingCart, BoxesIcon, Users } from "lucide-react";
 
 import {
@@ -15,9 +16,11 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
+type Section = "orders" | "items" | "leads";
+
 interface AppSidebarProps {
   activeSection?: string;
-  onSectionChange?: (section: string) => void;
+  onSectionChange?: (section: Section) => void;
 }
 
 const items = [
@@ -47,7 +50,7 @@ export function AppSidebar({
       <SidebarHeader>
         <Link href="/">
           <div className="flex items-center gap-2 px-2 cursor-pointer hover:opacity-80 transition-opacity">
-            <img src="/logo_.jpg" alt="Logo" className="w-12 h-12 object-contain" />
+            <Image src="/logo_.jpg" alt="Logo" width={48} height={48} className="w-12 h-12 object-contain" />
             <span className="font-medium text-sm">Климат22</span>
           </div>
         </Link>
@@ -62,7 +65,7 @@ export function AppSidebar({
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
-                    onClick={() => onSectionChange?.(item.id)}
+                    onClick={() => onSectionChange?.(item.id as Section)}
                     className={`text-gray-600 hover:bg-gray-100 cursor-pointer ${
                       activeSection === item.id
                         ? "bg-gray-100 text-gray-900"

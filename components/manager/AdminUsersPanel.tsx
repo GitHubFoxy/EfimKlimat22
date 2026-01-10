@@ -1,13 +1,13 @@
 import { api } from "@/convex/_generated/api";
 import { Label } from "@radix-ui/react-label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@radix-ui/react-select";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery, useAction } from "convex/react";
 import { useState } from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 
 export default function AdminUsersPanel() {
-  const createUser = useMutation(api.users.create_user_with_role);
+  const createUser = useAction(api.users.create_user_with_role);
   const updateUser = useMutation(api.users.update_user);
   const deleteUser = useMutation(api.users.delete_user);
   const [roleFilter, setRoleFilter] = useState<"user" | "manager" | "admin">(

@@ -21,7 +21,7 @@ export const CONSULTANT_STATUS_OPTIONS: {
 ];
 
 interface Consultant {
-  _id: Id<"consultants">;
+  _id: Id<"leads">;
   name: string;
   phone: string;
   message?: string;
@@ -35,14 +35,14 @@ interface ConsultantsListProps {
   managerId: string | null;
   role: string | null;
   updateStatus: (args: {
-    consultantId: Id<"consultants">;
+    consultantId: Id<"leads">;
     status: ConsultantStatus;
   }) => void;
   claim: (args: {
-    consultantId: Id<"consultants">;
+    consultantId: Id<"leads">;
     managerId: Id<"users">;
   }) => void;
-  unclaim: (args: { consultantId: Id<"consultants"> }) => void;
+  unclaim: (args: { consultantId: Id<"leads"> }) => void;
   onResetStatus: () => void;
 }
 

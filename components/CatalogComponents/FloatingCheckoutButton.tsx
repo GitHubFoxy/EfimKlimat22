@@ -11,7 +11,7 @@ import { formatPrice } from "@/lib/utils";
 export default function FloatingCheckoutButton() {
   const router = useRouter();
   const sessionId = useCartSessionId();
-  const itemsData = useQuery(api.cart.listItems, { sessionId });
+  const itemsData = useQuery(api.cart.listItems, sessionId ? { sessionId } : "skip");
 
   if (!itemsData || itemsData.count === 0) {
     return null;

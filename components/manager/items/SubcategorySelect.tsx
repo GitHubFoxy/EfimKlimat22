@@ -22,9 +22,10 @@ interface SubcategorieselectProps {
 
 export default function Subcategorieselect(props: SubcategorieselectProps) {
   const { categoryId, value, onChange, noneLabel, onAddNew, onEdit } = props;
-  const res = useQuery(api.catalog.show_subcategories_by_category, {
-    parent: categoryId ?? undefined,
-  });
+  const res = useQuery(
+    api.catalog.show_subcategories_by_category,
+    categoryId ? { parent: categoryId } : "skip",
+  );
   const subcategories = res?.subcategories ?? [];
   const selectValue = value ? String(value) : "__none__";
   return (

@@ -22,11 +22,12 @@ export function ItemsTableContent({
   onDeleteItem,
 }: ItemsTableContentProps) {
   const [cursor, setCursor] = useState<string | null>(null);
+  const [prevSearchQuery, setPrevSearchQuery] = useState(searchQuery);
 
-  // Reset cursor when search query changes
-  useEffect(() => {
+  if (searchQuery !== prevSearchQuery) {
+    setPrevSearchQuery(searchQuery);
     setCursor(null);
-  }, [searchQuery]);
+  }
 
   // Use preloaded query on initial page load
   const itemsDataPreloaded = usePreloadedQuery(itemsPreload);

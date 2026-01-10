@@ -47,7 +47,7 @@ export function useMergeCartOnAuth() {
       if (!sessionId) return;
 
       try {
-        await mergeCarts({ sessionId, userId });
+        await mergeCarts({ sessionId });
         setHasMerged(true);
       } catch (error) {
         console.error("Failed to merge cart:", error);

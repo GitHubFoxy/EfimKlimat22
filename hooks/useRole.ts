@@ -20,13 +20,17 @@ export function useRole() {
   useEffect(() => {
     try {
       window.localStorage.setItem("role", role);
-    } catch {}
+    } catch {
+      // Local storage might be full or disabled
+    }
   }, [role]);
 
   useEffect(() => {
     try {
       if (managerId) window.localStorage.setItem("managerId", managerId);
-    } catch {}
+    } catch {
+      // Local storage might be full or disabled
+    }
   }, [managerId]);
 
   return { role, setRole, managerId, setManagerId } as const;
