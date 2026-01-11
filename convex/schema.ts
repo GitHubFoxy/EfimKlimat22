@@ -38,9 +38,11 @@ const usersTable = defineTable({
   ),
 
   status: v.optional(v.union(v.literal("active"), v.literal("blocked"))),
+  legacyId: v.optional(v.string()),
 })
   .index("email", ["email"])
-  .index("phone", ["phone"]);
+  .index("phone", ["phone"])
+  .index("by_legacyId", ["legacyId"]);
 
 // Auth tables defined inline to avoid TypeScript spread incompatibility
 const authSessionsTable = defineTable({
@@ -120,6 +122,7 @@ const itemsTable = defineTable({
   inStock: v.boolean(),
   specifications: v.optional(
     v.record(v.string(), v.union(v.string(), v.number(), v.boolean())),
+    // Examples: { "power": 5.5 }, { "powerKW": 5.5 }, { "sectionCount": 12 }
   ),
   ordersCount: v.number(),
   labels: v.optional(v.array(v.string())),

@@ -224,6 +224,62 @@ No Husky or pre-commit hooks configured. Linting should be run manually before c
 - Convex deployment: `bun run deploy` (builds Next.js and deploys Convex)
 - Uses PM2 ecosystem config (`ecosystem.config.js`)
 
+## Project Weaknesses
+
+### Testing Coverage
+
+- **No testing infrastructure**: No test framework (Jest, Vitest, etc.) configured
+- **Zero test coverage**: No unit, integration, or e2e tests
+- **Critical areas untested**: Cart/checkout flows, authentication, business logic in Convex functions
+- **Recommendation**: Implement Vitest for Unit tests, integration tests with convex-test, aim for 75%+ coverage
+
+### Security Vulnerabilities
+
+- **Critical**: Manager/admin mutations lack authorization checks (`update_item`, `delete_item`, `update_order_status`)
+- **Critical**: Role management via `localStorage` (manipulable by client: `useRole.ts`)
+- **Critical**: Weak password policy (6 chars minimum vs 8-12+ recommended)
+- **High**: Missing input validation on checkout (phone/email format)
+- **High**: No rate limiting on mutations
+- **Medium**: PII exposure in manager queries returning all user data
+- **Recommendation**: Add `requireManager()` middleware, fetch roles from server only, enforce strong passwords, implement input validation schemas
+
+### Performance Issues
+
+- **Images**: `hero.jpg` (252KB) unoptimized, no lazy loading except one instance, 7.3MB+ images in `public/`
+- **N+1 Queries**: Brand/category lookups in `catalog.ts` create queries for each item
+- **Missing Code Splitting**: No `dynamic()` imports, all components load eagerly
+- **Re-renders**: `ItemCard` and other heavy components lack `React.memo()`
+- **Bundle Size**: `@tanstack/react-table`, `sharp`, all `lucide-react` icons bundled
+- **Client-side sorting**: Price/sorting happens in browser instead of database
+- **Recommendation**: Convert images to WebP, use `next/image` with lazy loading, implement loadMany() for batch lookups, add React.memo()
+
+### Code Quality Issues
+
+- **Code duplication**: Navigation links duplicated between DesktopHeader/MobileHeader/Footer, debounce logic in ItemCard/HeaderCart
+- **Large files**: `convex/manager.ts` (619 lines), `convex/cart.ts` (566 lines), `app/checkout/page.tsx` (531 lines), `components/Footer.tsx` (267 lines)
+- **Excessive `any` usage**: 49+ instances across codebase, especially in `items-table-content.tsx`, `columns.tsx`, manager components
+- **Magic numbers**: Hardcoded `350px` heights, `300ms` debounce delays, `99` max quantity, `1500ms` toast durations
+- **Error handling**: `alert()` calls in checkout, silent empty catch blocks, no error boundaries
+- **Missing documentation**: Complex Convex query logic lacks comments explaining optimization strategy
+- **Recommendation**: Extract constants to shared files, create `/types/index.ts`, add error boundaries, consolidate duplicate logic
+
+### Architecture Concerns
+
+- **Scattered feature code**: Catalog/Manager/ Cart logic spread across `app/`, `components/`, and `convex/` directories
+- **No service layer**: Components directly call Convex mutations without abstraction
+- **State management fragmentation**: Each component fetches data independently, no global state for cart/auth
+- **Tight coupling**: Business logic mixed with UI components (validation, data transformation in View layers)
+- **Inconsistent naming**: Mixed Russian/English (`FullAdress` typo vs clear English), inconsistent query prefixes
+- **Scaling issues**: Client-side sorting for large datasets, no caching strategy, no permission-based auth
+- **Recommendation**: Adopt feature-based structure (`/features/catalog`, `/features/cart`), create service layer, implement React Query pattern, separate business logic
+
+### Monitoring & Observability
+
+- **No error tracking**: No Sentry or similar service
+- **No performance monitoring**: No visibility into slow queries or bundle sizes
+- **No analytics**: No user behavior tracking
+- **Recommendation**: Add error tracking (Sentry), implement logging for critical operations, set up performance monitoring
+
 ### Agent Reminders
 
 1. Always run `bun run lint` after making changes
