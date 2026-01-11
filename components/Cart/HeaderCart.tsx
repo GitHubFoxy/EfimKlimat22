@@ -1,7 +1,7 @@
 "use client";
 import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import { Button } from "../ui/button";
-import { useRef, useState } from "react";
+import { useRef, useSyncExternalStore } from "react";
 import { twMerge } from "tailwind-merge";
 import { useRouter } from "next/navigation";
 import {
@@ -20,7 +20,14 @@ import { api } from "@/convex/_generated/api";
 import { useCartSessionId } from "@/hooks/useCartSession";
 import { Id } from "@/convex/_generated/dataModel";
 
+const emptySubscribe = () => () => {};
+
 export default function Cart({ className }: { className?: string }) {
+  const isMounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
   const router = useRouter();
   const sessionId = useCartSessionId();
 
@@ -54,6 +61,19 @@ export default function Cart({ className }: { className?: string }) {
       updateQty({ cartItemId, quantity: q });
     }, 300);
   };
+
+  if (!isMounted) {
+    return (
+      <Button
+        className={twMerge(
+          "relative w-12 h-12 bg-light-orange rounded-full cursor-pointer",
+          className,
+        )}
+      >
+        <ShoppingCart />
+      </Button>
+    );
+  }
 
   return (
     <Dialog>

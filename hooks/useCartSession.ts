@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useSyncExternalStore, useState } from "react";
 import { useConvexAuth } from "convex/react";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -9,15 +9,25 @@ import { v4 as uuidv4 } from "uuid";
 
 function getOrCreateSessionId(): string | undefined {
   if (typeof window === "undefined") return undefined;
-  const existing = window.localStorage.getItem("cartSessionId");
-  if (existing && existing.length > 0) return existing;
-  const id = uuidv4();
-  window.localStorage.setItem("cartSessionId", id);
-  return id;
+  try {
+    const existing = window.localStorage.getItem("cartSessionId");
+    if (existing && existing.length > 0) return existing;
+    const id = uuidv4();
+    window.localStorage.setItem("cartSessionId", id);
+    return id;
+  } catch {
+    return undefined;
+  }
 }
 
-export function useCartSessionId() {
-  return getOrCreateSessionId();
+const emptySubscribe = () => () => {};
+
+export function useCartSessionId(): string | undefined {
+  return useSyncExternalStore<string | undefined>(
+    emptySubscribe,
+    getOrCreateSessionId,
+    () => undefined,
+  );
 }
 
 export function useCartSession() {
