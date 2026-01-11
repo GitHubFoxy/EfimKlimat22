@@ -13,6 +13,7 @@ import type * as cart from "../cart.js";
 import type * as catalog from "../catalog.js";
 import type * as consultants from "../consultants.js";
 import type * as dashboard from "../dashboard.js";
+import type * as export_ from "../export.js";
 import type * as http from "../http.js";
 import type * as main from "../main.js";
 import type * as manager from "../manager.js";
@@ -31,6 +32,7 @@ declare const fullApi: ApiFromModules<{
   catalog: typeof catalog;
   consultants: typeof consultants;
   dashboard: typeof dashboard;
+  export: typeof export_;
   http: typeof http;
   main: typeof main;
   manager: typeof manager;

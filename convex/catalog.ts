@@ -59,13 +59,13 @@ export const show_all_brands = query({
 // Query items based on category and filter type with pagination
 export const catalog_query_based_on_category_and_filter = query({
   args: {
-    category: v.id("categories"),
+    category: v.optional(v.id("categories")),
     filter: v.union(
       v.literal("Хиты продаж"),
       v.literal("Новинки"),
       v.literal("Со скидкой"),
     ),
-    brand: v.optional(v.string()),
+    brand: v.optional(v.id("brands")),
     paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, { category, filter, brand, paginationOpts }) => {
@@ -73,19 +73,20 @@ export const catalog_query_based_on_category_and_filter = query({
       .query("items")
       .filter((q) => {
         const conditions = [
-          q.eq(q.field("categoryId"), category),
           q.eq(q.field("status"), "active"),
           q.eq(q.field("inStock"), true),
         ];
 
-        // Add discount filter if needed
+        if (category) {
+          conditions.push(q.eq(q.field("categoryId"), category));
+        }
+
         if (filter === "Со скидкой") {
           conditions.push(q.gt(q.field("discountAmount"), 0));
         }
 
-        // Add brand filter if provided
         if (brand) {
-          conditions.push(q.eq(q.field("brandId"), brand as any));
+          conditions.push(q.eq(q.field("brandId"), brand));
         }
 
         return q.and(...conditions);
@@ -116,34 +117,34 @@ export const catalog_query_based_on_category_and_filter = query({
 // Query items grouped by collection (subcategory/category)
 export const catalog_query_grouped_by_collection = query({
   args: {
-    category: v.id("categories"),
+    category: v.optional(v.id("categories")),
     filter: v.union(
       v.literal("Хиты продаж"),
       v.literal("Новинки"),
       v.literal("Со скидкой"),
     ),
-    brand: v.optional(v.string()),
+    brand: v.optional(v.id("brands")),
     paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, { category, filter, brand, paginationOpts }) => {
-    // Get all items for this category with filters applied
     const itemsQuery = ctx.db
       .query("items")
       .filter((q) => {
         const conditions = [
-          q.eq(q.field("categoryId"), category),
           q.eq(q.field("status"), "active"),
           q.eq(q.field("inStock"), true),
         ];
 
-        // Add discount filter if needed
+        if (category) {
+          conditions.push(q.eq(q.field("categoryId"), category));
+        }
+
         if (filter === "Со скидкой") {
           conditions.push(q.gt(q.field("discountAmount"), 0));
         }
 
-        // Add brand filter if provided
         if (brand) {
-          conditions.push(q.eq(q.field("brandId"), brand as any));
+          conditions.push(q.eq(q.field("brandId"), brand));
         }
 
         return q.and(...conditions);

@@ -9,31 +9,27 @@ import {
 } from "@/components/ui/select";
 import { Id } from "@/convex/_generated/dataModel";
 
+type FilterType = "Хиты продаж" | "Новинки" | "Со скидкой";
+
 interface CatalogFiltersProps {
-  // Categories
   categories: any[];
-  selectedCategoryId: string | null;
-  onCategoryChange: (categoryId: string) => void;
+  selectedCategoryId: Id<"categories"> | null;
+  onCategoryChange: (categoryId: Id<"categories"> | null) => void;
 
-  // Subcategories
   subcategories: any[];
-  selectedSubcategory: string | null;
-  onSubcategoryChange: (subcategoryId: string | null) => void;
+  selectedSubcategory: Id<"categories"> | null;
+  onSubcategoryChange: (subcategoryId: Id<"categories"> | null) => void;
 
-  // Filter
-  selectedFilter: "Хиты продаж" | "Новинки" | "Со скидкой";
-  onFilterChange: (filter: "Хиты продаж" | "Новинки" | "Со скидкой") => void;
+  selectedFilter: FilterType;
+  onFilterChange: (filter: FilterType) => void;
 
-  // Brand
   brands: any[];
-  selectedBrand: string | null;
-  onBrandChange: (brand: string | null) => void;
+  selectedBrand: Id<"brands"> | null;
+  onBrandChange: (brand: Id<"brands"> | null) => void;
 
-  // Price Sort
   priceSort: "asc" | "desc" | null;
   onPriceSortChange: (sort: "asc" | "desc" | null) => void;
 
-  // Variant Sort
   variantSort: "asc" | "desc" | null;
   onVariantSortChange: (sort: "asc" | "desc" | null) => void;
 }
@@ -66,13 +62,16 @@ export default function CatalogFilters({
             Категория:
           </span>
           <Select
-            value={selectedCategoryId ?? undefined}
-            onValueChange={onCategoryChange}
+            value={selectedCategoryId ?? "all"}
+            onValueChange={(val) =>
+              onCategoryChange(val === "all" ? null : (val as Id<"categories">))
+            }
           >
             <SelectTrigger className="w-full sm:min-w-[200px]">
               <SelectValue placeholder="Выберите категорию" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">Все товары</SelectItem>
               {categories.map((c: any) => (
                 <SelectItem key={c._id} value={c._id}>
                   {c.name}
@@ -90,7 +89,9 @@ export default function CatalogFilters({
             <Select
               value={selectedSubcategory ?? undefined}
               onValueChange={(val) =>
-                onSubcategoryChange(val === "none" ? null : val)
+                onSubcategoryChange(
+                  val === "none" ? null : (val as Id<"categories">),
+                )
               }
             >
               <SelectTrigger className="w-full sm:min-w-[200px]">
@@ -114,7 +115,9 @@ export default function CatalogFilters({
         <div className="flex items-center gap-3 flex-1 min-w-[180px]">
           <Select
             value={selectedBrand ?? "all"}
-            onValueChange={(val) => onBrandChange(val === "all" ? null : val)}
+            onValueChange={(val) =>
+              onBrandChange(val === "all" ? null : (val as Id<"brands">))
+            }
           >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Все бренды" />
@@ -122,7 +125,7 @@ export default function CatalogFilters({
             <SelectContent>
               <SelectItem value="all">Все бренды</SelectItem>
               {brands.map((brand: any) => (
-                <SelectItem key={brand._id} value={brand.name}>
+                <SelectItem key={brand._id} value={brand._id}>
                   {brand.name}
                 </SelectItem>
               ))}

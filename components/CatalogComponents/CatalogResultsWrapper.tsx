@@ -8,16 +8,16 @@ interface CatalogResultsWrapperProps {
   selectedSubcategory: string | null;
   priceSort: "asc" | "desc" | null;
   variantSort: "asc" | "desc" | null;
-  selectedBrand: string | null;
+  selectedBrand: Id<"brands"> | null;
   onClearBrandFilter: () => void;
   groupByCollection: boolean;
   CatalogResultsComponent: React.ComponentType<{
-    categoryId: Id<"categories">;
+    categoryId: Id<"categories"> | null;
     filter: "Хиты продаж" | "Новинки" | "Со скидкой";
     subcategory?: string | null;
     priceSort?: "asc" | "desc" | null;
     variantSort?: "asc" | "desc" | null;
-    selectedBrand?: string | null;
+    selectedBrand?: Id<"brands"> | null;
     onClearBrandFilter: () => void;
     groupByCollection: boolean;
     preloadedItemsData?: any;
@@ -40,14 +40,6 @@ export default function CatalogResultsWrapper({
   preloadedItemsData,
   isInitialLoad,
 }: CatalogResultsWrapperProps) {
-  if (!selectedCategoryId) {
-    return (
-      <div className="px-4 mb-8">
-        <div className="text-center py-8">Загрузка категорий...</div>
-      </div>
-    );
-  }
-
   return (
     <CatalogResultsComponent
       categoryId={selectedCategoryId}

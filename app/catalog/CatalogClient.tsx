@@ -21,15 +21,9 @@ import { useEffect, useState, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Id } from "@/convex/_generated/dataModel";
 import { useCartSessionId } from "@/hooks/useCartSession";
-import { Button } from "@/components/ui/button";
-import { ShoppingCart } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
+type FilterType = "Хиты продаж" | "Новинки" | "Со скидкой";
+const ALLOWED_FILTERS = new Set<FilterType>(["Хиты продаж", "Новинки", "Со скидкой"]);
 
 function CatalogResults({
   categoryId,
@@ -43,12 +37,12 @@ function CatalogResults({
   preloadedItemsData,
   isInitialLoad,
 }: {
-  categoryId: Id<"categories">;
-  filter: "Хиты продаж" | "Новинки" | "Со скидкой";
+  categoryId: Id<"categories"> | null;
+  filter: FilterType;
   subcategory?: string | null;
   priceSort?: "asc" | "desc" | null;
   variantSort?: "asc" | "desc" | null;
-  selectedBrand?: string | null;
+  selectedBrand?: Id<"brands"> | null;
   onClearBrandFilter: () => void;
   groupByCollection: boolean;
   preloadedItemsData?: any;
@@ -58,17 +52,16 @@ function CatalogResults({
     ? (subcategory as Id<"categories">)
     : categoryId;
 
-  // Use paginated query for catalog items
   const paginatedQuery = usePaginatedQuery(
     groupByCollection
       ? api.catalog.catalog_query_grouped_by_collection
       : api.catalog.catalog_query_based_on_category_and_filter,
     {
-      category: effectiveCategoryId,
+      category: effectiveCategoryId || undefined,
       filter,
       brand: selectedBrand || undefined,
     },
-    { initialNumItems: 12 },
+    { initialNumItems: 24 },
   );
 
   // Use preloaded data on initial load if available
@@ -101,7 +94,7 @@ function CatalogResults({
       status={status}
       selectedBrand={selectedBrand}
       onClearBrandFilter={onClearBrandFilter}
-      onLoadMore={() => loadMore(12)}
+      onLoadMore={() => loadMore(24)}
     />
   );
 }
@@ -118,6 +111,7 @@ export function CatalogClient({
   preloadedCategories,
   preloadedBrands,
   preloadedItems,
+  initialFilter,
 }: {
   preloadedCategories: Preloaded<
     typeof api.catalog.catalog_list_all_categories
@@ -126,6 +120,7 @@ export function CatalogClient({
   preloadedItems: Preloaded<
     typeof api.catalog.catalog_query_grouped_by_collection
   > | null;
+  initialFilter: FilterType;
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -136,105 +131,94 @@ export function CatalogClient({
   const categories = useMemo(() => categoriesRaw ?? [], [categoriesRaw]);
   const brandsAll = usePreloadedQuery(preloadedBrands) ?? [];
 
-  // URL Params Sync
+  const [priceSort, setPriceSort] = useState<"asc" | "desc" | null>(null);
+  const [variantSort, setVariantSort] = useState<"asc" | "desc" | null>(null);
+  const [groupByCollection] = useState(true);
+
+  // Derive category from URL
   const categorySlug = params.get("category");
+  const selectedCategoryId = useMemo<Id<"categories"> | null>(() => {
+    if (!categorySlug || categorySlug === "all" || !categories.length) return null;
+    const cat = categories.find((c) => c.slug === categorySlug);
+    return cat?._id ?? null;
+  }, [categorySlug, categories]);
+
+  // Derive brand from URL
   const brandParam = params.get("brand");
-  const subcategorySlug = params.get("subcategory");
+  const selectedBrand = useMemo<Id<"brands"> | null>(
+    () => (brandParam as Id<"brands">) ?? null,
+    [brandParam],
+  );
 
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
-  const [selectedBrand, setSelectedBrand] = useState<string | null>(brandParam);
-  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
-
-  const [prevCategorySlug, setPrevCategorySlug] = useState<string | null>(null);
-  if (categorySlug !== prevCategorySlug && categories.length > 0) {
-    setPrevCategorySlug(categorySlug);
-    if (categorySlug) {
-      const cat = categories.find((c) => c.slug === categorySlug);
-      if (cat) setSelectedCategoryId(cat._id);
-    } else if (!selectedCategoryId) {
-      setSelectedCategoryId(categories[0]._id);
+  // Derive filter from URL
+  const filterParam = params.get("filter");
+  const selectedFilter = useMemo<FilterType>(() => {
+    if (filterParam && ALLOWED_FILTERS.has(filterParam as FilterType)) {
+      return filterParam as FilterType;
     }
-  }
+    return initialFilter;
+  }, [filterParam, initialFilter]);
 
   // Fetch brands based on selected category (if any)
   const categoryBrandsQuery = useQuery(
     api.catalog.catalog_brands_by_category,
-    selectedCategoryId
-      ? { categoryId: selectedCategoryId as Id<"categories"> }
-      : "skip",
+    selectedCategoryId ? { categoryId: selectedCategoryId } : "skip",
   );
 
-  // Use category-specific brands if available, fallback to all preloaded brands
   const brands = categoryBrandsQuery ?? brandsAll;
 
   // Subcategories data
   const subcategoriesData = useQuery(
     api.catalog.show_subcategories_by_category,
-    selectedCategoryId
-      ? { parent: selectedCategoryId as Id<"categories"> }
-      : "skip",
+    selectedCategoryId ? { parent: selectedCategoryId } : "skip",
   );
   const subcategories = useMemo(
     () => subcategoriesData?.subcategories ?? [],
     [subcategoriesData?.subcategories],
   );
 
-  const [prevSubcategorySlug, setPrevSubcategorySlug] = useState<string | null>(null);
-  if (subcategorySlug !== prevSubcategorySlug && subcategories.length > 0) {
-    setPrevSubcategorySlug(subcategorySlug);
-    if (subcategorySlug) {
-      const sub = subcategories.find((s) => s.slug === subcategorySlug);
-      if (sub) setSelectedSubcategory(sub._id);
-    }
-  }
+  // Derive subcategory from URL (only valid when subcategories are loaded)
+  const subcategorySlug = params.get("subcategory");
+  const selectedSubcategory = useMemo<Id<"categories"> | null>(() => {
+    if (!subcategorySlug || !subcategories.length) return null;
+    const sub = subcategories.find((s) => s.slug === subcategorySlug);
+    return sub?._id ?? null;
+  }, [subcategorySlug, subcategories]);
 
-  const [prevSelectedCategoryId, setPrevSelectedCategoryId] = useState<string | null>(null);
-  if (selectedCategoryId !== prevSelectedCategoryId) {
-    setPrevSelectedCategoryId(selectedCategoryId);
-    setSelectedSubcategory(null);
-  }
-
-  // Sync state back to URL
-  useEffect(() => {
+  // URL update helpers
+  const updateParams = (updates: Record<string, string | null>) => {
     const newParams = new URLSearchParams(params.toString());
-
-    if (selectedCategoryId) {
-      const cat = categories.find((c) => c._id === selectedCategoryId);
-      if (cat) newParams.set("category", cat.slug);
+    for (const [key, value] of Object.entries(updates)) {
+      if (value === null) {
+        newParams.delete(key);
+      } else {
+        newParams.set(key, value);
+      }
     }
-
-    if (selectedBrand) newParams.set("brand", selectedBrand);
-    else newParams.delete("brand");
-
-    if (selectedSubcategory && selectedSubcategory !== "none") {
-      const sub = subcategories.find((s) => s._id === selectedSubcategory);
-      if (sub) newParams.set("subcategory", sub.slug);
-    } else {
-      newParams.delete("subcategory");
-    }
-
     const search = newParams.toString();
-    const queryStr = search ? `?${search}` : "";
-    // Avoid infinite loop by checking if params actually changed
-    if (search !== params.toString()) {
-      router.replace(`/catalog${queryStr}`, { scroll: false });
-    }
-  }, [
-    selectedCategoryId,
-    selectedBrand,
-    selectedSubcategory,
-    categories,
-    subcategories,
-    router,
-    params,
-  ]);
+    router.replace(`/catalog${search ? `?${search}` : ""}`, { scroll: false });
+  };
 
-  const [priceSort, setPriceSort] = useState<"asc" | "desc" | null>(null);
-  const [variantSort, setVariantSort] = useState<"asc" | "desc" | null>(null);
-  const [selectedFilter, setSelectedFilter] = useState<
-    "Хиты продаж" | "Новинки" | "Со скидкой"
-  >("Новинки");
-  const [groupByCollection] = useState(true);
+  const setSelectedCategoryId = (id: Id<"categories"> | null) => {
+    const cat = id ? categories.find((c) => c._id === id) : null;
+    updateParams({
+      category: cat?.slug ?? null,
+      subcategory: null,
+    });
+  };
+
+  const setSelectedBrand = (id: Id<"brands"> | null) => {
+    updateParams({ brand: id });
+  };
+
+  const setSelectedSubcategory = (id: Id<"categories"> | null) => {
+    const sub = id ? subcategories.find((s) => s._id === id) : null;
+    updateParams({ subcategory: sub?.slug ?? null });
+  };
+
+  const setSelectedFilter = (filter: FilterType) => {
+    updateParams({ filter: filter === "Новинки" ? null : filter });
+  };
 
   // Cart data for floating button
   const itemsData = useQuery(
