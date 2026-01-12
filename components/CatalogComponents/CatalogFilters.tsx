@@ -36,6 +36,8 @@ interface CatalogFiltersProps {
 
   variantSort: "asc" | "desc" | null;
   onVariantSortChange: (sort: "asc" | "desc" | null) => void;
+
+  onClearAll?: () => void;
 }
 
 export default function CatalogFilters({
@@ -54,6 +56,7 @@ export default function CatalogFilters({
   onPriceSortChange,
   variantSort,
   onVariantSortChange,
+  onClearAll,
 }: CatalogFiltersProps) {
   const filters = ["Новинки", "Хиты продаж", "Со скидкой"] as const;
 
@@ -66,12 +69,16 @@ export default function CatalogFilters({
     selectedFilter !== "Новинки";
 
   const clearAll = () => {
-    onCategoryChange(null);
-    onSubcategoryChange(null);
-    onBrandChange(null);
-    onPriceSortChange(null);
-    onVariantSortChange(null);
-    onFilterChange("Новинки");
+    if (onClearAll) {
+      onClearAll();
+    } else {
+      onCategoryChange(null);
+      onSubcategoryChange(null);
+      onBrandChange(null);
+      onPriceSortChange(null);
+      onVariantSortChange(null);
+      onFilterChange("Новинки");
+    }
   };
 
   return (

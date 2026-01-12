@@ -23,7 +23,11 @@ import { Id } from "@/convex/_generated/dataModel";
 import { useCartSessionId } from "@/hooks/useCartSession";
 
 type FilterType = "Хиты продаж" | "Новинки" | "Со скидкой";
-const ALLOWED_FILTERS = new Set<FilterType>(["Хиты продаж", "Новинки", "Со скидкой"]);
+const ALLOWED_FILTERS = new Set<FilterType>([
+  "Хиты продаж",
+  "Новинки",
+  "Со скидкой",
+]);
 
 function CatalogResults({
   categoryId,
@@ -99,12 +103,11 @@ function CatalogResults({
   );
 }
 
-function HydratedCatalogResultsWrapper({
-  preloadedItems,
-  ...props
-}: any) {
+function HydratedCatalogResultsWrapper({ preloadedItems, ...props }: any) {
   const preloadedItemsData = usePreloadedQuery(preloadedItems);
-  return <CatalogResultsWrapper {...props} preloadedItemsData={preloadedItemsData} />;
+  return (
+    <CatalogResultsWrapper {...props} preloadedItemsData={preloadedItemsData} />
+  );
 }
 
 export function CatalogClient({
@@ -138,7 +141,8 @@ export function CatalogClient({
   // Derive category from URL
   const categorySlug = params.get("category");
   const selectedCategoryId = useMemo<Id<"categories"> | null>(() => {
-    if (!categorySlug || categorySlug === "all" || !categories.length) return null;
+    if (!categorySlug || categorySlug === "all" || !categories.length)
+      return null;
     const cat = categories.find((c) => c.slug === categorySlug);
     return cat?._id ?? null;
   }, [categorySlug, categories]);
@@ -220,6 +224,17 @@ export function CatalogClient({
     updateParams({ filter: filter === "Новинки" ? null : filter });
   };
 
+  const clearAllFilters = () => {
+    updateParams({
+      category: null,
+      subcategory: null,
+      brand: null,
+      filter: null,
+    });
+    setPriceSort(null);
+    setVariantSort(null);
+  };
+
   // Cart data for floating button
   const itemsData = useQuery(
     api.cart.listItems,
@@ -288,6 +303,7 @@ export function CatalogClient({
         onPriceSortChange={setPriceSort}
         variantSort={variantSort}
         onVariantSortChange={setVariantSort}
+        onClearAll={clearAllFilters}
       />
 
       {/* Disclaimer message for gas-related subcategories */}
@@ -306,7 +322,9 @@ export function CatalogClient({
           groupByCollection={groupByCollection}
           CatalogResultsComponent={CatalogResults}
           isInitialLoad={
-            !selectedBrand && selectedFilter === "Новинки" && !selectedSubcategory
+            !selectedBrand &&
+            selectedFilter === "Новинки" &&
+            !selectedSubcategory
           }
         />
       ) : (
