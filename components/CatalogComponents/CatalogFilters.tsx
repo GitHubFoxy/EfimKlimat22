@@ -63,15 +63,15 @@ export default function CatalogFilters({
     selectedBrand ||
     priceSort ||
     variantSort ||
-    selectedFilter !== "Новинки"; // Assuming "Новинки" is default or just checking specific filter
+    selectedFilter !== "Новинки";
 
   const clearAll = () => {
     onCategoryChange(null);
+    onSubcategoryChange(null);
     onBrandChange(null);
     onPriceSortChange(null);
     onVariantSortChange(null);
-    // Assuming we want to reset to default filter or keep it?
-    // The previous code didn't have clear all.
+    onFilterChange("Новинки");
   };
 
   return (
@@ -93,7 +93,7 @@ export default function CatalogFilters({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Все товары</SelectItem>
-              {categories.map((c: any) => (
+              {categories.map((c) => (
                 <SelectItem key={c._id} value={c._id}>
                   {c.name}
                 </SelectItem>
@@ -130,7 +130,7 @@ export default function CatalogFilters({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">Все подкатегории</SelectItem>
-              {subcategories.map((sc: any) => (
+              {subcategories.map((sc) => (
                 <SelectItem key={sc._id} value={sc._id}>
                   {sc.name}
                 </SelectItem>
@@ -155,7 +155,7 @@ export default function CatalogFilters({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Все бренды</SelectItem>
-              {brands.map((brand: any) => (
+              {brands.map((brand) => (
                 <SelectItem key={brand._id} value={brand._id}>
                   {brand.name}
                 </SelectItem>
@@ -237,11 +237,7 @@ export default function CatalogFilters({
           ))}
         </div>
 
-        {(selectedCategoryId ||
-          selectedBrand ||
-          selectedSubcategory ||
-          priceSort ||
-          variantSort) && (
+        {hasActiveFilters && (
           <Button
             variant="ghost"
             size="sm"
