@@ -178,6 +178,7 @@ export default function CatalogFilters({
           </Label>
           <div className="grid grid-cols-2 gap-2">
             <Select
+              key={`price-${priceSort}`}
               value={priceSort ?? "none"}
               onValueChange={(val) => {
                 if (val === "none") {
@@ -199,6 +200,7 @@ export default function CatalogFilters({
             </Select>
 
             <Select
+              key={`variant-${variantSort}`}
               value={variantSort ?? "none"}
               onValueChange={(val) => {
                 if (val === "none") {
