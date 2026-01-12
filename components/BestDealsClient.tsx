@@ -70,6 +70,15 @@ export function BestDealsClient({
         </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
            {!data && <div className="col-span-full text-center py-8">Загрузка...</div>}
+           {data?.items && data.items.length === 0 && (
+             <div className="col-span-full text-center py-16">
+               <p className="text-gray-500 text-lg">
+                 {activeIndex === 2 
+                   ? "На данный момент товаров со скидками нет" 
+                   : "Нет доступных товаров"}
+               </p>
+             </div>
+           )}
            {data?.items?.map((e: any, index: number) => {
              return (
                <div

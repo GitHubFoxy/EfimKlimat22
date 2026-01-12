@@ -7,7 +7,6 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "../ui/button";
 import Link from "next/link";
-import Image from "next/image";
 
 export default function HeaderSearch({ className }: { className?: string }) {
   const [searchValue, setSearchValue] = useState("");
@@ -20,7 +19,10 @@ export default function HeaderSearch({ className }: { className?: string }) {
     return () => clearTimeout(t);
   }, [searchValue]);
 
-  const results = useQuery(api.main.search_items, { query: debounced }) ?? [];
+  const searchResults = useQuery(api.main.search_items, { query: debounced }) ?? [];
+  const topItems = useQuery(api.main.top_items_by_orders, { limit: 3 }) ?? [];
+  
+  const results = debounced ? searchResults : topItems;
 
   return (
     <div
@@ -64,17 +66,14 @@ export default function HeaderSearch({ className }: { className?: string }) {
                     aria-label={`Открыть ${item.name}`}
                   >
                     {/* Thumbnail */}
-                    <Image
-                      src={
-                        item.imagesUrl && item.imagesUrl.length > 0
-                          ? item.imagesUrl[0]
-                          : "/not-found.jpg"
-                      }
-                      alt={item.name}
-                      width={40}
-                      height={40}
-                      className="w-10 h-10 rounded-md object-cover"
-                    />
+                    {item.imagesUrl && item.imagesUrl.length > 0 && (
+                      <img
+                        src={item.imagesUrl[0]}
+                        alt={item.name}
+                        loading="lazy"
+                        className="w-10 h-10 rounded-md object-cover"
+                      />
+                    )}
                     {/* Title & Price */}
                     <div className="flex-1">
                       <div className="text-sm font-medium text-gray-900 line-clamp-1">

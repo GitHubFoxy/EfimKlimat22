@@ -22,59 +22,93 @@ export const search_items = query({
 });
 
 export const main_page_by_filter = query({
-  args: {
-    filter: v.union(
-      v.literal("Хиты продаж"),
-      v.literal("Новинки"),
-      v.literal("Скидки"),
-    ),
-  },
-  handler: async (ctx, { filter }) => {
-    // Base query for active, in-stock items
-    let itemsQuery = ctx.db
-      .query("items")
-      .withIndex("by_status", (q) => q.eq("status", "active"))
-      .order("desc");
+   args: {
+     filter: v.union(
+       v.literal("Хиты продаж"),
+       v.literal("Новинки"),
+       v.literal("Скидки"),
+     ),
+   },
+   handler: async (ctx, { filter }) => {
+     let items;
 
-    // Apply additional filters
-    if (filter === "Хиты продаж") {
-      // Use orders count index for popular items
-      itemsQuery = ctx.db
-        .query("items")
-        .withIndex("by_orders", (q) => q.eq("status", "active"))
-        .order("desc");
-    } else if (filter === "Скидки") {
-      // Filter for items with discount
-      itemsQuery = itemsQuery.filter((q) => q.gt(q.field("discountAmount"), 0));
-    }
-    // For "Новинки" we already have newest items by _creationTime due to order("desc")
+     // Apply filter-specific queries
+     if (filter === "Хиты продаж") {
+       // Use orders count index for popular items
+       items = await ctx.db
+         .query("items")
+         .withIndex("by_orders", (q) => q.eq("status", "active"))
+         .filter((q) => q.eq(q.field("inStock"), true))
+         .order("desc")
+         .take(4);
+     } else if (filter === "Скидки") {
+       // Filter for items with discount
+       items = await ctx.db
+         .query("items")
+         .withIndex("by_status", (q) => q.eq("status", "active"))
+         .filter((q) => q.eq(q.field("inStock"), true))
+         .filter((q) => q.gt(q.field("discountAmount"), 0))
+         .order("desc")
+         .take(4);
+     } else {
+       // "Новинки" - newest items by _creationTime
+       items = await ctx.db
+         .query("items")
+         .withIndex("by_status", (q) => q.eq("status", "active"))
+         .filter((q) => q.eq(q.field("inStock"), true))
+         .order("desc")
+         .take(4);
+     }
 
-    // Take first 4 items for main page
-    const items = await itemsQuery
-      .filter((q) => q.eq(q.field("inStock"), true))
-      .take(4);
+     // For "Хиты продаж", sort by ordersCount (already indexed)
+     if (filter === "Хиты продаж") {
+       // The by_orders index sorts by ordersCount descending when we order("desc")
+       // No need to re-sort
+     }
 
-    // For "Хиты продаж", sort by ordersCount (already indexed)
-    if (filter === "Хиты продаж") {
-      // The by_orders index sorts by ordersCount descending when we order("desc")
-      // No need to re-sort
-    }
+     // Fetch brand names for each item
+     const itemsWithBrands = await Promise.all(
+       items.map(async (item) => {
+         const brand = await ctx.db.get(item.brandId);
+         return {
+           ...item,
+           brandName: brand?.name || "Неизвестно",
+         };
+       }),
+     );
 
-    // Fetch brand names for each item
-    const itemsWithBrands = await Promise.all(
-      items.map(async (item) => {
-        const brand = await ctx.db.get(item.brandId);
-        return {
-          ...item,
-          brandName: brand?.name || "Неизвестно",
-        };
-      }),
-    );
+     return {
+       items: itemsWithBrands,
+       filter,
+       count: itemsWithBrands.length,
+     };
+   },
+});
 
-    return {
-      items: itemsWithBrands,
-      filter,
-      count: itemsWithBrands.length,
-    };
-  },
+export const top_items_by_orders = query({
+   args: {
+     limit: v.optional(v.number()),
+   },
+   handler: async (ctx, { limit = 3 }) => {
+     // Get top items by orders count
+     const items = await ctx.db
+       .query("items")
+       .withIndex("by_orders", (q) => q.eq("status", "active"))
+       .filter((q) => q.eq(q.field("inStock"), true))
+       .order("desc")
+       .take(limit);
+
+     // Fetch brand names for each item
+     const itemsWithBrands = await Promise.all(
+       items.map(async (item) => {
+         const brand = await ctx.db.get(item.brandId);
+         return {
+           ...item,
+           brandName: brand?.name || "Неизвестно",
+         };
+       }),
+     );
+
+     return itemsWithBrands;
+   },
 });

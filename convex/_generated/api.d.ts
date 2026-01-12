@@ -16,6 +16,7 @@ import type * as dashboard from "../dashboard.js";
 import type * as debug from "../debug.js";
 import type * as export_ from "../export.js";
 import type * as http from "../http.js";
+import type * as import_ from "../import.js";
 import type * as main from "../main.js";
 import type * as manager from "../manager.js";
 import type * as orders from "../orders.js";
@@ -36,6 +37,7 @@ declare const fullApi: ApiFromModules<{
   debug: typeof debug;
   export: typeof export_;
   http: typeof http;
+  import: typeof import_;
   main: typeof main;
   manager: typeof manager;
   orders: typeof orders;
