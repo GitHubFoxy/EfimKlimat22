@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { Check } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -30,10 +31,12 @@ interface UserFormDialogProps {
 
 export function UserFormDialog({ isOpen, onClose, user }: UserFormDialogProps) {
   const isEdit = !!user;
-  const createUser = useMutation(api.users.create_user_with_role);
+  const createUser = useAction(api.users.create_user_with_role);
   const updateUser = useMutation(api.users.update_user);
 
   const [isLoading, setIsLoading] = useState(false);
+  const [tempPassword, setTempPassword] = useState<string | null>(null);
+  const [isCopied, setIsCopied] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -74,15 +77,15 @@ export function UserFormDialog({ isOpen, onClose, user }: UserFormDialogProps) {
           role: formData.role,
         });
         toast.success("User updated successfully");
+        onClose();
       } else {
-        await createUser({
+        const result = await createUser({
           name: formData.name,
           phone: formData.phone,
           role: formData.role,
         });
-        toast.success("User created successfully");
+        setTempPassword(result.tempPassword);
       }
-      onClose();
     } catch (error: any) {
       console.error(error);
       toast.error(error.message || (isEdit ? "Failed to update user" : "Failed to create user"));
@@ -90,6 +93,60 @@ export function UserFormDialog({ isOpen, onClose, user }: UserFormDialogProps) {
       setIsLoading(false);
     }
   };
+
+  const handleCopyPassword = () => {
+    if (tempPassword) {
+      navigator.clipboard.writeText(tempPassword);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    }
+  };
+
+  const handleClosePasswordDialog = () => {
+    setTempPassword(null);
+    onClose();
+  };
+
+  if (tempPassword) {
+    return (
+      <Dialog open={true} onOpenChange={handleClosePasswordDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>User Created Successfully</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              The user has been created. Share this temporary password with the user:
+            </p>
+            <div className="flex gap-2">
+              <Input
+                type="text"
+                value={tempPassword}
+                readOnly
+                className="font-mono"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCopyPassword}
+                className="px-3"
+              >
+                {isCopied ? <Check className="h-4 w-4" /> : "Copy"}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              The user should change this password on first login.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button type="button" onClick={handleClosePasswordDialog}>
+              Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
