@@ -84,7 +84,7 @@ export function UserProfileSidebar() {
         onClick={handleLogout}
         variant="outline"
         size="sm"
-        className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+        className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer"
       >
         <LogOut className="w-4 h-4 mr-2" />
         Выход
