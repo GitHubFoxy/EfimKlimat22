@@ -10,7 +10,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "quick-build": "next build --no-lint",
+    "quick-build": "SKIP_ENV_VALIDATION=1 next build",
     "deploy": "bun run build && convex deploy"
   },
   "dependencies": {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useQuery, useAction } from "convex/react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Input } from "@/components/ui/input";
@@ -15,6 +16,8 @@ import { ItemFormDialog } from "./item-form-dialog";
 import { UserFormDialog } from "./user-form-dialog";
 import { DeleteItemDialog } from "./delete-item-dialog";
 import { DeleteUserDialog } from "./delete-user-dialog";
+import { ForceChangePasswordDialog } from "@/components/Auth/ForceChangePasswordDialog";
+import { api } from "@/convex/_generated/api";
 
 
 type Section = "orders" | "items" | "leads" | "users";
@@ -29,6 +32,13 @@ export function ManagerPageClient({ itemsPreload, brandsPreload, categoriesPrelo
   const [activeSection, setActiveSection] = useState<Section>("items");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [hasChangedPassword, setHasChangedPassword] = useState(false);
+
+  const currentUser = useQuery(api.users.getCurrentUser);
+  const changePassword = useAction(api.users.changePassword);
+
+  // Derive whether to show password change dialog
+  const showPasswordChange = currentUser && currentUser.tempPassword && !hasChangedPassword;
 
   // Dialog state for create/edit items
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
@@ -276,6 +286,16 @@ export function ManagerPageClient({ itemsPreload, brandsPreload, categoriesPrelo
         userId={deletingUser?._id || null}
         userName={deletingUser?.name || ""}
       />
+
+      {/* Force Change Password Dialog */}
+      {showPasswordChange && currentUser?.tempPassword && (
+        <ForceChangePasswordDialog
+          onSubmit={async (newPassword) => {
+            await changePassword({ currentPassword: currentUser.tempPassword || "", newPassword });
+            setHasChangedPassword(true);
+          }}
+        />
+      )}
     </>
   );
 }

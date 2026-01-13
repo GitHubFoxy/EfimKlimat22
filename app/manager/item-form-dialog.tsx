@@ -186,7 +186,7 @@ export function ItemFormDialog({ isOpen, onClose, item, brandsPreload, categorie
                     <SelectValue placeholder="Select brand" />
                   </SelectTrigger>
                   <SelectContent>
-                    {brandsList?.map((brand) => (
+                    {brandsList?.map((brand: any) => (
                       <SelectItem key={brand._id} value={brand._id}>
                         {brand.name}
                       </SelectItem>
@@ -204,7 +204,7 @@ export function ItemFormDialog({ isOpen, onClose, item, brandsPreload, categorie
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {categoriesList?.map((cat) => (
+                    {categoriesList?.map((cat: any) => (
                       <SelectItem key={cat._id} value={cat._id}>
                         {cat.name}
                       </SelectItem>

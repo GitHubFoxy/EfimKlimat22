@@ -1,14 +1,13 @@
 "use client";
 
 import { useAuthActions, useAuthToken } from "@convex-dev/auth/react";
-import { useQuery, useMutation, useAction } from "convex/react";
-import { useState } from "react";
+import { useQuery } from "convex/react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChangePasswordForm } from "./ChangePasswordForm";
 import { api } from "@/convex/_generated/api";
 
 export function SignInForm() {
@@ -20,30 +19,18 @@ export function SignInForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showPasswordChange, setShowPasswordChange] = useState(false);
 
   const currentUser = useQuery(api.users.getCurrentUser);
-  const changePassword = useAction(api.users.changePassword);
 
-  if (isAuthenticated && currentUser !== undefined) {
-    if (currentUser?.tempPassword) {
-      if (!showPasswordChange) {
-        setShowPasswordChange(true);
-      }
-    } else {
+  useEffect(() => {
+    if (isAuthenticated && currentUser !== undefined && !currentUser?.tempPassword) {
       router.push("/manager");
-      return null;
     }
-  }
+  }, [isAuthenticated, currentUser, router]);
 
-  if (showPasswordChange) {
-    return (
-      <ChangePasswordForm
-        onSubmit={async (newPassword) => {
-          await changePassword({ currentPassword: password, newPassword });
-        }}
-      />
-    );
+  // Show nothing while authenticated user is being redirected
+  if (isAuthenticated && currentUser !== undefined) {
+    return null;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

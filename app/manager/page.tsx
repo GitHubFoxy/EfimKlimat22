@@ -1,7 +1,7 @@
-import { SidebarProvider } from "@/components/ui/sidebar";
 import { api } from "@/convex/_generated/api";
 import { preloadQuery } from "convex/nextjs";
-import { ManagerPageClient } from "./manager-page-client";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { ManagerPageWrapper } from "./manager-page-wrapper";
 
 export default async function ManagerPage() {
   const [itemsPreload, brandsPreload, categoriesPreload] = await Promise.all([
@@ -13,8 +13,8 @@ export default async function ManagerPage() {
   ]);
 
   return (
-    <SidebarProvider>
-      <ManagerPageClient 
+    <SidebarProvider suppressHydrationWarning>
+      <ManagerPageWrapper
         itemsPreload={itemsPreload}
         brandsPreload={brandsPreload}
         categoriesPreload={categoriesPreload}
