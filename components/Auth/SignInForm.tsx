@@ -52,7 +52,7 @@ export function SignInForm() {
     setLoading(true);
 
     try {
-      await signIn("password", {
+      await signIn("phone", {
         phone,
         password,
         flow: "signIn",
@@ -74,12 +74,12 @@ export function SignInForm() {
           <div className="space-y-2">
             <Label htmlFor="phone">Телефон</Label>
             <Input
-              id="phone"
-              type="tel"
-              placeholder="+7 (999) 999-99-99"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              required
+             id="phone"
+             type="tel"
+             placeholder="89999999999"
+             value={phone}
+             onChange={(e) => setPhone(e.target.value)}
+             required
             />
           </div>
           <div className="space-y-2">

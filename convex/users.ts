@@ -7,6 +7,7 @@ import {
 } from "@convex-dev/auth/server";
 import { ConvexError } from "convex/values";
 import { api, internal } from "./_generated/api";
+import { normalizePhone } from "./auth";
 
 function generateTempPassword(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
@@ -77,14 +78,15 @@ export const createManager = action({
       throw new ConvexError("Only admins can create managers");
     }
 
+    const normalizedPhone = normalizePhone(phone);
     const tempPassword = generateTempPassword();
 
     try {
       await createAccount(ctx, {
-        provider: "password",
-        account: { id: phone, secret: tempPassword },
+        provider: "phone",
+        account: { id: normalizedPhone, secret: tempPassword },
         profile: {
-          phone,
+          phone: normalizedPhone,
           name,
           surname,
           role: "manager",
@@ -93,12 +95,14 @@ export const createManager = action({
         },
       });
     } catch (e) {
+      const errorMsg = e instanceof Error ? e.message : String(e);
+      console.error("[createManager] Error:", errorMsg, e);
       throw new ConvexError(
-        "Failed to create manager account. User might already exist.",
+        `Failed to create manager account: ${errorMsg}`,
       );
     }
 
-    return { phone, tempPassword };
+    return { phone: normalizedPhone, tempPassword };
   },
 });
 
@@ -134,12 +138,13 @@ export const changePassword = action({
       throw new ConvexError("User phone not found");
     }
 
+    const normalizedPhone = normalizePhone(user.phone);
     await modifyAccountCredentials(ctx, {
-      provider: "password",
-      account: { id: user.phone, secret: newPassword },
+      provider: "phone",
+      account: { id: normalizedPhone, secret: newPassword },
     });
 
-    await ctx.runMutation(internal.users.clearTempPasswordInternal, { userId });
+    await ctx.runMutation(internal.users.clearTempPasswordInternal, { userId: user._id });
 
     return { success: true };
   },
@@ -163,14 +168,15 @@ export const create_user_with_role = action({
       throw new ConvexError("Only admins can create users");
     }
 
+    const normalizedPhone = normalizePhone(phone);
     const tempPassword = generateTempPassword();
 
     try {
       await createAccount(ctx, {
-        provider: "password",
-        account: { id: phone, secret: tempPassword },
+        provider: "phone",
+        account: { id: normalizedPhone, secret: tempPassword },
         profile: {
-          phone,
+          phone: normalizedPhone,
           name,
           role,
           tempPassword,
@@ -178,12 +184,14 @@ export const create_user_with_role = action({
         },
       });
     } catch (e) {
+      const errorMsg = e instanceof Error ? e.message : String(e);
+      console.error("[create_user_with_role] Error:", errorMsg, e);
       throw new ConvexError(
-        "Failed to create user account. User might already exist.",
+        `Failed to create user account: ${errorMsg}`,
       );
     }
 
-    return { phone, tempPassword };
+    return { phone: normalizedPhone, tempPassword };
   },
 });
 
@@ -247,5 +255,45 @@ export const get_user_by_id = query({
   },
   handler: async (ctx, { id }) => {
     return await ctx.db.get(id);
+  },
+});
+
+// Test helper: Create a test user without authentication check
+export const createTestUser = action({
+  args: {
+    phone: v.string(),
+    name: v.string(),
+    role: v.union(v.literal("user"), v.literal("manager"), v.literal("admin")),
+  },
+  handler: async (ctx, { phone, name, role }) => {
+    const normalizedPhone = normalizePhone(phone);
+    const tempPassword = generateTempPassword();
+
+    try {
+      await createAccount(ctx, {
+        provider: "phone",
+        account: { id: normalizedPhone, secret: tempPassword },
+        profile: {
+          phone: normalizedPhone,
+          name,
+          role,
+          tempPassword,
+          status: "active",
+        },
+      });
+
+      return {
+        success: true,
+        phone: normalizedPhone,
+        tempPassword,
+        message: `✅ User created!\nPhone: ${normalizedPhone}\nTemp password: ${tempPassword}`,
+      };
+    } catch (e) {
+      const errorMsg = e instanceof Error ? e.message : String(e);
+      console.error("[createTestUser] Error:", errorMsg, e);
+      throw new ConvexError(
+        `Failed to create test user: ${errorMsg}`,
+      );
+    }
   },
 });
