@@ -99,10 +99,17 @@ export const catalog_query_based_on_category_and_filter = query({
     // Fetch brand details for each item
     const itemsWithBrands = await Promise.all(
       paginatedItems.page.map(async (item) => {
+        if (!item.brandId) {
+          return {
+            ...item,
+            brandName: "Неизвестно",
+          };
+        }
         const brand = await ctx.db.get(item.brandId);
+        const brandName = (brand && 'name' in brand) ? (brand.name as string) : "Неизвестно";
         return {
           ...item,
-          brandName: brand?.name || "Неизвестно",
+          brandName,
         };
       }),
     );
@@ -157,10 +164,17 @@ export const catalog_query_grouped_by_collection = query({
     // Fetch brand details for each item
     const itemsWithBrands = await Promise.all(
       paginatedItems.page.map(async (item) => {
+        if (!item.brandId) {
+          return {
+            ...item,
+            brandName: "Неизвестно",
+          };
+        }
         const brand = await ctx.db.get(item.brandId);
+        const brandName = (brand && 'name' in brand) ? (brand.name as string) : "Неизвестно";
         return {
           ...item,
-          brandName: brand?.name || "Неизвестно",
+          brandName,
         };
       }),
     );
@@ -184,21 +198,27 @@ export const show_item = query({
     if (!item) return null;
 
     // Fetch brand details
-    const brand = await ctx.db.get(item.brandId);
+    let brandName = "Неизвестно";
+    if (item.brandId) {
+      const brand = await ctx.db.get(item.brandId);
+      if (brand && 'name' in brand) {
+        brandName = brand.name as string;
+      }
+    }
 
     return {
       ...item,
-      brandName: brand?.name || "Неизвестно",
+      brandName,
     };
-  },
-});
+    },
+    });
 
-// Get single item by slug with all details
-export const show_item_by_slug = query({
-  args: {
+    // Get single item by slug with all details
+    export const show_item_by_slug = query({
+    args: {
     slug: v.string(),
-  },
-  handler: async (ctx, { slug }) => {
+    },
+    handler: async (ctx, { slug }) => {
     const item = await ctx.db
       .query("items")
       .withIndex("by_slug", (q) => q.eq("slug", slug))
@@ -207,11 +227,17 @@ export const show_item_by_slug = query({
     if (!item) return null;
 
     // Fetch brand details
-    const brand = await ctx.db.get(item.brandId);
+    let brandName = "Неизвестно";
+    if (item.brandId) {
+      const brand = await ctx.db.get(item.brandId);
+      if (brand && 'name' in brand) {
+        brandName = brand.name as string;
+      }
+    }
 
     return {
       ...item,
-      brandName: brand?.name || "Неизвестно",
+      brandName,
     };
   },
 });
@@ -256,17 +282,22 @@ export const catalog_brands_by_category = query({
       )
       .collect();
 
-    // 2. Extract unique brand IDs
-    const brandIds = Array.from(new Set(items.map((i) => i.brandId)));
+    // 2. Extract unique brand IDs (filter out undefined)
+    const brandIdSet = new Set<Id<"brands">>();
+    items.forEach((i) => {
+      if (i.brandId) {
+        brandIdSet.add(i.brandId);
+      }
+    });
 
     // 3. Fetch brand details
     const brands = await Promise.all(
-      brandIds.map(async (id) => {
+      Array.from(brandIdSet).map(async (id) => {
         const brand = await ctx.db.get(id);
         return brand;
       }),
     );
 
-    return brands.filter((b) => b !== null && b.status === "active");
+    return brands.filter((b): b is any => b !== null && 'status' in b && b.status === "active");
   },
 });

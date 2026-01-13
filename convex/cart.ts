@@ -115,8 +115,14 @@ export const listItems = query({
     // Fetch item details for each cart item
     const itemsWithDetails = await Promise.all(
       cartItems.map(async (cartItem) => {
+        if (!cartItem.itemId) {
+          return null;
+        }
         const item = await ctx.db.get(cartItem.itemId);
         if (!item) {
+          return null;
+        }
+        if (!('name' in item) || !('price' in item) || !('sku' in item)) {
           return null;
         }
         return {
@@ -124,10 +130,10 @@ export const listItems = query({
           cartId: cartItem.cartId,
           itemId: cartItem.itemId,
           quantity: cartItem.quantity,
-          name: item.name,
-          price: item.price,
-          image: item.imagesUrl?.[0],
-          sku: item.sku,
+          name: item.name as string,
+          price: item.price as number,
+          image: ('imagesUrl' in item && item.imagesUrl?.[0]) || undefined,
+          sku: item.sku as string,
         };
       }),
     );
@@ -170,8 +176,14 @@ export const getCartItems = query({
 
     const itemsWithDetails = await Promise.all(
       cartItems.map(async (cartItem) => {
+        if (!cartItem.itemId) {
+          return null;
+        }
         const item = await ctx.db.get(cartItem.itemId);
         if (!item) {
+          return null;
+        }
+        if (!('name' in item) || !('price' in item) || !('sku' in item)) {
           return null;
         }
         return {
@@ -179,10 +191,10 @@ export const getCartItems = query({
           cartId: cartItem.cartId,
           itemId: cartItem.itemId,
           quantity: cartItem.quantity,
-          name: item.name,
-          price: item.price,
-          image: item.imagesUrl?.[0],
-          sku: item.sku,
+          name: item.name as string,
+          price: item.price as number,
+          image: ('imagesUrl' in item && item.imagesUrl?.[0]) || undefined,
+          sku: item.sku as string,
         };
       }),
     );
@@ -205,7 +217,9 @@ export const removeCartItem = mutation({
     await ctx.db.delete(cartItemId);
 
     // Update cart timestamp
-    await ctx.db.patch(cartItem.cartId, { updatedAt: Date.now() });
+    if (cartItem.cartId) {
+      await ctx.db.patch(cartItem.cartId, { updatedAt: Date.now() });
+    }
 
     return { success: true };
   },
@@ -225,19 +239,21 @@ export const removeItem = mutation({
     await ctx.db.delete(cartItemId);
 
     // Update cart timestamp
-    await ctx.db.patch(cartItem.cartId, { updatedAt: Date.now() });
+    if (cartItem.cartId) {
+      await ctx.db.patch(cartItem.cartId, { updatedAt: Date.now() });
+    }
 
     return { success: true };
-  },
-});
+    },
+    });
 
-// Update cart item quantity
-export const updateCartItemQuantity = mutation({
-  args: {
+    // Update cart item quantity
+    export const updateCartItemQuantity = mutation({
+    args: {
     cartItemId: v.id("cartItems"),
     quantity: v.number(),
-  },
-  handler: async (ctx, { cartItemId, quantity }) => {
+    },
+    handler: async (ctx, { cartItemId, quantity }) => {
     if (quantity <= 0) {
       // Delete instead
       await ctx.db.delete(cartItemId);
@@ -247,7 +263,7 @@ export const updateCartItemQuantity = mutation({
 
     // Update cart timestamp
     const cartItem = await ctx.db.get(cartItemId);
-    if (cartItem) {
+    if (cartItem?.cartId) {
       await ctx.db.patch(cartItem.cartId, { updatedAt: Date.now() });
     }
 
@@ -271,7 +287,7 @@ export const updateQty = mutation({
 
     // Update cart timestamp
     const cartItem = await ctx.db.get(cartItemId);
-    if (cartItem) {
+    if (cartItem?.cartId) {
       await ctx.db.patch(cartItem.cartId, { updatedAt: Date.now() });
     }
 
@@ -412,15 +428,17 @@ export const mergeSessionCartToUser = mutation({
       }
 
       await ctx.db.delete(sessionItem._id);
-    }
+      }
 
-    // Mark session cart as merged
-    await ctx.db.patch(sessionCart._id, {
+      // Mark session cart as merged
+      await ctx.db.patch(sessionCart._id, {
       status: "merged",
       updatedAt: Date.now(),
-    });
+      });
 
-    await ctx.db.patch(userCart._id, { updatedAt: Date.now() });
+      if (userCart._id) {
+      await ctx.db.patch(userCart._id, { updatedAt: Date.now() });
+      }
 
     return { success: true, merged: true };
   },
@@ -499,19 +517,25 @@ export const createOrder = mutation({
     }> = [];
 
     for (const cartItem of cartItems) {
+      if (!cartItem.itemId) {
+        throw new Error("Cart item missing itemId");
+      }
       const item = await ctx.db.get(cartItem.itemId);
       if (!item) {
         throw new Error(`Item ${cartItem.itemId} not found`);
       }
+      if (!('name' in item) || !('price' in item) || !('sku' in item)) {
+        throw new Error(`Item ${cartItem.itemId} missing required fields`);
+      }
 
-      const itemTotal = (item as any).price * cartItem.quantity;
+      const itemTotal = (item.price as number) * cartItem.quantity;
       itemsTotal += itemTotal;
 
       orderItems.push({
         itemId: String(cartItem.itemId),
-        name: (item as any).name,
-        sku: (item as any).sku,
-        price: (item as any).price,
+        name: item.name as string,
+        sku: item.sku as string,
+        price: item.price as number,
         quantity: cartItem.quantity,
       });
     }
@@ -540,9 +564,10 @@ export const createOrder = mutation({
 
     // Create order items
     for (const item of orderItems) {
+      const itemIdNum = item.itemId;
       await ctx.db.insert("orderItems", {
         orderId,
-        itemId: item.itemId as any,
+        itemId: itemIdNum ? (itemIdNum as any) : undefined,
         name: item.name,
         sku: item.sku,
         price: item.price,

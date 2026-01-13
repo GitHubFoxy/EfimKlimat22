@@ -12,11 +12,17 @@ export const show_item = query({
     if (!item) return null;
 
     // Fetch brand details
-    const brand = await ctx.db.get(item.brandId);
+    let brandName = "Неизвестно";
+    if (item.brandId) {
+      const brand = await ctx.db.get(item.brandId);
+      if (brand && 'name' in brand) {
+        brandName = brand.name as string;
+      }
+    }
 
     return {
       ...item,
-      brandName: brand?.name || "Неизвестно",
+      brandName,
     };
   },
 });

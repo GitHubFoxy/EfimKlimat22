@@ -3,6 +3,7 @@
 import { Email, FullAdress, Phone, CompanyName, INN } from "@/lib/consts";
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -13,6 +14,16 @@ import {
 } from "@/components/ui/dialog";
 
 export const Footer = () => {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  useEffect(() => {
+    // Load iframe after page load completes
+    if (iframeRef.current && !iframeRef.current.src) {
+      iframeRef.current.src =
+        "https://yandex.ru/map-widget/v1/?um=constructor%3Ab57356a7883ee85d673978b787538bb1a0fc9325d417456173c7d9a6a6c9b740&source=constructor";
+    }
+  }, []);
+
   const Contacts = [
     CompanyName ? `Компания: ${CompanyName}` : null,
     INN ? `ИНН: ${INN}` : null,
@@ -252,10 +263,9 @@ export const Footer = () => {
         <div className="flex items-center justify-center px-0 md:px-0">
           <div className="w-full max-w-[390px] overflow-hidden">
             <iframe
+              ref={iframeRef}
               className="w-full h-[260px] rounded-xl"
-              src="https://yandex.ru/map-widget/v1/?um=constructor%3Ab57356a7883ee85d673978b787538bb1a0fc9325d417456173c7d9a6a6c9b740&amp;source=constructor"
               title="Карта расположения компании"
-              loading="lazy"
               style={{ border: 0 }}
             ></iframe>
           </div>

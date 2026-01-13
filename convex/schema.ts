@@ -92,8 +92,8 @@ const itemsTable = defineTable({
   sku: v.string(),
   description: v.string(),
 
-  brandId: v.id("brands"),
-  categoryId: v.id("categories"),
+  brandId: v.optional(v.id("brands")),  // Optional during migration, make required after
+  categoryId: v.optional(v.id("categories")),  // Optional during migration, make required after
 
   status: v.union(
     v.literal("active"),
@@ -186,9 +186,10 @@ const cartsTable = defineTable({
   .index("by_userId", ["userId", "status"]);
 
 const cartItemsTable = defineTable({
-  cartId: v.id("carts"),
-  itemId: v.id("items"),
+  cartId: v.optional(v.id("carts")),  // Optional during migration
+  itemId: v.optional(v.id("items")),  // Optional during migration
   quantity: v.number(),
+  legacyId: v.optional(v.string()),
 })
   .index("by_cart_added", ["cartId"])
   .index("by_cart_item", ["cartId", "itemId"]);
@@ -257,12 +258,13 @@ const ordersTable = defineTable({
   .index("by_legacyId", ["legacyId"]);
 
 const orderItemsTable = defineTable({
-  orderId: v.id("orders"),
+  orderId: v.optional(v.id("orders")),  // Optional during migration
   itemId: v.optional(v.id("items")),
   name: v.string(),
   sku: v.string(),
   price: v.number(),
   quantity: v.number(),
+  legacyId: v.optional(v.string()),
 }).index("by_order", ["orderId"]);
 
 const leadsTable = defineTable({
@@ -294,14 +296,17 @@ const leadsTable = defineTable({
   assignedManagerId: v.optional(v.id("users")),
   managerNote: v.optional(v.string()),
   updatedAt: v.number(),
+  legacyId: v.optional(v.string()),
 })
   .index("by_status_date", ["status"])
   .index("by_manager_status", ["assignedManagerId", "status"])
-  .index("by_item", ["relatedItemId"]);
+  .index("by_item", ["relatedItemId"])
+  .index("by_legacyId", ["legacyId"]);
 
 const reviewsTable = defineTable({
-  itemId: v.id("items"),
+  itemId: v.optional(v.id("items")),  // Optional during migration
   userId: v.optional(v.id("users")),
+  legacyId: v.optional(v.string()),
 
   authorName: v.string(),
 

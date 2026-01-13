@@ -11,6 +11,7 @@
 import type * as auth from "../auth.js";
 import type * as cart from "../cart.js";
 import type * as catalog from "../catalog.js";
+import type * as clearItems from "../clearItems.js";
 import type * as consultants from "../consultants.js";
 import type * as dashboard from "../dashboard.js";
 import type * as debug from "../debug.js";
@@ -19,6 +20,7 @@ import type * as http from "../http.js";
 import type * as import_ from "../import.js";
 import type * as main from "../main.js";
 import type * as manager from "../manager.js";
+import type * as migrations from "../migrations.js";
 import type * as orders from "../orders.js";
 import type * as users from "../users.js";
 
@@ -32,6 +34,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   cart: typeof cart;
   catalog: typeof catalog;
+  clearItems: typeof clearItems;
   consultants: typeof consultants;
   dashboard: typeof dashboard;
   debug: typeof debug;
@@ -40,6 +43,7 @@ declare const fullApi: ApiFromModules<{
   import: typeof import_;
   main: typeof main;
   manager: typeof manager;
+  migrations: typeof migrations;
   orders: typeof orders;
   users: typeof users;
 }>;

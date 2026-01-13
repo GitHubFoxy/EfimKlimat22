@@ -69,10 +69,16 @@ export const main_page_by_filter = query({
      // Fetch brand names for each item
      const itemsWithBrands = await Promise.all(
        items.map(async (item) => {
-         const brand = await ctx.db.get(item.brandId);
+         let brandName = "Неизвестно";
+         if (item.brandId) {
+           const brand = await ctx.db.get(item.brandId);
+           if (brand && 'name' in brand) {
+             brandName = brand.name as string;
+           }
+         }
          return {
            ...item,
-           brandName: brand?.name || "Неизвестно",
+           brandName,
          };
        }),
      );
@@ -82,14 +88,14 @@ export const main_page_by_filter = query({
        filter,
        count: itemsWithBrands.length,
      };
-   },
-});
+     },
+     });
 
-export const top_items_by_orders = query({
-   args: {
+     export const top_items_by_orders = query({
+     args: {
      limit: v.optional(v.number()),
-   },
-   handler: async (ctx, { limit = 3 }) => {
+     },
+     handler: async (ctx, { limit = 3 }) => {
      // Get top items by orders count
      const items = await ctx.db
        .query("items")
@@ -101,14 +107,20 @@ export const top_items_by_orders = query({
      // Fetch brand names for each item
      const itemsWithBrands = await Promise.all(
        items.map(async (item) => {
-         const brand = await ctx.db.get(item.brandId);
+         let brandName = "Неизвестно";
+         if (item.brandId) {
+           const brand = await ctx.db.get(item.brandId);
+           if (brand && 'name' in brand) {
+             brandName = brand.name as string;
+           }
+         }
          return {
            ...item,
-           brandName: brand?.name || "Неизвестно",
+           brandName,
          };
        }),
      );
 
      return itemsWithBrands;
-   },
-});
+     },
+     });
