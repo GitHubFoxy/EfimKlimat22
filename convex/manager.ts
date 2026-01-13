@@ -1,27 +1,9 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { getAuthUserId } from "@convex-dev/auth/server";
 import { ConvexError } from "convex/values";
 import { api } from "./_generated/api";
-
-async function requirePermanentPasswordMutation(ctx: any) {
-  const userId = await getAuthUserId(ctx);
-  if (!userId) {
-    throw new ConvexError("Not authenticated");
-  }
-
-  const user = await ctx.db.get(userId);
-  if (!user) {
-    throw new ConvexError("User not found");
-  }
-
-  if (user.tempPassword) {
-    throw new ConvexError("You must change your password before using the system");
-  }
-
-  return user;
-}
+import { requirePermanentPassword, requireRole } from "./auth-helpers";
 
 // List orders for managers by status, newest first by updatedAt/_creationTime
 export const list_orders_by_status = query({
@@ -37,6 +19,7 @@ export const list_orders_by_status = query({
     paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, { status, paginationOpts }) => {
+    await requireRole(ctx, ["manager", "admin"]);
     return await ctx.db
       .query("orders")
       .withIndex("by_status_date", (q) => q.eq("status", status))
@@ -60,7 +43,7 @@ export const update_order_status = mutation({
   },
   returns: v.object({ status: v.number() }),
   handler: async (ctx, { orderId, status }) => {
-    await requirePermanentPasswordMutation(ctx);
+    await requireRole(ctx, ["manager", "admin"]);
     const existing = await ctx.db.get(orderId);
     if (!existing) throw new Error("Order not found");
     await ctx.db.patch(orderId, { status, updatedAt: Date.now() });
@@ -71,7 +54,6 @@ export const update_order_status = mutation({
 // List only orders assigned to a specific manager by status
 export const list_my_orders_by_status = query({
   args: {
-    managerId: v.id("users"),
     status: v.union(
       v.literal("new"),
       v.literal("confirmed"),
@@ -82,7 +64,9 @@ export const list_my_orders_by_status = query({
     ),
     paginationOpts: paginationOptsValidator,
   },
-  handler: async (ctx, { managerId, status, paginationOpts }) => {
+  handler: async (ctx, { status, paginationOpts }) => {
+    const user = await requireRole(ctx, ["manager", "admin"]);
+    const managerId = user._id;
     return await ctx.db
       .query("orders")
       .withIndex("by_manager", (q) => q.eq("managerId", managerId))
@@ -95,14 +79,15 @@ export const list_my_orders_by_status = query({
 export const claim_order = mutation({
   args: {
     orderId: v.id("orders"),
-    managerId: v.id("users"),
   },
   returns: v.object({ status: v.number() }),
-  handler: async (ctx, { orderId, managerId }) => {
+  handler: async (ctx, { orderId }) => {
+    const user = await requireRole(ctx, ["manager", "admin"]);
+    const managerId = user._id;
     const existing = await ctx.db.get(orderId);
     if (!existing) throw new Error("Order not found");
     await ctx.db.patch(orderId, {
-      managerId: managerId,
+      managerId,
       updatedAt: Date.now(),
     });
     return { status: 200 };
@@ -116,6 +101,7 @@ export const unclaim_order = mutation({
   },
   returns: v.object({ status: v.number() }),
   handler: async (ctx, { orderId }) => {
+    await requireRole(ctx, ["manager", "admin"]);
     const existing = await ctx.db.get(orderId);
     if (!existing) throw new Error("Order not found");
     // Remove managerId by replacing document without the field
@@ -269,6 +255,7 @@ export const list_leads = query({
     paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, { paginationOpts }) => {
+    await requireRole(ctx, ["manager", "admin"]);
     const leads = await ctx.db
       .query("leads")
       .order("desc")
@@ -298,6 +285,7 @@ export const search_items = query({
     ctx,
     { query, paginationOpts, sortBy = "createdAt", sortOrder = "desc" },
   ) => {
+    await requireRole(ctx, ["manager", "admin"]);
     const searchResults = await ctx.db
       .query("items")
       .withSearchIndex("search_main", (q) => q.search("searchText", query))
@@ -349,6 +337,7 @@ export const list_leads_by_status = query({
     paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, { status, paginationOpts }) => {
+    await requireRole(ctx, ["manager", "admin"]);
     return await ctx.db
       .query("leads")
       .withIndex("by_status_date", (q) => q.eq("status", status))
@@ -363,6 +352,7 @@ export const list_orders = query({
     paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, { paginationOpts }) => {
+    await requireRole(ctx, ["manager", "admin"]);
     const orders = await ctx.db
       .query("orders")
       .order("desc")
@@ -382,6 +372,7 @@ export const global_search = query({
     }),
   },
   handler: async (ctx, { searchText, paginationOpts }) => {
+    await requireRole(ctx, ["manager", "admin"]);
     const query = searchText.trim().toLowerCase();
     if (!query) {
       return { page: [], isDone: true, continueCursor: null };
@@ -496,6 +487,7 @@ export const search_by_type = query({
     }),
   },
   handler: async (ctx, { searchText, type, paginationOpts }) => {
+    await requireRole(ctx, ["manager", "admin"]);
     const query = searchText.trim().toLowerCase();
     if (!query) {
       return { page: [], isDone: true, continueCursor: null };
@@ -569,7 +561,7 @@ export const create_item = mutation({
     inStock: v.boolean(),
   },
   handler: async (ctx, args) => {
-    await requirePermanentPasswordMutation(ctx);
+    await requireRole(ctx, ["manager", "admin"]);
     const slug = args.name
       .toLowerCase()
       .replace(/ /g, "-")
@@ -605,7 +597,7 @@ export const update_item = mutation({
     inStock: v.optional(v.boolean()),
   },
   handler: async (ctx, { id, ...args }) => {
-    await requirePermanentPasswordMutation(ctx);
+    await requireRole(ctx, ["manager", "admin"]);
     const existing = await ctx.db.get(id);
     if (!existing) throw new Error("Item not found");
 
@@ -631,7 +623,7 @@ export const update_item = mutation({
 export const delete_item = mutation({
   args: { id: v.id("items") },
   handler: async (ctx, { id }) => {
-    await requirePermanentPasswordMutation(ctx);
+    await requireRole(ctx, ["manager", "admin"]);
     await ctx.db.patch(id, { status: "archived" });
   },
 });

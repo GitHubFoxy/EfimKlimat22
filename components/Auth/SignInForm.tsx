@@ -23,7 +23,7 @@ export function SignInForm() {
   const currentUser = useQuery(api.users.getCurrentUserWithTempPassword);
 
   useEffect(() => {
-    if (isAuthenticated && currentUser !== undefined && !currentUser?.tempPassword) {
+    if (isAuthenticated && currentUser !== undefined && !currentUser?.mustChangePassword) {
       router.push("/manager");
     }
   }, [isAuthenticated, currentUser, router]);

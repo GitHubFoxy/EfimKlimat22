@@ -32,7 +32,7 @@ interface OrdersListProps {
   managerId: string | null;
   role: string | null;
   updateStatus: (args: { orderId: Id<"orders">; status: Status }) => void;
-  claim: (args: { orderId: Id<"orders">; managerId: Id<"users"> }) => void;
+  claim: (args: { orderId: Id<"orders"> }) => void;
   unclaim: (args: { orderId: Id<"orders"> }) => void;
   onResetStatus: () => void;
 }
@@ -120,11 +120,7 @@ export default function OrdersList({
               variant="secondary"
               disabled={!managerId}
               onClick={() =>
-                managerId &&
-                claim({
-                  orderId: o._id,
-                  managerId: managerId as Id<"users">,
-                })
+                managerId && claim({ orderId: o._id })
               }
             >
               Взять

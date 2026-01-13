@@ -32,13 +32,12 @@ export function ManagerPageClient({ itemsPreload, brandsPreload, categoriesPrelo
   const [activeSection, setActiveSection] = useState<Section>("items");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [hasChangedPassword, setHasChangedPassword] = useState(false);
 
   const currentUser = useQuery(api.users.getCurrentUserWithTempPassword);
   const changePassword = useAction(api.users.changePassword);
 
-  // Derive whether to show password change dialog
-  const showPasswordChange = currentUser && currentUser.tempPassword && !hasChangedPassword;
+  // Show password change dialog if mustChangePassword is true
+  const showPasswordChange = currentUser?.mustChangePassword ?? false;
 
   // Dialog state for create/edit items
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
@@ -292,7 +291,7 @@ export function ManagerPageClient({ itemsPreload, brandsPreload, categoriesPrelo
         <ForceChangePasswordDialog
           onSubmit={async (newPassword) => {
             await changePassword({ newPassword });
-            setHasChangedPassword(true);
+            // Convex reactivity will update currentUser, hiding dialog when tempPassword is cleared
           }}
         />
       )}

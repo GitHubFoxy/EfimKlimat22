@@ -8,6 +8,7 @@ import {
 import { ConvexError } from "convex/values";
 import { api, internal } from "./_generated/api";
 import { normalizePhone } from "./auth";
+import { requirePermanentPassword, requireRole } from "./auth-helpers";
 
 function generateTempPassword(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
@@ -21,48 +22,36 @@ function generateTempPassword(): string {
   return result;
 }
 
-async function requirePermanentPassword(ctx: any) {
-  const userId = await getAuthUserId(ctx);
-  if (!userId) {
-    throw new ConvexError("Not authenticated");
-  }
-
-  const user = await ctx.db.get(userId);
-  if (!user) {
-    throw new ConvexError("User not found");
-  }
-
-  if (user.tempPassword) {
-    throw new ConvexError("You must change your password before using the system");
-  }
-
-  return user;
-}
-
 export const listAll = query({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db.query("users").collect();
+    await requireRole(ctx, ["admin"]);
+    const users = await ctx.db.query("users").collect();
+    return users.map(({ tempPassword, ...u }: any) => u);
   },
 });
 
 export const listActive = query({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db
+    await requireRole(ctx, ["admin"]);
+    const users = await ctx.db
       .query("users")
       .filter((q) => q.neq(q.field("status"), "blocked"))
       .collect();
+    return users.map(({ tempPassword, ...u }: any) => u);
   },
 });
 
 export const listBlocked = query({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db
+    await requireRole(ctx, ["admin"]);
+    const users = await ctx.db
       .query("users")
       .filter((q) => q.eq(q.field("status"), "blocked"))
       .collect();
+    return users.map(({ tempPassword, ...u }: any) => u);
   },
 });
 
@@ -84,7 +73,14 @@ export const getCurrentUserWithTempPassword = query({
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) return null;
-    return await ctx.db.get(userId);
+    const user = await ctx.db.get(userId);
+    if (!user) return null;
+    // Return flag instead of raw tempPassword
+    const { tempPassword, ...safeUser } = user;
+    return {
+      ...safeUser,
+      mustChangePassword: !!tempPassword,
+    };
   },
 });
 
@@ -102,15 +98,7 @@ export const createManager = action({
     surname: v.optional(v.string()),
   },
   handler: async (ctx, { phone, name, surname }) => {
-    const currentUserId = await getAuthUserId(ctx);
-    if (!currentUserId) {
-      throw new ConvexError("Not authenticated");
-    }
-
-    const currentUser = await ctx.runQuery(api.users.getCurrentUser);
-    if (!currentUser || currentUser.role !== "admin") {
-      throw new ConvexError("Only admins can create managers");
-    }
+    await requireRole(ctx, ["admin"]);
 
     const normalizedPhone = normalizePhone(phone);
     const tempPassword = generateTempPassword();
@@ -156,7 +144,7 @@ export const changePassword = action({
     }
 
     const user = userResult as any;
-    if (!user.tempPassword) {
+    if (!user.mustChangePassword) {
       throw new ConvexError("No temporary password set for this user");
     }
 
@@ -188,15 +176,7 @@ export const create_user_with_role = action({
     role: v.union(v.literal("user"), v.literal("manager"), v.literal("admin")),
   },
   handler: async (ctx, { name, phone, role }) => {
-    const currentUserId = await getAuthUserId(ctx);
-    if (!currentUserId) {
-      throw new ConvexError("Not authenticated");
-    }
-
-    const currentUser = await ctx.runQuery(api.users.getCurrentUser);
-    if (!currentUser || currentUser.role !== "admin") {
-      throw new ConvexError("Only admins can create users");
-    }
+    await requireRole(ctx, ["admin"]);
 
     const normalizedPhone = normalizePhone(phone);
     const tempPassword = generateTempPassword();
@@ -234,7 +214,7 @@ export const update_user = mutation({
     role: v.union(v.literal("user"), v.literal("manager"), v.literal("admin")),
   },
   handler: async (ctx, { id, name, phone, role }) => {
-    await requirePermanentPassword(ctx);
+    await requireRole(ctx, ["admin"]);
     await ctx.db.patch(id, { name, phone, role });
     return { success: true };
   },
@@ -244,14 +224,9 @@ export const update_user = mutation({
 export const delete_user = mutation({
   args: {
     id: v.id("users"),
-    password: v.string(),
   },
-  handler: async (ctx, { id, password }) => {
-    const currentUser = await requirePermanentPassword(ctx);
-    if (currentUser.role !== "admin") {
-      throw new ConvexError("Only admins can delete users");
-    }
-
+  handler: async (ctx, { id }) => {
+    await requireRole(ctx, ["admin"]);
     await ctx.db.delete(id);
     return { success: true };
   },
@@ -263,10 +238,12 @@ export const list_users_by_role = query({
     role: v.union(v.literal("user"), v.literal("manager"), v.literal("admin")),
   },
   handler: async (ctx, { role }) => {
-    return await ctx.db
+    await requireRole(ctx, ["admin"]);
+    const users = await ctx.db
       .query("users")
       .filter((q) => q.eq(q.field("role"), role))
       .collect();
+    return users.map(({ tempPassword, ...u }: any) => u);
   },
 });
 
@@ -276,11 +253,15 @@ export const get_user_by_id = query({
     id: v.id("users"),
   },
   handler: async (ctx, { id }) => {
-    return await ctx.db.get(id);
+    await requireRole(ctx, ["admin"]);
+    const user = await ctx.db.get(id);
+    if (!user) return null;
+    const { tempPassword, ...safeUser } = user as any;
+    return safeUser;
   },
 });
 
-// Test helper: Create a test user without authentication check
+// Test helper: Create a test user (admin only)
 export const createTestUser = action({
   args: {
     phone: v.string(),
@@ -288,6 +269,7 @@ export const createTestUser = action({
     role: v.union(v.literal("user"), v.literal("manager"), v.literal("admin")),
   },
   handler: async (ctx, { phone, name, role }) => {
+    await requireRole(ctx, ["admin"]);
     const normalizedPhone = normalizePhone(phone);
     const tempPassword = generateTempPassword();
 

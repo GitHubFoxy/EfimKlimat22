@@ -26,7 +26,6 @@ export default function AdminUsersPanel() {
       { name: string; phone: string; role: "user" | "manager" | "admin" }
     >
   >({});
-  const [deletePassword, setDeletePassword] = useState("");
 
   const getEditUser = (u: any) =>
     edits[String(u._id)] ?? { name: u.name, phone: u.phone, role: u.role };
@@ -94,20 +93,9 @@ export default function AdminUsersPanel() {
              <SelectItem value="admin">admin</SelectItem>
            </SelectContent>
          </Select>
-       </div>
+         </div>
 
-      <div className="space-y-1">
-         <Label htmlFor="deletePassword">Пароль администратора для удаления</Label>
-         <Input
-           id="deletePassword"
-           type="password"
-           value={deletePassword}
-           onChange={(e) => setDeletePassword(e.target.value)}
-           placeholder="Введите пароль"
-         />
-       </div>
-
-      <div className="space-y-3 mt-3">
+         <div className="space-y-3 mt-3">
         {users?.map((u) => (
           <div key={u._id} className="border rounded p-3 space-y-2">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -197,7 +185,7 @@ export default function AdminUsersPanel() {
               </Button>
               <Button
                 variant="destructive"
-                onClick={() => deleteUser({ id: u._id, password: deletePassword })}
+                onClick={() => deleteUser({ id: u._id })}
               >
                 Удалить
               </Button>
