@@ -57,8 +57,8 @@ export const resolveItemsByNameLookup = mutation({
     const categoryByLegacy = new Map(categories.map(c => [c.legacyId, c._id]));
     
     let updated = 0;
-    let brandMissing: string[] = [];
-    let catMissing: string[] = [];
+    const brandMissing: string[] = [];
+    const catMissing: string[] = [];
     
     for (const item of args.items) {
       const itemId = itemByLegacy.get(item.legacyId);
@@ -140,9 +140,8 @@ export const resolveAllItemReferences = mutation({
     const brandByName = new Map(brands.map(b => [b.name.trim().toLowerCase(), b._id]));
     const categoryByLegacy = new Map(categories.map(c => [c.legacyId, c._id]));
     
-    let updated = 0;
-    let brandErrors: string[] = [];
-    let catErrors: string[] = [];
+    const brandErrors: string[] = [];
+    const catErrors: string[] = [];
     
     for (const item of items) {
       if (item.brandId && item.categoryId) continue; // Already resolved
@@ -160,6 +159,8 @@ export const resolveAllItemReferences = mutation({
       categoriesAvailable: categories.length,
       itemsNeedingBrand: items.filter(i => !i.brandId).length,
       itemsNeedingCategory: items.filter(i => !i.categoryId).length,
+      brandErrors,
+      catErrors,
     };
   },
 });

@@ -7,6 +7,7 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "../ui/button";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function HeaderSearch({ className }: { className?: string }) {
   const [searchValue, setSearchValue] = useState("");
@@ -67,20 +68,44 @@ export default function HeaderSearch({ className }: { className?: string }) {
                   >
                     {/* Thumbnail */}
                     {item.imagesUrl && item.imagesUrl.length > 0 && (
-                      <img
+                      <Image
                         src={item.imagesUrl[0]}
                         alt={item.name}
-                        loading="lazy"
-                        className="w-10 h-10 rounded-md object-cover"
+                        width={40}
+                        height={40}
+                        className="rounded-md object-cover"
                       />
                     )}
                     {/* Title & Price */}
                     <div className="flex-1">
+                      {/* Brand - Name */}
                       <div className="text-sm font-medium text-gray-900 line-clamp-1">
-                        {item.name}
+                        <span className="font-semibold">{item.brandName || "Неизвестно"}</span>
+                        {" - "}
+                        <span>{item.name}</span>
                       </div>
+                      {/* Specification (power, etc) */}
+                      {item.specifications && Object.keys(item.specifications).length > 0 && (
+                        <div className="text-xs text-gray-500 line-clamp-1">
+                          {Object.entries(item.specifications)
+                            .filter(([key]) => {
+                              const lowerKey = key.toLowerCase();
+                              return lowerKey.includes("power") || 
+                                     lowerKey.includes("мощность") ||
+                                     lowerKey.includes("kw");
+                            })
+                            .slice(0, 1)
+                            .map(([key, value]) => `${value}`)
+                            .join(", ") || 
+                            Object.entries(item.specifications)
+                              .slice(0, 1)
+                              .map(([key, value]) => `${value}`)
+                              .join(", ")}
+                        </div>
+                      )}
+                      {/* Price */}
                       {typeof item.price === "number" && (
-                        <div className="text-xs text-gray-600">
+                        <div className="text-xs text-gray-600 font-medium">
                           {item.price} ₽
                         </div>
                       )}

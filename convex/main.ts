@@ -17,7 +17,24 @@ export const search_items = query({
       )
       .take(10);
 
-    return results;
+    // Fetch brand names for each item
+    const resultsWithBrands = await Promise.all(
+      results.map(async (item) => {
+        let brandName = "Неизвестно";
+        if (item.brandId) {
+          const brand = await ctx.db.get(item.brandId);
+          if (brand && 'name' in brand) {
+            brandName = brand.name as string;
+          }
+        }
+        return {
+          ...item,
+          brandName,
+        };
+      }),
+    );
+
+    return resultsWithBrands;
   },
 });
 

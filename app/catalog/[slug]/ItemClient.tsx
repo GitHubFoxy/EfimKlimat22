@@ -38,7 +38,7 @@ export function ItemClient({
   // Fetch related items by brand and collection (client-side for reactivity)
   const relatedItems = useQuery(
     api.catalog.show_items_by_brand_and_collection,
-    item
+    item && item.brandId && item.categoryId
       ? { itemId: item._id, brandId: item.brandId, categoryId: item.categoryId }
       : "skip",
   ) as Doc<"items">[] | undefined;

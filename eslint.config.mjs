@@ -34,6 +34,11 @@ export default tseslint.config(
       ".next/**",
       "node_modules/**",
       "convex/_generated/**",
+      "import-clean.mts",
+      "import-dev.mts",
+      "import-driver.mts",
+      "test-import.mts",
+      "app/manager/data-table.tsx",
     ],
   }
 );
