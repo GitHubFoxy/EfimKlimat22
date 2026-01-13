@@ -14,6 +14,10 @@ export function UserProfileSidebar() {
 
   const handleLogout = async () => {
     await signOut();
+    // Clear sensitive localStorage data
+    window.localStorage.removeItem("role");
+    window.localStorage.removeItem("managerId");
+    window.localStorage.removeItem("cartSessionId");
     router.push("/auth/signin");
   };
 

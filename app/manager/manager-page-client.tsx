@@ -21,9 +21,11 @@ type Section = "orders" | "items" | "leads" | "users";
 
 interface ManagerPageClientProps {
   itemsPreload: any;
+  brandsPreload: any;
+  categoriesPreload: any;
 }
 
-export function ManagerPageClient({ itemsPreload }: ManagerPageClientProps) {
+export function ManagerPageClient({ itemsPreload, brandsPreload, categoriesPreload }: ManagerPageClientProps) {
   const [activeSection, setActiveSection] = useState<Section>("items");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -238,6 +240,8 @@ export function ManagerPageClient({ itemsPreload }: ManagerPageClientProps) {
           setEditingItem(null);
         }}
         item={editingItem ?? undefined}
+        brandsPreload={brandsPreload}
+        categoriesPreload={categoriesPreload}
       />
 
       {/* User Form Dialog (Create / Edit) */}

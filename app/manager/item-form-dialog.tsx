@@ -28,14 +28,20 @@ interface ItemFormDialogProps {
   isOpen: boolean;
   onClose: () => void;
   item?: any; // If provided, we are in edit mode
+  brandsPreload?: any;
+  categoriesPreload?: any;
 }
 
-export function ItemFormDialog({ isOpen, onClose, item }: ItemFormDialogProps) {
+export function ItemFormDialog({ isOpen, onClose, item, brandsPreload, categoriesPreload }: ItemFormDialogProps) {
   const isEdit = !!item;
   const createItem = useMutation(api.manager.create_item);
   const updateItem = useMutation(api.manager.update_item);
   const brands = useQuery(api.manager.list_brands_all);
   const categories = useQuery(api.manager.list_categories_all);
+  
+  // Use preloaded data if available, otherwise fall back to useQuery
+  const brandsList = brandsPreload?.data ?? brands;
+  const categoriesList = categoriesPreload?.data ?? categories;
 
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -180,7 +186,7 @@ export function ItemFormDialog({ isOpen, onClose, item }: ItemFormDialogProps) {
                     <SelectValue placeholder="Select brand" />
                   </SelectTrigger>
                   <SelectContent>
-                    {brands?.map((brand) => (
+                    {brandsList?.map((brand) => (
                       <SelectItem key={brand._id} value={brand._id}>
                         {brand.name}
                       </SelectItem>
@@ -198,14 +204,14 @@ export function ItemFormDialog({ isOpen, onClose, item }: ItemFormDialogProps) {
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {categories?.map((cat) => (
+                    {categoriesList?.map((cat) => (
                       <SelectItem key={cat._id} value={cat._id}>
                         {cat.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
-                </Select>
-              </div>
+                  </Select>
+                  </div>
               <div className="space-y-2">
                 <Label htmlFor="price">Price</Label>
                 <Input
