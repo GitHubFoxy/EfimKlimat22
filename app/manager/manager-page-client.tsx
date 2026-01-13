@@ -10,11 +10,14 @@ import { Download, Plus, Search } from "lucide-react";
 import { ItemsTableContent } from "./items-table-content";
 import { LeadsTableContent } from "./leads-table-content";
 import { OrdersTableContent } from "./orders-table-content";
+import { UsersTableContent } from "./users-table-content";
 import { ItemFormDialog } from "./item-form-dialog";
+import { UserFormDialog } from "./user-form-dialog";
 import { DeleteItemDialog } from "./delete-item-dialog";
+import { DeleteUserDialog } from "./delete-user-dialog";
 
 
-type Section = "orders" | "items" | "leads";
+type Section = "orders" | "items" | "leads" | "users";
 
 interface ManagerPageClientProps {
   itemsPreload: any;
@@ -25,14 +28,22 @@ export function ManagerPageClient({ itemsPreload }: ManagerPageClientProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
-  // Dialog state for create/edit
+  // Dialog state for create/edit items
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any | null>(null);
 
-  // Dialog state for delete
+  // Dialog state for create/edit users
+  const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<any | null>(null);
+
+  // Dialog state for delete item
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletingItemId, setDeletingItemId] = useState<any | null>(null);
   const [deletingItemName, setDeletingItemName] = useState<string>("");
+
+  // Dialog state for delete user
+  const [isDeleteUserDialogOpen, setIsDeleteUserDialogOpen] = useState(false);
+  const [deletingUser, setDeletingUser] = useState<any | null>(null);
 
   // Simple debounce implementation
   useEffect(() => {
@@ -51,14 +62,21 @@ export function ManagerPageClient({ itemsPreload }: ManagerPageClientProps) {
         return "Товары";
       case "leads":
         return "Лиды";
+      case "users":
+        return "Пользователи";
       default:
         return "Менеджер";
     }
   };
 
   const openCreateDialog = () => {
-    setEditingItem(null);
-    setIsItemDialogOpen(true);
+    if (activeSection === "users") {
+      setEditingUser(null);
+      setIsUserDialogOpen(true);
+    } else {
+      setEditingItem(null);
+      setIsItemDialogOpen(true);
+    }
   };
 
   const handleEditItem = (item: any) => {
@@ -70,6 +88,11 @@ export function ManagerPageClient({ itemsPreload }: ManagerPageClientProps) {
     setDeletingItemId(id);
     setDeletingItemName(name);
     setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteUser = (user: any) => {
+    setDeletingUser(user);
+    setIsDeleteUserDialogOpen(true);
   };
 
   return (
@@ -175,6 +198,34 @@ export function ManagerPageClient({ itemsPreload }: ManagerPageClientProps) {
                 <LeadsTableContent />
               </div>
             </TabsContent>
+
+            {/* Users Tab */}
+            <TabsContent value="users" className="p-8">
+              <div className="space-y-6">
+                {/* Search & Filters */}
+                <div className="flex gap-4">
+                  <div className="flex-1 relative max-w-md">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input
+                      placeholder="Поиск пользователей..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+
+                {/* Users Table */}
+                <UsersTableContent 
+                  searchQuery={activeSection === "users" ? debouncedSearch : ""}
+                  onEditUser={(user) => {
+                    setEditingUser(user);
+                    setIsUserDialogOpen(true);
+                  }}
+                  onDeleteUser={handleDeleteUser}
+                />
+              </div>
+            </TabsContent>
           </Tabs>
         </main>
       </div>
@@ -189,7 +240,17 @@ export function ManagerPageClient({ itemsPreload }: ManagerPageClientProps) {
         item={editingItem ?? undefined}
       />
 
-      {/* Delete Confirmation */}
+      {/* User Form Dialog (Create / Edit) */}
+      <UserFormDialog
+        isOpen={isUserDialogOpen}
+        onClose={() => {
+          setIsUserDialogOpen(false);
+          setEditingUser(null);
+        }}
+        user={editingUser ?? undefined}
+      />
+
+      {/* Delete Confirmation for Items */}
       <DeleteItemDialog
         isOpen={isDeleteDialogOpen}
         onClose={() => {
@@ -199,6 +260,17 @@ export function ManagerPageClient({ itemsPreload }: ManagerPageClientProps) {
         }}
         itemId={deletingItemId}
         itemName={deletingItemName}
+      />
+
+      {/* Delete Confirmation for Users */}
+      <DeleteUserDialog
+        isOpen={isDeleteUserDialogOpen}
+        onClose={() => {
+          setIsDeleteUserDialogOpen(false);
+          setDeletingUser(null);
+        }}
+        userId={deletingUser?._id || null}
+        userName={deletingUser?.name || ""}
       />
     </>
   );

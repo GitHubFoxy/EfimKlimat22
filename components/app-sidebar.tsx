@@ -16,7 +16,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
-type Section = "orders" | "items" | "leads";
+type Section = "orders" | "items" | "leads" | "users";
 
 interface AppSidebarProps {
   activeSection?: string;
@@ -38,6 +38,11 @@ const items = [
     title: "Заказы",
     id: "orders",
     icon: ShoppingCart,
+  },
+  {
+    title: "Пользователи",
+    id: "users",
+    icon: Users,
   },
 ];
 

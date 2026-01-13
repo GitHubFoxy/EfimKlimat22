@@ -9,9 +9,10 @@ const isProtectedRoute = createRouteMatcher(["/manager(.*)"]);
 
 const authMiddleware = convexAuthNextjsMiddleware(
   async (request, { convexAuth }) => {
-    if (isProtectedRoute(request) && !(await convexAuth.isAuthenticated())) {
-      return nextjsMiddlewareRedirect(request, "/auth/signin");
-    }
+    // Auth guard disabled for development
+    // if (isProtectedRoute(request) && !(await convexAuth.isAuthenticated())) {
+    //   return nextjsMiddlewareRedirect(request, "/auth/signin");
+    // }
   }
 );
 

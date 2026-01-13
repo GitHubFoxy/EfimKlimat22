@@ -205,8 +205,23 @@ export const update_user = mutation({
 export const delete_user = mutation({
   args: {
     id: v.id("users"),
+    password: v.string(),
   },
-  handler: async (ctx, { id }) => {
+  handler: async (ctx, { id, password }) => {
+    const currentUserId = await getAuthUserId(ctx);
+    if (!currentUserId) {
+      throw new ConvexError("Not authenticated");
+    }
+
+    const currentUser = await ctx.runQuery(api.users.getCurrentUser);
+    if (!currentUser || currentUser.role !== "admin") {
+      throw new ConvexError("Only admins can delete users");
+    }
+
+    if (!currentUser.tempPassword || currentUser.tempPassword !== password) {
+      throw new ConvexError("Invalid password");
+    }
+
     await ctx.db.delete(id);
     return { success: true };
   },
