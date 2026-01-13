@@ -1,6 +1,27 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { getAuthUserId } from "@convex-dev/auth/server";
+import { ConvexError } from "convex/values";
+import { api } from "./_generated/api";
+
+async function requirePermanentPasswordMutation(ctx: any) {
+  const userId = await getAuthUserId(ctx);
+  if (!userId) {
+    throw new ConvexError("Not authenticated");
+  }
+
+  const user = await ctx.db.get(userId);
+  if (!user) {
+    throw new ConvexError("User not found");
+  }
+
+  if (user.tempPassword) {
+    throw new ConvexError("You must change your password before using the system");
+  }
+
+  return user;
+}
 
 // List orders for managers by status, newest first by updatedAt/_creationTime
 export const list_orders_by_status = query({
@@ -39,6 +60,7 @@ export const update_order_status = mutation({
   },
   returns: v.object({ status: v.number() }),
   handler: async (ctx, { orderId, status }) => {
+    await requirePermanentPasswordMutation(ctx);
     const existing = await ctx.db.get(orderId);
     if (!existing) throw new Error("Order not found");
     await ctx.db.patch(orderId, { status, updatedAt: Date.now() });
@@ -547,6 +569,7 @@ export const create_item = mutation({
     inStock: v.boolean(),
   },
   handler: async (ctx, args) => {
+    await requirePermanentPasswordMutation(ctx);
     const slug = args.name
       .toLowerCase()
       .replace(/ /g, "-")
@@ -582,6 +605,7 @@ export const update_item = mutation({
     inStock: v.optional(v.boolean()),
   },
   handler: async (ctx, { id, ...args }) => {
+    await requirePermanentPasswordMutation(ctx);
     const existing = await ctx.db.get(id);
     if (!existing) throw new Error("Item not found");
 
@@ -607,6 +631,7 @@ export const update_item = mutation({
 export const delete_item = mutation({
   args: { id: v.id("items") },
   handler: async (ctx, { id }) => {
+    await requirePermanentPasswordMutation(ctx);
     await ctx.db.patch(id, { status: "archived" });
   },
 });

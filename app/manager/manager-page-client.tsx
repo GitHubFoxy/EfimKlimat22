@@ -34,7 +34,7 @@ export function ManagerPageClient({ itemsPreload, brandsPreload, categoriesPrelo
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [hasChangedPassword, setHasChangedPassword] = useState(false);
 
-  const currentUser = useQuery(api.users.getCurrentUser);
+  const currentUser = useQuery(api.users.getCurrentUserWithTempPassword);
   const changePassword = useAction(api.users.changePassword);
 
   // Derive whether to show password change dialog
@@ -288,10 +288,10 @@ export function ManagerPageClient({ itemsPreload, brandsPreload, categoriesPrelo
       />
 
       {/* Force Change Password Dialog */}
-      {showPasswordChange && currentUser?.tempPassword && (
+      {showPasswordChange && (
         <ForceChangePasswordDialog
           onSubmit={async (newPassword) => {
-            await changePassword({ currentPassword: currentUser.tempPassword || "", newPassword });
+            await changePassword({ newPassword });
             setHasChangedPassword(true);
           }}
         />

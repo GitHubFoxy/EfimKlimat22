@@ -43,7 +43,7 @@ export function ForceChangePasswordDialog({
 
     try {
       await onSubmit(newPassword);
-      router.push("/manager");
+      // Page will update after password change, no need to redirect
     } catch {
       setError("Не удалось изменить пароль");
     } finally {

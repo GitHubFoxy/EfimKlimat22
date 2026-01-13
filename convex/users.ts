@@ -11,11 +11,32 @@ import { normalizePhone } from "./auth";
 
 function generateTempPassword(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+  const length = 8;
+  const array = new Uint32Array(length);
+  crypto.getRandomValues(array);
   let result = "";
-  for (let i = 0; i < 6; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  for (let i = 0; i < length; i++) {
+    result += chars[array[i] % chars.length];
   }
   return result;
+}
+
+async function requirePermanentPassword(ctx: any) {
+  const userId = await getAuthUserId(ctx);
+  if (!userId) {
+    throw new ConvexError("Not authenticated");
+  }
+
+  const user = await ctx.db.get(userId);
+  if (!user) {
+    throw new ConvexError("User not found");
+  }
+
+  if (user.tempPassword) {
+    throw new ConvexError("You must change your password before using the system");
+  }
+
+  return user;
 }
 
 export const listAll = query({
@@ -46,6 +67,19 @@ export const listBlocked = query({
 });
 
 export const getCurrentUser = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
+    const user = await ctx.db.get(userId);
+    if (!user) return null;
+    // Don't expose tempPassword to client
+    const { tempPassword, ...safeUser } = user;
+    return safeUser;
+  },
+});
+
+export const getCurrentUserWithTempPassword = query({
   args: {},
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
@@ -108,26 +142,22 @@ export const createManager = action({
 
 export const changePassword = action({
   args: {
-    currentPassword: v.string(),
     newPassword: v.string(),
   },
-  handler: async (ctx, { currentPassword, newPassword }) => {
+  handler: async (ctx, { newPassword }) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
       throw new ConvexError("Not authenticated");
     }
 
-    const user = await ctx.runQuery(api.users.getCurrentUser);
-    if (!user) {
+    const userResult = await ctx.runQuery(api.users.getCurrentUserWithTempPassword);
+    if (!userResult) {
       throw new ConvexError("User not found");
     }
 
+    const user = userResult as any;
     if (!user.tempPassword) {
       throw new ConvexError("No temporary password set for this user");
-    }
-
-    if (currentPassword !== user.tempPassword) {
-      throw new ConvexError("Invalid current password");
     }
 
     if (newPassword.length < 6) {
@@ -204,6 +234,7 @@ export const update_user = mutation({
     role: v.union(v.literal("user"), v.literal("manager"), v.literal("admin")),
   },
   handler: async (ctx, { id, name, phone, role }) => {
+    await requirePermanentPassword(ctx);
     await ctx.db.patch(id, { name, phone, role });
     return { success: true };
   },
@@ -216,18 +247,9 @@ export const delete_user = mutation({
     password: v.string(),
   },
   handler: async (ctx, { id, password }) => {
-    const currentUserId = await getAuthUserId(ctx);
-    if (!currentUserId) {
-      throw new ConvexError("Not authenticated");
-    }
-
-    const currentUser = await ctx.runQuery(api.users.getCurrentUser);
-    if (!currentUser || currentUser.role !== "admin") {
+    const currentUser = await requirePermanentPassword(ctx);
+    if (currentUser.role !== "admin") {
       throw new ConvexError("Only admins can delete users");
-    }
-
-    if (!currentUser.tempPassword || currentUser.tempPassword !== password) {
-      throw new ConvexError("Invalid password");
     }
 
     await ctx.db.delete(id);

@@ -20,7 +20,7 @@ export function SignInForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const currentUser = useQuery(api.users.getCurrentUser);
+  const currentUser = useQuery(api.users.getCurrentUserWithTempPassword);
 
   useEffect(() => {
     if (isAuthenticated && currentUser !== undefined && !currentUser?.tempPassword) {
