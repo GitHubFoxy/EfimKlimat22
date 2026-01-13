@@ -8,7 +8,7 @@ import {
 import { ConvexError } from "convex/values";
 import { api, internal } from "./_generated/api";
 import { normalizePhone } from "./auth";
-import { requirePermanentPassword, requireRole } from "./auth-helpers";
+import { requirePermanentPassword, requireRole } from "./authHelpers";
 
 function generateTempPassword(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";

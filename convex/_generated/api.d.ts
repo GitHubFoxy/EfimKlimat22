@@ -9,6 +9,7 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as authHelpers from "../authHelpers.js";
 import type * as cart from "../cart.js";
 import type * as catalog from "../catalog.js";
 import type * as clearItems from "../clearItems.js";
@@ -32,6 +33,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  authHelpers: typeof authHelpers;
   cart: typeof cart;
   catalog: typeof catalog;
   clearItems: typeof clearItems;

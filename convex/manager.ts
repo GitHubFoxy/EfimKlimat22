@@ -3,7 +3,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { ConvexError } from "convex/values";
 import { api } from "./_generated/api";
-import { requirePermanentPassword, requireRole } from "./auth-helpers";
+import { requirePermanentPassword, requireRole } from "./authHelpers";
 
 // List orders for managers by status, newest first by updatedAt/_creationTime
 export const list_orders_by_status = query({
