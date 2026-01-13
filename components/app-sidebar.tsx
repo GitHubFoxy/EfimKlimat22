@@ -14,7 +14,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarFooter,
 } from "@/components/ui/sidebar";
+import { UserProfileSidebar } from "@/components/UserProfileSidebar";
 
 type Section = "orders" | "items" | "leads" | "users";
 
@@ -86,6 +88,9 @@ export function AppSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter>
+        <UserProfileSidebar />
+      </SidebarFooter>
     </Sidebar>
   );
 }

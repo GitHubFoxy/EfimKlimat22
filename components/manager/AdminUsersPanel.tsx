@@ -26,6 +26,7 @@ export default function AdminUsersPanel() {
       { name: string; phone: string; role: "user" | "manager" | "admin" }
     >
   >({});
+  const [deletePassword, setDeletePassword] = useState("");
 
   const getEditUser = (u: any) =>
     edits[String(u._id)] ?? { name: u.name, phone: u.phone, role: u.role };
@@ -82,18 +83,29 @@ export default function AdminUsersPanel() {
       </div>
 
       <div className="flex items-center gap-4">
-        <Label>Фильтр по роли:</Label>
-        <Select value={roleFilter} onValueChange={(v: any) => setRoleFilter(v)}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="user">user</SelectItem>
-            <SelectItem value="manager">manager</SelectItem>
-            <SelectItem value="admin">admin</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+         <Label>Фильтр по роли:</Label>
+         <Select value={roleFilter} onValueChange={(v: any) => setRoleFilter(v)}>
+           <SelectTrigger>
+             <SelectValue />
+           </SelectTrigger>
+           <SelectContent>
+             <SelectItem value="user">user</SelectItem>
+             <SelectItem value="manager">manager</SelectItem>
+             <SelectItem value="admin">admin</SelectItem>
+           </SelectContent>
+         </Select>
+       </div>
+
+      <div className="space-y-1">
+         <Label htmlFor="deletePassword">Пароль администратора для удаления</Label>
+         <Input
+           id="deletePassword"
+           type="password"
+           value={deletePassword}
+           onChange={(e) => setDeletePassword(e.target.value)}
+           placeholder="Введите пароль"
+         />
+       </div>
 
       <div className="space-y-3 mt-3">
         {users?.map((u) => (
@@ -185,7 +197,7 @@ export default function AdminUsersPanel() {
               </Button>
               <Button
                 variant="destructive"
-                onClick={() => deleteUser({ id: u._id })}
+                onClick={() => deleteUser({ id: u._id, password: deletePassword })}
               >
                 Удалить
               </Button>
