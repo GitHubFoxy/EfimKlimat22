@@ -4,6 +4,7 @@ import { mutation, query } from "./_generated/server";
 import { ConvexError } from "convex/values";
 import { api } from "./_generated/api";
 import { requirePermanentPassword, requireRole } from "./authHelpers";
+import { upsertCollectionGroup, deleteCollectionGroupIfEmpty } from "./collection_groups_manager";
 
 // List orders for managers by status, newest first by updatedAt/_creationTime
 export const list_orders_by_status = query({
@@ -544,89 +545,134 @@ export const search_by_type = query({
 });
 
 export const create_item = mutation({
-  args: {
-    name: v.string(),
-    sku: v.string(),
-    description: v.string(),
-    brandId: v.id("brands"),
-    categoryId: v.id("categories"),
-    price: v.number(),
-    quantity: v.number(),
-    status: v.union(
-      v.literal("active"),
-      v.literal("draft"),
-      v.literal("archived"),
-      v.literal("preorder"),
-    ),
-    inStock: v.boolean(),
-  },
-  handler: async (ctx, args) => {
-    await requireRole(ctx, ["manager", "admin"]);
-    const slug = args.name
-      .toLowerCase()
-      .replace(/ /g, "-")
-      .replace(/[^\w-]+/g, "");
-    const itemId = await ctx.db.insert("items", {
-      ...args,
-      slug,
-      ordersCount: 0,
-      searchText: `${args.name} ${args.sku}`.toLowerCase(),
-    });
-    return itemId;
-  },
-});
+   args: {
+     name: v.string(),
+     sku: v.string(),
+     description: v.string(),
+     brandId: v.id("brands"),
+     categoryId: v.id("categories"),
+     price: v.number(),
+     quantity: v.number(),
+     status: v.union(
+       v.literal("active"),
+       v.literal("draft"),
+       v.literal("archived"),
+       v.literal("preorder"),
+     ),
+     inStock: v.boolean(),
+     specifications: v.optional(
+       v.record(v.string(), v.union(v.string(), v.number(), v.boolean())),
+     ),
+     collection: v.optional(v.string()),
+   },
+   handler: async (ctx, args) => {
+     await requireRole(ctx, ["manager", "admin"]);
+     const slug = args.name
+       .toLowerCase()
+       .replace(/ /g, "-")
+       .replace(/[^\w-]+/g, "");
+
+     // Extract collection from specifications if not provided
+     const collection =
+       args.collection ||
+       (args.specifications?.collection as string | undefined);
+
+     const itemId = await ctx.db.insert("items", {
+       ...args,
+       slug,
+       collection,
+       ordersCount: 0,
+       searchText: `${args.name} ${args.sku}`.toLowerCase(),
+     });
+
+     // Update collection group after item is created
+     const newItem = await ctx.db.get(itemId);
+     if (newItem) {
+       await upsertCollectionGroup(ctx, newItem);
+     }
+
+     return itemId;
+   },
+ });
 
 export const update_item = mutation({
-  args: {
-    id: v.id("items"),
-    name: v.optional(v.string()),
-    sku: v.optional(v.string()),
-    description: v.optional(v.string()),
-    brandId: v.optional(v.id("brands")),
-    categoryId: v.optional(v.id("categories")),
-    price: v.optional(v.number()),
-    quantity: v.optional(v.number()),
-    status: v.optional(
-      v.union(
-        v.literal("active"),
-        v.literal("draft"),
-        v.literal("archived"),
-        v.literal("preorder"),
-      ),
-    ),
-    inStock: v.optional(v.boolean()),
-  },
-  handler: async (ctx, { id, ...args }) => {
-    await requireRole(ctx, ["manager", "admin"]);
-    const existing = await ctx.db.get(id);
-    if (!existing) throw new Error("Item not found");
+   args: {
+     id: v.id("items"),
+     name: v.optional(v.string()),
+     sku: v.optional(v.string()),
+     description: v.optional(v.string()),
+     brandId: v.optional(v.id("brands")),
+     categoryId: v.optional(v.id("categories")),
+     price: v.optional(v.number()),
+     quantity: v.optional(v.number()),
+     status: v.optional(
+       v.union(
+         v.literal("active"),
+         v.literal("draft"),
+         v.literal("archived"),
+         v.literal("preorder"),
+       ),
+     ),
+     inStock: v.optional(v.boolean()),
+     specifications: v.optional(
+       v.record(v.string(), v.union(v.string(), v.number(), v.boolean())),
+     ),
+     collection: v.optional(v.string()),
+   },
+   handler: async (ctx, { id, ...args }) => {
+     await requireRole(ctx, ["manager", "admin"]);
+     const existing = await ctx.db.get(id);
+     if (!existing) throw new Error("Item not found");
 
-    const patch: any = { ...args };
-    if (args.name) {
-      patch.slug = args.name
-        .toLowerCase()
-        .replace(/ /g, "-")
-        .replace(/[^\w-]+/g, "");
-    }
+     const patch: any = { ...args };
+     if (args.name) {
+       patch.slug = args.name
+         .toLowerCase()
+         .replace(/ /g, "-")
+         .replace(/[^\w-]+/g, "");
+     }
 
-    if (args.name || args.sku) {
-      const name = args.name ?? existing.name;
-      const sku = args.sku ?? existing.sku;
-      patch.searchText = `${name} ${sku}`.toLowerCase();
-    }
+     if (args.name || args.sku) {
+       const name = args.name ?? existing.name;
+       const sku = args.sku ?? existing.sku;
+       patch.searchText = `${name} ${sku}`.toLowerCase();
+     }
 
-    await ctx.db.patch(id, patch);
-    return id;
-  },
-});
+     // Handle collection: extract from specifications if present, or use provided value
+     if (args.specifications) {
+       const collection = args.collection || (args.specifications.collection as string | undefined);
+       if (collection) {
+         patch.collection = collection;
+       }
+     } else if (args.collection !== undefined) {
+       patch.collection = args.collection;
+     }
+
+     await ctx.db.patch(id, patch);
+
+     // Update collection group after item is updated
+     const updatedItem = await ctx.db.get(id);
+     if (updatedItem) {
+       await upsertCollectionGroup(ctx, updatedItem);
+     }
+
+     return id;
+   },
+ });
 
 export const delete_item = mutation({
-  args: { id: v.id("items") },
-  handler: async (ctx, { id }) => {
-    await requireRole(ctx, ["manager", "admin"]);
-    await ctx.db.patch(id, { status: "archived" });
-  },
-});
+   args: { id: v.id("items") },
+   handler: async (ctx, { id }) => {
+     await requireRole(ctx, ["manager", "admin"]);
+     const existing = await ctx.db.get(id);
+     if (!existing) throw new Error("Item not found");
+     
+     await ctx.db.patch(id, { status: "archived" });
+     
+     // Clean up collection group if no active items remain
+     await deleteCollectionGroupIfEmpty(ctx, existing);
+   },
+ });
 
 export const list_brands_all = query({
   handler: async (ctx) => {

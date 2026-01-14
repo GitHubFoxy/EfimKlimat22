@@ -10,6 +10,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
     "quick-build": "SKIP_ENV_VALIDATION=1 next build",
     "deploy": "bun run build && convex deploy"
   },

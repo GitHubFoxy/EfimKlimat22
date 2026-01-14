@@ -14,15 +14,15 @@ interface CatalogResultsGridProps {
 }
 
 export default function CatalogResultsGrid({
-  isLoading,
-  results,
-  sortedResults,
-  status,
-  selectedBrand,
-  onClearBrandFilter,
-  onLoadMore,
-}: CatalogResultsGridProps) {
-  return (
+   isLoading,
+   results,
+   sortedResults,
+   status,
+   selectedBrand,
+   onClearBrandFilter,
+   onLoadMore,
+ }: CatalogResultsGridProps) {
+   return (
     <div className="px-4 mb-8">
       {isLoading && results.length === 0 ? (
         <div className="text-center py-8">Загрузка...</div>
@@ -54,7 +54,7 @@ export default function CatalogResultsGrid({
                 key={e._id?.toString?.() ?? index}
                 className="flex flex-col items-center bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 p-4 md:p-5"
               >
-                <ItemCard e={e} />
+                <ItemCard e={e} variantCount={e.variantsCount} />
               </div>
             ))}
           </div>

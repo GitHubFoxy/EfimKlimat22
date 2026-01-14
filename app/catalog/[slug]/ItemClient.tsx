@@ -35,13 +35,18 @@ export function ItemClient({
   // Use preloaded item data - server rendered and becomes reactive after hydration
   const item = usePreloadedQuery(preloadedItem);
 
-  // Fetch related items by brand and collection (client-side for reactivity)
-  const relatedItems = useQuery(
-    api.catalog.show_items_by_brand_and_collection,
-    item && item.brandId && item.categoryId
-      ? { itemId: item._id, brandId: item.brandId, categoryId: item.categoryId }
-      : "skip",
-  ) as Doc<"items">[] | undefined;
+  // Fetch related items by brand, category, and collection (client-side for reactivity)
+   const relatedItems = useQuery(
+     api.catalog.show_items_by_brand_and_collection,
+     item && item.brandId && item.categoryId
+       ? { 
+           itemId: item._id, 
+           brandId: item.brandId, 
+           categoryId: item.categoryId,
+           collection: item.collection,
+         }
+       : "skip",
+   ) as Doc<"items">[] | undefined;
 
   return (
     <div className="px-6 py-6 md:px-12 lg:px-28 xl:max-w-7xl xl:mx-auto">
@@ -87,11 +92,11 @@ export function ItemClient({
         <>
           <div className="flex flex-col lg:flex-row gap-4 mt-4 items-start">
             <div className="flex flex-col gap-4 flex-1">
-              <div className="bg-white rounded-3xl p-2 shadow-sm border border-gray-100">
-                <div className="max-w-sm mx-auto">
-                  <ItemCard e={item} />
-                </div>
-              </div>
+                <div className="bg-white rounded-3xl p-2 shadow-sm border border-gray-100">
+                   <div className="max-w-sm mx-auto">
+                     <ItemCard e={item} variantCount={item.variantsCount ?? (relatedItems ? relatedItems.length + 1 : undefined)} />
+                   </div>
+                 </div>
 
               {/* Related Items Section */}
               {relatedItems && relatedItems.length > 0 && (

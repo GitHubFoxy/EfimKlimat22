@@ -36,3 +36,31 @@ export function formatPrice(
     maximumFractionDigits: decimals ?? 0,
   }).format(price);
 }
+
+/**
+ * Returns Russian plural form for a word based on count
+ * @param count - The count of items
+ * @param singular - Word form for 1 (e.g., "вариант")
+ * @param few - Word form for 2-4 (e.g., "варианта")
+ * @param many - Word form for 5+ (e.g., "вариантов")
+ * @returns Word form with proper Russian pluralization
+ *
+ * @example
+ * getRussianPlural(1, "вариант", "варианта", "вариантов") // → "1 вариант"
+ * getRussianPlural(2, "вариант", "варианта", "вариантов") // → "2 варианта"
+ * getRussianPlural(5, "вариант", "варианта", "вариантов") // → "5 вариантов"
+ */
+export function getRussianPlural(
+  count: number,
+  singular: string,
+  few: string,
+  many: string
+): string {
+  if (count % 10 === 1 && count % 100 !== 11) {
+    return `${count} ${singular}`;
+  }
+  if (count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 10 || count % 100 >= 20)) {
+    return `${count} ${few}`;
+  }
+  return `${count} ${many}`;
+}

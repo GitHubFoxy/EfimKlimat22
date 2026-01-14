@@ -13,14 +13,9 @@ bun run dev:frontend           # Start Next.js dev server with Turbopack
 bun run dev:backend            # Start Convex dev server
 bun run predev                 # Run convex dev --until-success before dev
 
-# Build & Deployment
-bun run build                  # Build Next.js application with linting
-bun run quick-build            # Build without linting
-bun run start                  # Start production server
-bun run deploy                 # Build and deploy to Convex
-
 # Code Quality
-bun run lint                   # Run Next.js ESLint
+bun run lint                   # Run ESLint
+bun run typecheck              # Run TypeScript type checking (tsc --noEmit)
 ```
 
 ### Running Tests
@@ -78,6 +73,7 @@ import { Description, Icon, Title } from "@/lib/consts";
 ### Naming Conventions
 
 - **Files**: kebab-case for component files (`item-card.tsx`), PascalCase for React components
+  - **⚠️ CRITICAL - Convex files**: Only alphanumeric, underscores, or periods. NO DASHES! Use snake_case (`test_category_filter.ts`), NOT kebab-case for `/convex` directory
 - **Components**: PascalCase (`ItemCard`, `ConvexClientProvider`)
 - **Constants**: camelCase for regular constants, UPPER_SNAKE_CASE for exported constants
 - **Types/Interfaces**: PascalCase
@@ -282,7 +278,7 @@ No Husky or pre-commit hooks configured. Linting should be run manually before c
 
 ### Agent Reminders
 
-1. Always run `bun run lint` after making changes
+1. Always run `bun run lint` AND `bun run typecheck` after making changes (do NOT build)
 2. Use TypeScript strict mode - avoid `any` unless necessary
 3. Follow existing import patterns and aliases
 4. Check for existing utilities in `/lib` before creating new ones
@@ -290,3 +286,5 @@ No Husky or pre-commit hooks configured. Linting should be run manually before c
 6. Use shadcn/ui components when possible for consistency
 7. Add `"use client"` directive only when browser APIs are needed
 8. Test both development (`bun run dev`)
+9. **When renaming files, use `mv` command, NOT `rm` + recreate**
+10. **Do NOT create summary documents** - just implement changes, let code speak

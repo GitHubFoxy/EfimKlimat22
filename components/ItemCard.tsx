@@ -18,7 +18,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, getRussianPlural } from "@/lib/utils";
 import { Minus, Plus } from "lucide-react";
 
 // Helper to get specification summary
@@ -47,24 +47,41 @@ const getSpecificationSummary = (
   return "";
 };
 
-// Strong type for catalog item documents
-type Item = Doc<"items"> & {
-  // Compatibility fields for UI
-  variantsCount?: number;
-  priceRange?: {
-    min: number;
-    max: number;
-  };
-  brand?: string;
-  variant?: string;
-  imagesUrls?: string[];
-  collection?: string;
-  sale?: number;
-  // Added fields from queries
-  brandName?: string;
+// Helper for Russian pluralization of "вариант/варианта/вариантов"
+const getPluralVariants = (count: number): string => {
+  if (count % 10 === 1 && count % 100 !== 11) {
+    return "вариант";
+  } else if (
+    (count % 10 === 2 || count % 10 === 3 || count % 10 === 4) &&
+    (count % 100 !== 12 && count % 100 !== 13 && count % 100 !== 14)
+  ) {
+    return "варианта";
+  }
+  return "вариантов";
 };
 
-export const ItemCard = ({ e }: { e: Item }) => {
+// Strong type for catalog item documents
+type Item = Doc<"items"> & {
+   // Compatibility fields for UI
+   variantsCount?: number;
+   priceRange?: {
+     min: number;
+     max: number;
+   };
+   brand?: string;
+   variant?: string;
+   imagesUrls?: string[];
+   sale?: number;
+   // Added fields from queries
+   brandName?: string;
+ };
+
+interface ItemCardProps {
+  e: Item;
+  variantCount?: number;
+}
+
+export const ItemCard = ({ e, variantCount }: ItemCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const sessionId = useCartSessionId();
   const addItem = useMutation(api.cart.addItem);
@@ -146,13 +163,16 @@ export const ItemCard = ({ e }: { e: Item }) => {
       {/* Image + Carousel Section */}
       <Link href={href} className="block w-full">
         <div className="relative w-full h-[350px] flex items-center justify-center  transition-colors rounded-2xl overflow-hidden mb-3">
-          {/* Add badge for multiple specifications */}
-          {e.specifications && Object.keys(e.specifications).length > 0 && (
-            <div className="absolute top-2 right-2 z-10 bg-blue-500 text-white text-xs font-medium px-2 py-1 rounded-full shadow-md">
-              {Object.keys(e.specifications).length} параметра
-            </div>
-          )}
-          <Carousel className="w-full h-full">
+           {/* Show variant count badge only if more than 1 item in family */}
+            {variantCount && variantCount > 1 && (
+              <div 
+                className="absolute top-2 right-2 z-10 bg-blue-500 text-white text-xs font-medium px-2 py-1 rounded-full shadow-md cursor-help"
+                title="Количество вариантов товара"
+              >
+                {getRussianPlural(variantCount, "вариант", "варианта", "вариантов")}
+              </div>
+            )}
+           <Carousel className="w-full h-full">
             <CarouselContent className="h-full">
               {(e.imagesUrl && e.imagesUrl.length > 0
                 ? e.imagesUrl
