@@ -30,6 +30,12 @@ export default tseslint.config(
     },
   },
   {
+    files: ["components/ClientOnly.tsx"],
+    rules: {
+      "react-hooks/set-state-in-effect": "off",
+    },
+  },
+  {
     ignores: [
       ".next/**",
       "node_modules/**",

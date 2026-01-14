@@ -10,6 +10,7 @@ import CatalogResultsWrapper from "@/components/CatalogComponents/CatalogResults
 import DisclaimerMessage from "@/components/CatalogComponents/DisclaimerMessage";
 import CatalogFilters from "@/components/CatalogComponents/CatalogFilters";
 import CatalogResultsGrid from "@/components/CatalogComponents/CatalogResultsGrid";
+
 import {
   Preloaded,
   usePreloadedQuery,

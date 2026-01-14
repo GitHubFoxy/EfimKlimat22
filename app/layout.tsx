@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
-import ConvexClientProvider from "@/components/ConvexClientProvider";
+import { AppProviders } from "./providers";
 import { Description, Icon, Title } from "@/lib/consts";
 
 const inter = Inter({
@@ -27,7 +27,7 @@ export default function RootLayout({
     <ConvexAuthNextjsServerProvider>
       <html lang="ru" className={`${inter.variable} font-inter `} suppressHydrationWarning>
         <body className={`antialiased`} suppressHydrationWarning>
-          <ConvexClientProvider>{children}</ConvexClientProvider>
+          <AppProviders>{children}</AppProviders>
         </body>
       </html>
     </ConvexAuthNextjsServerProvider>
