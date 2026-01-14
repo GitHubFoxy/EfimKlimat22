@@ -167,7 +167,7 @@ export const ItemCard = ({ e, variantCount }: ItemCardProps) => {
             {variantCount && variantCount > 1 && (
               <div 
                 className="absolute top-2 right-2 z-10 bg-blue-500 text-white text-xs font-medium px-2 py-1 rounded-full shadow-md cursor-help"
-                title="Количество вариантов товара"
+                title="Количество вариантов этого товара в семействе"
               >
                 {getRussianPlural(variantCount, "вариант", "варианта", "вариантов")}
               </div>
@@ -208,7 +208,7 @@ export const ItemCard = ({ e, variantCount }: ItemCardProps) => {
         <Stars stars="0" />
       </div>
 
-      {/* Name and Price on same line */}
+      {/* Name and price section */}
       <Link href={href} className="block mb-3">
         <div className="flex flex-col justify-between items-start gap-3">
           <p className="text-base leading-6 line-clamp-2 h-12 overflow-hidden">

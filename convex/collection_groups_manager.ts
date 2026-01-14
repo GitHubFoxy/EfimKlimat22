@@ -2,9 +2,9 @@ import { MutationCtx } from "./_generated/server";
 import { Doc } from "./_generated/dataModel";
 
 /**
- * Recompute and update collection group when an item is created/updated/deleted
- * This keeps the collectionGroups table in sync with items table
- * Note: Must be called from mutation context
+ * Recompute and update a collection group for an item create/update/delete.
+ * Keeps collectionGroups in sync with active, in-stock items in the items table.
+ * Must be called from a mutation context.
  */
 export async function upsertCollectionGroup(
   ctx: MutationCtx,
@@ -29,7 +29,7 @@ export async function upsertCollectionGroup(
   // Check if any item in the group has a discount
   const hasDiscount = itemsInGroup.some((i: Doc<"items">) => (i.discountAmount ?? 0) > 0);
 
-  // If no items remain, delete the group
+  // If no active, in-stock items remain, delete the group
   if (itemsInGroup.length === 0) {
     const existing = await ctx.db
       .query("collectionGroups")
@@ -94,8 +94,8 @@ export async function upsertCollectionGroup(
 }
 
 /**
- * Delete collection group when item is deleted
- * Note: Must be called from mutation context
+ * Delete a collection group if, after an item deletion, no active, in-stock items remain in the group.
+ * Must be called from a mutation context.
  */
 export async function deleteCollectionGroupIfEmpty(
   ctx: MutationCtx,

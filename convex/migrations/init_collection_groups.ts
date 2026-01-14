@@ -1,6 +1,6 @@
 /**
- * Migration: Initialize collectionGroups table from items
- * Backfills collection groups with statistics from all items
+ * Migration: Initialize collectionGroups table from items.
+ * Backfills collection groups and statistics from all active, in-stock items.
  * 
  * Usage in convex console:
  * npx convex run migrations/init_collection_groups.ts
