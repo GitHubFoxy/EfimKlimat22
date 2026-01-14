@@ -1,6 +1,7 @@
 "use client";
 
 import Header from "@/components/Header/Header";
+import { Footer } from "@/components/Footer";
 import ItemCard from "@/components/ItemCard";
 import { Preloaded, usePreloadedQuery, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -22,7 +23,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import FreeConsultmant from "@/components/FreeConsultmant";
-import { Footer } from "@/components/Footer";
 import Image from "next/image";
 
 export function ItemClient({
