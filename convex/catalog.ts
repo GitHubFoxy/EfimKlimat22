@@ -288,9 +288,24 @@ export const show_item = query({
       }
     }
 
+    // Fetch variant count from collection group
+    let variantsCount: number | undefined;
+    if (item.brandId && item.categoryId && item.collection) {
+      const group = await ctx.db
+        .query("collectionGroups")
+        .withIndex("by_category_brand", (q) =>
+          q.eq("categoryId", item.categoryId!)
+            .eq("brandId", item.brandId!)
+        )
+        .filter((q) => q.eq(q.field("collection"), item.collection!))
+        .first();
+      variantsCount = group?.variantsCount;
+    }
+
     return {
       ...item,
       brandName,
+      variantsCount,
     };
   },
 });
