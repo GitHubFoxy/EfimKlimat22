@@ -11,7 +11,10 @@ import { formatPrice } from "@/lib/utils";
 export default function FloatingCheckoutButton() {
   const router = useRouter();
   const sessionId = useCartSessionId();
-  const itemsData = useQuery(api.cart.listItems, sessionId ? { sessionId } : "skip");
+  const itemsData = useQuery(
+    api.cart.listItems,
+    sessionId ? { sessionId } : "skip",
+  );
 
   if (!itemsData || itemsData.count === 0) {
     return null;
@@ -21,7 +24,7 @@ export default function FloatingCheckoutButton() {
     <div className="fixed bottom-6 right-6 z-50">
       <Button
         onClick={() => router.push("/checkout")}
-        className="bg-light-orange hover:bg-amber-500 rounded-full h-14 px-6 shadow-lg flex items-center gap-3"
+        className="bg-light-orange hover:bg-amber-500 hover:cursor-pointer rounded-full h-14 px-6 shadow-lg flex items-center gap-3"
       >
         <ShoppingCart className="w-5 h-5" />
         <span className="font-medium">Оформить заказ</span>

@@ -36,12 +36,16 @@ export default function CheckoutPage() {
     name: "",
     phone: "",
     email: "",
-    city: "",
+    city: "Барнаул",
     street: "",
     addressDetails: "",
     comment: "",
     deliveryType: "courier" as "pickup" | "courier" | "transport",
-    paymentMethod: "card_online" as "card_online" | "cash_on_delivery" | "card_on_delivery" | "b2b_invoice",
+    paymentMethod: "card_online" as
+      | "card_online"
+      | "cash_on_delivery"
+      | "card_on_delivery"
+      | "b2b_invoice",
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -65,13 +69,14 @@ export default function CheckoutPage() {
 
     try {
       // Build address object only for non-pickup delivery
-      const address = formData.deliveryType !== "pickup" && formData.city && formData.street
-        ? {
-            city: formData.city,
-            street: formData.street,
-            details: formData.addressDetails || undefined,
-          }
-        : undefined;
+      const address =
+        formData.deliveryType !== "pickup" && formData.city && formData.street
+          ? {
+              city: formData.city,
+              street: formData.street,
+              details: formData.addressDetails || undefined,
+            }
+          : undefined;
 
       // Create order in backend (Convex)
       const res = await createOrder({
@@ -264,8 +269,9 @@ export default function CheckoutPage() {
                           </li>
                           <li>
                             Транспортной компанией по России: Мы отправляем
-                            заказы по всей России через ТК &quot;СДЭК&quot; и &quot;Деловые
-                            Линии&quot; до пункта выдачи или до вашего адреса.
+                            заказы по всей России через ТК &quot;СДЭК&quot; и
+                            &quot;Деловые Линии&quot; до пункта выдачи или до
+                            вашего адреса.
                           </li>
                           <li>
                             Самовывоз: Вы можете забрать ваш заказ
@@ -380,7 +386,15 @@ export default function CheckoutPage() {
                   name="deliveryType"
                   required
                   value={formData.deliveryType}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, deliveryType: e.target.value as "pickup" | "courier" | "transport" }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      deliveryType: e.target.value as
+                        | "pickup"
+                        | "courier"
+                        | "transport",
+                    }))
+                  }
                   className="mt-1 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                 >
                   <option value="pickup">Самовывоз</option>
@@ -402,6 +416,7 @@ export default function CheckoutPage() {
                       onChange={handleInputChange}
                       placeholder="Барнаул"
                       className="mt-1"
+                      disabled
                     />
                   </div>
 
@@ -420,7 +435,9 @@ export default function CheckoutPage() {
                   </div>
 
                   <div>
-                    <Label htmlFor="addressDetails">Квартира, подъезд, этаж</Label>
+                    <Label htmlFor="addressDetails">
+                      Квартира, подъезд, этаж
+                    </Label>
                     <Input
                       id="addressDetails"
                       name="addressDetails"
@@ -454,13 +471,22 @@ export default function CheckoutPage() {
                   name="paymentMethod"
                   required
                   value={formData.paymentMethod}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, paymentMethod: e.target.value as any }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      paymentMethod: e.target.value as any,
+                    }))
+                  }
                   className="mt-1 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                 >
                   <option value="card_online">Картой онлайн (ВТБ)</option>
-                  <option value="cash_on_delivery">Наличными при получении</option>
+                  <option value="cash_on_delivery">
+                    Наличными при получении
+                  </option>
                   <option value="card_on_delivery">Картой при получении</option>
-                  <option value="b2b_invoice">Счет на оплату (для юрлиц)</option>
+                  <option value="b2b_invoice">
+                    Счет на оплату (для юрлиц)
+                  </option>
                 </select>
               </div>
 
@@ -471,21 +497,52 @@ export default function CheckoutPage() {
                   </p>
                   <Dialog>
                     <DialogTrigger asChild>
-                      <span className="text-sm text-blue-700 underline cursor-pointer">Подробнее</span>
+                      <span className="text-sm text-blue-700 underline cursor-pointer">
+                        Подробнее
+                      </span>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-xl max-h-[80vh] overflow-y-auto">
                       <DialogHeader>
                         <DialogTitle>Безопасность онлайн-платежей</DialogTitle>
                       </DialogHeader>
                       <div className="space-y-3 text-sm text-gray-800">
-                        <p>После завершения оформления заказа в нашем магазине, вы будете автоматически перенаправлены на защищенную страницу платежного шлюза ПАО &quot;ВТБ&quot; для ввода данных вашей банковской карты.</p>
+                        <p>
+                          После завершения оформления заказа в нашем магазине,
+                          вы будете автоматически перенаправлены на защищенную
+                          страницу платежного шлюза ПАО &quot;ВТБ&quot; для
+                          ввода данных вашей банковской карты.
+                        </p>
                         <ul className="list-disc pl-5 space-y-1">
-                          <li>После завершения оформления заказа в нашем магазине, вы будете автоматически перенаправлены на защищенную страницу платежного шлюза ПАО &quot;ВТБ&quot; для ввода данных вашей банковской карты.</li>
-                          <li>Соединение с платежным шлюзом и передача информации осуществляется в защищенном режиме с использованием протокола шифрования SSL/TLS.</li>
-                          <li>Все операции с вашей картой происходят на стороне банка. Наш интернет-магазин не получает, не обрабатывает и не хранит какие-либо данные вашей банковской карты.</li>
-                          <li>Введенные вами данные полностью защищены в соответствии с требованиями стандарта безопасности PCI DSS и никто, включая сотрудников нашего магазина, не может их получить.</li>
+                          <li>
+                            После завершения оформления заказа в нашем магазине,
+                            вы будете автоматически перенаправлены на защищенную
+                            страницу платежного шлюза ПАО &quot;ВТБ&quot; для
+                            ввода данных вашей банковской карты.
+                          </li>
+                          <li>
+                            Соединение с платежным шлюзом и передача информации
+                            осуществляется в защищенном режиме с использованием
+                            протокола шифрования SSL/TLS.
+                          </li>
+                          <li>
+                            Все операции с вашей картой происходят на стороне
+                            банка. Наш интернет-магазин не получает, не
+                            обрабатывает и не хранит какие-либо данные вашей
+                            банковской карты.
+                          </li>
+                          <li>
+                            Введенные вами данные полностью защищены в
+                            соответствии с требованиями стандарта безопасности
+                            PCI DSS и никто, включая сотрудников нашего
+                            магазина, не может их получить.
+                          </li>
                         </ul>
-                        <p>После завершения оплаты вы будете возвращены на наш сайт. Информация о вашем платеже может идти до нас от 5 секунд до нескольких минут. В случае возникновения проблем с оплатой, пожалуйста, свяжитесь с нами.</p>
+                        <p>
+                          После завершения оплаты вы будете возвращены на наш
+                          сайт. Информация о вашем платеже может идти до нас от
+                          5 секунд до нескольких минут. В случае возникновения
+                          проблем с оплатой, пожалуйста, свяжитесь с нами.
+                        </p>
                       </div>
                     </DialogContent>
                   </Dialog>
@@ -515,7 +572,7 @@ export default function CheckoutPage() {
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full bg-light-orange hover:bg-amber-500 rounded-full h-12 text-lg"
+                className="w-full bg-light-orange hover:bg-amber-500 hover:cursor-pointer rounded-full h-12 text-lg"
               >
                 {isSubmitting ? "Оформление..." : "Оформить заказ"}
               </Button>

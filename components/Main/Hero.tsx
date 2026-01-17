@@ -50,6 +50,8 @@ export const Hero = () => {
           src={"/hero.jpg"}
           alt="Большой выбор материалов, Более 20 лет на рынке, Доставка по барнаулу"
           fill={true}
+          loading="eager"
+          priority
         />
       </div>
     </main>
