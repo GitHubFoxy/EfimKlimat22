@@ -776,6 +776,18 @@ export const delete_item = mutation({
   },
 });
 
+export const delete_order = mutation({
+  args: { id: v.id("orders") },
+  handler: async (ctx, { id }) => {
+    await requireRole(ctx, ["manager", "admin"]);
+    const existing = await ctx.db.get(id);
+    if (!existing) throw new Error("Order not found");
+
+    // Hard delete the order
+    await ctx.db.delete(id);
+  },
+});
+
 export const list_brands_all = query({
   handler: async (ctx) => {
     return await ctx.db.query("brands").collect();

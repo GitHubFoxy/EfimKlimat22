@@ -8,9 +8,16 @@ import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+import { DeleteOrderDialog } from "./delete-order-dialog";
+import { Id } from "@/convex/_generated/dataModel";
 
 export function OrdersTableContent() {
   const [cursor, setCursor] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState<{
+    id: Id<"orders">;
+    publicNumber: number;
+  } | null>(null);
   const updateStatus = useMutation(api.manager.update_order_status);
 
   // Fetch orders data with pagination
@@ -18,7 +25,10 @@ export function OrdersTableContent() {
     paginationOpts: { numItems: 24, cursor },
   });
 
-  const handleStatusChange = async (orderId: any, status: ConvexOrder["status"]) => {
+  const handleStatusChange = async (
+    orderId: any,
+    status: ConvexOrder["status"],
+  ) => {
     try {
       await updateStatus({ orderId, status });
       toast.success("Статус заказа обновлен");
@@ -28,15 +38,29 @@ export function OrdersTableContent() {
     }
   };
 
+  const handleDeleteOrder = (orderId: Id<"orders">, orderNumber: number) => {
+    setOrderToDelete({ id: orderId, publicNumber: orderNumber });
+    setDeleteDialogOpen(true);
+  };
+
+  const handleCloseDeleteDialog = () => {
+    setDeleteDialogOpen(false);
+    setOrderToDelete(null);
+  };
+
   const orderColumns = getOrderColumns({
     onStatusChange: handleStatusChange,
+    onDeleteOrder: (orderId) => {
+      const order = transformedOrders.find((o) => o._id === orderId);
+      if (order) {
+        handleDeleteOrder(orderId as Id<"orders">, order.publicNumber);
+      }
+    },
   });
 
   if (!ordersData) {
     return (
-      <div className="p-4 text-center text-gray-500">
-        Загрузка заказов...
-      </div>
+      <div className="p-4 text-center text-gray-500">Загрузка заказов...</div>
     );
   }
 
@@ -49,17 +73,19 @@ export function OrdersTableContent() {
   }
 
   // Transform Convex order data to match ConvexOrder interface
-  const transformedOrders: ConvexOrder[] = ordersData.page.map((order: any) => ({
-    _id: order._id,
-    publicNumber: order.publicNumber || 0,
-    clientName: order.clientName || "Unknown",
-    clientPhone: order.clientPhone || "Unknown",
-    clientEmail: order.clientEmail,
-    status: order.status || "new",
-    totalAmount: order.totalAmount || 0,
-    paymentStatus: order.paymentStatus || "pending",
-    updatedAt: order.updatedAt || 0,
-  }));
+  const transformedOrders: ConvexOrder[] = ordersData.page.map(
+    (order: any) => ({
+      _id: order._id,
+      publicNumber: order.publicNumber || 0,
+      clientName: order.clientName || "Unknown",
+      clientPhone: order.clientPhone || "Unknown",
+      clientEmail: order.clientEmail,
+      status: order.status || "new",
+      totalAmount: order.totalAmount || 0,
+      paymentStatus: order.paymentStatus || "pending",
+      updatedAt: order.updatedAt || 0,
+    }),
+  );
 
   const handleNextPage = () => {
     if (ordersData.continueCursor) {
@@ -106,6 +132,14 @@ export function OrdersTableContent() {
           <ChevronRight className="w-4 h-4 ml-2" />
         </Button>
       </div>
+
+      {/* Delete Order Dialog */}
+      <DeleteOrderDialog
+        isOpen={deleteDialogOpen}
+        onClose={handleCloseDeleteDialog}
+        orderId={orderToDelete?.id || null}
+        orderNumber={orderToDelete?.publicNumber || 0}
+      />
     </>
   );
 }

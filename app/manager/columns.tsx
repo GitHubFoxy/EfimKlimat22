@@ -196,7 +196,11 @@ export interface Lead {
   name: string;
   email?: string;
   phone: string;
-  type: "callback" | "product_question" | "project_calculation" | "installation";
+  type:
+    | "callback"
+    | "product_question"
+    | "project_calculation"
+    | "installation";
   status: "new" | "processing" | "success" | "failed";
   message?: string;
   updatedAt: number;
@@ -302,8 +306,9 @@ export interface ConvexOrder {
 
 export const getOrderColumns = (handlers?: {
   onStatusChange?: (orderId: any, status: ConvexOrder["status"]) => void;
+  onDeleteOrder?: (orderId: any) => void;
 }): ColumnDef<ConvexOrder>[] => {
-  const { onStatusChange } = handlers || {};
+  const { onStatusChange, onDeleteOrder } = handlers || {};
 
   return [
     {
@@ -444,6 +449,13 @@ export const getOrderColumns = (handlers?: {
                 onClick={() => onStatusChange?.(order._id, "canceled")}
               >
                 Отменить
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-red-600"
+                onClick={() => onDeleteOrder?.(order._id)}
+              >
+                Удалить полностью
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

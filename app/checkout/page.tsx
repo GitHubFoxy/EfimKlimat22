@@ -94,11 +94,6 @@ export default function CheckoutPage() {
       await clear({ sessionId });
 
       setOrderComplete(true);
-
-      // Redirect to order confirmation page after 2 seconds
-      setTimeout(() => {
-        router.push(`/order/${res.orderId}`);
-      }, 2000);
     } catch (error) {
       console.error("Error submitting order:", error);
       alert("Произошла ошибка при оформлении заказа. Попробуйте еще раз.");
@@ -171,9 +166,21 @@ export default function CheckoutPage() {
               Наш менеджер свяжется с вами в ближайшее время для подтверждения
               заказа.
             </p>
-            <p className="text-sm text-gray-500">
-              Перенаправление на главную страницу...
-            </p>
+            <div className="flex gap-4 justify-center">
+              <Button
+                onClick={() => router.push("/catalog")}
+                className="bg-light-orange hover:bg-amber-500 rounded-full px-8"
+              >
+                Перейти в каталог
+              </Button>
+              <Button
+                onClick={() => router.push("/")}
+                variant="outline"
+                className="rounded-full px-8"
+              >
+                На главную
+              </Button>
+            </div>
           </div>
         </div>
         <Footer />
