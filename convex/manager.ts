@@ -4,7 +4,11 @@ import { mutation, query } from "./_generated/server";
 import { ConvexError } from "convex/values";
 import { api } from "./_generated/api";
 import { requirePermanentPassword, requireRole } from "./authHelpers";
-import { upsertCollectionGroup, deleteCollectionGroupIfEmpty } from "./collection_groups_manager";
+import type { Id } from "./_generated/dataModel";
+import {
+  upsertCollectionGroup,
+  deleteCollectionGroupIfEmpty,
+} from "./collection_groups_manager";
 
 // List orders for managers by status, newest first by updatedAt/_creationTime
 export const list_orders_by_status = query({
@@ -112,6 +116,33 @@ export const unclaim_order = mutation({
   },
 });
 
+// UTILITY: Get all descendant category IDs (for hierarchical filtering)
+async function getDescendantCategoryIds(
+  ctx: any,
+  rootId: Id<"categories">,
+): Promise<Id<"categories">[]> {
+  const allCategories = await ctx.db.query("categories").collect();
+
+  const descendants = new Set<Id<"categories">>([rootId]);
+  let changed = true;
+
+  while (changed) {
+    changed = false;
+    for (const cat of allCategories) {
+      if (
+        cat.parentId &&
+        descendants.has(cat.parentId) &&
+        !descendants.has(cat._id)
+      ) {
+        descendants.add(cat._id);
+        changed = true;
+      }
+    }
+  }
+
+  return Array.from(descendants);
+}
+
 // List all items for inventory management
 export const list_items = query({
   args: {
@@ -145,49 +176,73 @@ export const list_items = query({
     },
   ) => {
     let itemsQuery;
+    const hasCategoryFilter = Boolean(categoryId);
 
-    // Choose index based on filters
-    if (categoryId && status) {
-      // Use by_category_price index for category + status filter
-      itemsQuery = ctx.db
-        .query("items")
-        .withIndex("by_category_price", (q) =>
-          q.eq("categoryId", categoryId).eq("status", status),
-        );
-    } else if (brandId && status) {
-      // Use by_brand_status for brand + status filter
-      itemsQuery = ctx.db
-        .query("items")
-        .withIndex("by_brand_status", (q) =>
-          q.eq("status", status).eq("brandId", brandId),
-        );
-    } else if (status) {
-      // Use by_status index
-      itemsQuery = ctx.db
-        .query("items")
-        .withIndex("by_status", (q) => q.eq("status", status));
-    } else {
-      // Default: exclude archived
-      itemsQuery = ctx.db
-        .query("items")
-        .filter((q) => q.neq(q.field("status"), "archived"));
-    }
-
-    // Apply additional filters not covered by index
-    if (brandId) {
-      itemsQuery = itemsQuery.filter((q) => q.eq(q.field("brandId"), brandId));
-    }
-    if (categoryId) {
-      itemsQuery = itemsQuery.filter((q) =>
-        q.eq(q.field("categoryId"), categoryId),
+    if (hasCategoryFilter) {
+      const categoryIds = await getDescendantCategoryIds(
+        ctx,
+        categoryId as Id<"categories">,
       );
+      const items = await ctx.db
+        .query("items")
+        .filter((q) => {
+          const conditions = [q.neq(q.field("status"), "archived")];
+          const categoryConditions = categoryIds.map((catId) =>
+            q.eq(q.field("categoryId"), catId),
+          );
+
+          if (categoryConditions.length === 1) {
+            conditions.push(categoryConditions[0]);
+          } else if (categoryConditions.length > 1) {
+            conditions.push(q.or(...categoryConditions));
+          }
+
+          if (brandId) {
+            conditions.push(q.eq(q.field("brandId"), brandId));
+          }
+
+          if (status) {
+            conditions.push(q.eq(q.field("status"), status));
+          }
+
+          return q.and(...conditions);
+        })
+        .order(sortOrder === "asc" ? "asc" : "desc")
+        .paginate(paginationOpts);
+
+      itemsQuery = items;
+    } else {
+      // Choose index based on filters - prioritize composite indexes for better performance
+      if (brandId && status) {
+        itemsQuery = ctx.db
+          .query("items")
+          .withIndex("by_brand_status", (q) =>
+            q.eq("status", status).eq("brandId", brandId),
+          );
+      } else if (brandId) {
+        itemsQuery = ctx.db
+          .query("items")
+          .withIndex("by_brand_no_status", (q) => q.eq("brandId", brandId))
+          .filter((q) => q.neq(q.field("status"), "archived"));
+      } else if (status) {
+        itemsQuery = ctx.db
+          .query("items")
+          .withIndex("by_status", (q) => q.eq("status", status));
+      } else {
+        itemsQuery = ctx.db
+          .query("items")
+          .filter((q) => q.neq(q.field("status"), "archived"));
+      }
     }
 
-    // Apply sort order
-    const orderedQuery =
-      sortOrder === "asc" ? itemsQuery.order("asc") : itemsQuery.order("desc");
-
-    const items = await orderedQuery.paginate(paginationOpts);
+    const items =
+      "page" in itemsQuery
+        ? itemsQuery
+        : await (
+            sortOrder === "asc"
+              ? itemsQuery.order("asc")
+              : itemsQuery.order("desc")
+          ).paginate(paginationOpts);
 
     // Enrich with brand and category names
     const itemsWithDetails = await Promise.all(
@@ -281,36 +336,59 @@ export const search_items = query({
       ),
     ),
     sortOrder: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
+    brandId: v.optional(v.id("brands")),
+    categoryId: v.optional(v.id("categories")),
+    status: v.optional(
+      v.union(v.literal("active"), v.literal("draft"), v.literal("preorder")),
+    ),
   },
   handler: async (
     ctx,
-    { query, paginationOpts, sortBy = "createdAt", sortOrder = "desc" },
+    {
+      query,
+      paginationOpts,
+      sortBy = "createdAt",
+      sortOrder = "desc",
+      brandId,
+      categoryId,
+      status,
+    },
   ) => {
     await requireRole(ctx, ["manager", "admin"]);
+    const normalizedQuery = query.trim().toLowerCase();
+    const categoryIds = categoryId
+      ? await getDescendantCategoryIds(ctx, categoryId as Id<"categories">)
+      : undefined;
+
     const searchResults = await ctx.db
       .query("items")
-      .withSearchIndex("search_main", (q) => q.search("searchText", query))
-      .paginate(paginationOpts);
+      .withSearchIndex("search_main", (q) =>
+        q.search("searchText", normalizedQuery),
+      )
+      .collect();
 
-    const itemsWithBrands = await Promise.all(
-      searchResults.page.map(async (item) => {
-        let brandName = "Неизвестно";
-        if (item.brandId) {
-          const brand = await ctx.db.get(item.brandId);
-          if (brand && 'name' in brand) {
-            brandName = brand.name as string;
-          }
+    const filteredResults = searchResults.filter((item) => {
+      if (status) {
+        if (item.status !== status) return false;
+      } else if (item.status === "archived") {
+        return false;
+      }
+
+      if (brandId && item.brandId !== brandId) return false;
+
+      if (categoryIds && categoryIds.length > 0) {
+        if (!item.categoryId) return false;
+        if (!categoryIds.includes(item.categoryId as Id<"categories">)) {
+          return false;
         }
-        return {
-          ...item,
-          brandName,
-        };
-      }),
-    );
+      }
 
-    let page = itemsWithBrands;
+      return true;
+    });
+
+    let sortedResults = filteredResults;
     if (sortBy !== "createdAt") {
-      page = [...itemsWithBrands].sort((a, b) => {
+      sortedResults = [...filteredResults].sort((a, b) => {
         const aVal = a[sortBy];
         const bVal = b[sortBy];
         if (aVal === bVal) return 0;
@@ -319,9 +397,31 @@ export const search_items = query({
       });
     }
 
+    const startIndex = paginationOpts.cursor
+      ? Number(paginationOpts.cursor)
+      : 0;
+    const endIndex = startIndex + paginationOpts.numItems;
+    const pagedResults = sortedResults.slice(startIndex, endIndex);
+
+    const itemsWithDetails = await Promise.all(
+      pagedResults.map(async (item) => {
+        const [brand, category] = await Promise.all([
+          item.brandId ? ctx.db.get(item.brandId) : null,
+          item.categoryId ? ctx.db.get(item.categoryId) : null,
+        ]);
+        return {
+          ...item,
+          brandName: (brand as any)?.name || "Неизвестно",
+          categoryName: (category as any)?.name || "Без категории",
+        };
+      }),
+    );
+
     return {
-      ...searchResults,
-      page,
+      page: itemsWithDetails,
+      isDone: endIndex >= sortedResults.length,
+      continueCursor:
+        endIndex >= sortedResults.length ? null : String(endIndex),
     };
   },
 });
@@ -545,134 +645,136 @@ export const search_by_type = query({
 });
 
 export const create_item = mutation({
-   args: {
-     name: v.string(),
-     sku: v.string(),
-     description: v.string(),
-     brandId: v.id("brands"),
-     categoryId: v.id("categories"),
-     price: v.number(),
-     quantity: v.number(),
-     status: v.union(
-       v.literal("active"),
-       v.literal("draft"),
-       v.literal("archived"),
-       v.literal("preorder"),
-     ),
-     inStock: v.boolean(),
-     specifications: v.optional(
-       v.record(v.string(), v.union(v.string(), v.number(), v.boolean())),
-     ),
-     collection: v.optional(v.string()),
-   },
-   handler: async (ctx, args) => {
-     await requireRole(ctx, ["manager", "admin"]);
-     const slug = args.name
-       .toLowerCase()
-       .replace(/ /g, "-")
-       .replace(/[^\w-]+/g, "");
+  args: {
+    name: v.string(),
+    sku: v.string(),
+    description: v.string(),
+    brandId: v.id("brands"),
+    categoryId: v.id("categories"),
+    price: v.number(),
+    quantity: v.number(),
+    status: v.union(
+      v.literal("active"),
+      v.literal("draft"),
+      v.literal("archived"),
+      v.literal("preorder"),
+    ),
+    inStock: v.boolean(),
+    specifications: v.optional(
+      v.record(v.string(), v.union(v.string(), v.number(), v.boolean())),
+    ),
+    collection: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await requireRole(ctx, ["manager", "admin"]);
+    const slug = args.name
+      .toLowerCase()
+      .replace(/ /g, "-")
+      .replace(/[^\w-]+/g, "");
 
-     // Extract collection from specifications if not provided
-     const collection =
-       args.collection ||
-       (args.specifications?.collection as string | undefined);
+    // Extract collection from specifications if not provided
+    const collection =
+      args.collection ||
+      (args.specifications?.collection as string | undefined);
 
-     const itemId = await ctx.db.insert("items", {
-       ...args,
-       slug,
-       collection,
-       ordersCount: 0,
-       searchText: `${args.name} ${args.sku}`.toLowerCase(),
-     });
+    const itemId = await ctx.db.insert("items", {
+      ...args,
+      slug,
+      collection,
+      ordersCount: 0,
+      searchText: `${args.name} ${args.sku}`.toLowerCase(),
+    });
 
-     // Update collection group after item is created
-     const newItem = await ctx.db.get(itemId);
-     if (newItem) {
-       await upsertCollectionGroup(ctx, newItem);
-     }
+    // Update collection group after item is created
+    const newItem = await ctx.db.get(itemId);
+    if (newItem) {
+      await upsertCollectionGroup(ctx, newItem);
+    }
 
-     return itemId;
-   },
- });
+    return itemId;
+  },
+});
 
 export const update_item = mutation({
-   args: {
-     id: v.id("items"),
-     name: v.optional(v.string()),
-     sku: v.optional(v.string()),
-     description: v.optional(v.string()),
-     brandId: v.optional(v.id("brands")),
-     categoryId: v.optional(v.id("categories")),
-     price: v.optional(v.number()),
-     quantity: v.optional(v.number()),
-     status: v.optional(
-       v.union(
-         v.literal("active"),
-         v.literal("draft"),
-         v.literal("archived"),
-         v.literal("preorder"),
-       ),
-     ),
-     inStock: v.optional(v.boolean()),
-     specifications: v.optional(
-       v.record(v.string(), v.union(v.string(), v.number(), v.boolean())),
-     ),
-     collection: v.optional(v.string()),
-   },
-   handler: async (ctx, { id, ...args }) => {
-     await requireRole(ctx, ["manager", "admin"]);
-     const existing = await ctx.db.get(id);
-     if (!existing) throw new Error("Item not found");
+  args: {
+    id: v.id("items"),
+    name: v.optional(v.string()),
+    sku: v.optional(v.string()),
+    description: v.optional(v.string()),
+    brandId: v.optional(v.id("brands")),
+    categoryId: v.optional(v.id("categories")),
+    price: v.optional(v.number()),
+    quantity: v.optional(v.number()),
+    status: v.optional(
+      v.union(
+        v.literal("active"),
+        v.literal("draft"),
+        v.literal("archived"),
+        v.literal("preorder"),
+      ),
+    ),
+    inStock: v.optional(v.boolean()),
+    specifications: v.optional(
+      v.record(v.string(), v.union(v.string(), v.number(), v.boolean())),
+    ),
+    collection: v.optional(v.string()),
+  },
+  handler: async (ctx, { id, ...args }) => {
+    await requireRole(ctx, ["manager", "admin"]);
+    const existing = await ctx.db.get(id);
+    if (!existing) throw new Error("Item not found");
 
-     const patch: any = { ...args };
-     if (args.name) {
-       patch.slug = args.name
-         .toLowerCase()
-         .replace(/ /g, "-")
-         .replace(/[^\w-]+/g, "");
-     }
+    const patch: any = { ...args };
+    if (args.name) {
+      patch.slug = args.name
+        .toLowerCase()
+        .replace(/ /g, "-")
+        .replace(/[^\w-]+/g, "");
+    }
 
-     if (args.name || args.sku) {
-       const name = args.name ?? existing.name;
-       const sku = args.sku ?? existing.sku;
-       patch.searchText = `${name} ${sku}`.toLowerCase();
-     }
+    if (args.name || args.sku) {
+      const name = args.name ?? existing.name;
+      const sku = args.sku ?? existing.sku;
+      patch.searchText = `${name} ${sku}`.toLowerCase();
+    }
 
-     // Handle collection: extract from specifications if present, or use provided value
-     if (args.specifications) {
-       const collection = args.collection || (args.specifications.collection as string | undefined);
-       if (collection) {
-         patch.collection = collection;
-       }
-     } else if (args.collection !== undefined) {
-       patch.collection = args.collection;
-     }
+    // Handle collection: extract from specifications if present, or use provided value
+    if (args.specifications) {
+      const collection =
+        args.collection ||
+        (args.specifications.collection as string | undefined);
+      if (collection) {
+        patch.collection = collection;
+      }
+    } else if (args.collection !== undefined) {
+      patch.collection = args.collection;
+    }
 
-     await ctx.db.patch(id, patch);
+    await ctx.db.patch(id, patch);
 
-     // Update collection group after item is updated
-     const updatedItem = await ctx.db.get(id);
-     if (updatedItem) {
-       await upsertCollectionGroup(ctx, updatedItem);
-     }
+    // Update collection group after item is updated
+    const updatedItem = await ctx.db.get(id);
+    if (updatedItem) {
+      await upsertCollectionGroup(ctx, updatedItem);
+    }
 
-     return id;
-   },
- });
+    return id;
+  },
+});
 
 export const delete_item = mutation({
-   args: { id: v.id("items") },
-   handler: async (ctx, { id }) => {
-     await requireRole(ctx, ["manager", "admin"]);
-     const existing = await ctx.db.get(id);
-     if (!existing) throw new Error("Item not found");
-     
-     await ctx.db.patch(id, { status: "archived" });
-     
-     // Clean up collection group if no active items remain
-     await deleteCollectionGroupIfEmpty(ctx, existing);
-   },
- });
+  args: { id: v.id("items") },
+  handler: async (ctx, { id }) => {
+    await requireRole(ctx, ["manager", "admin"]);
+    const existing = await ctx.db.get(id);
+    if (!existing) throw new Error("Item not found");
+
+    await ctx.db.patch(id, { status: "archived" });
+
+    // Clean up collection group if no active items remain
+    await deleteCollectionGroupIfEmpty(ctx, existing);
+  },
+});
 
 export const list_brands_all = query({
   handler: async (ctx) => {
