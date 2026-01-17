@@ -484,7 +484,7 @@ export default function CheckoutPage() {
                     Наличными при получении
                   </option>
                   <option value="card_on_delivery">Картой при получении</option>
-                  <option value="b2b_invoice">
+                  <option value="b2b_invoice" disabled>
                     Счет на оплату (для юрлиц)
                   </option>
                 </select>
