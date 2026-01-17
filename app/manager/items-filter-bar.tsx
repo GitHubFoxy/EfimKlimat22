@@ -67,7 +67,9 @@ export function ItemsFilterBar({
       <Select
         value={categoryId ?? "__all__"}
         onValueChange={(v) =>
-          onCategoryChange(v === "__all__" ? undefined : (v as Id<"categories">))
+          onCategoryChange(
+            v === "__all__" ? undefined : (v as Id<"categories">),
+          )
         }
       >
         <SelectTrigger className="w-[200px] bg-white">
@@ -117,7 +119,8 @@ export function ItemsFilterBar({
       {/* Active filters count */}
       {hasActiveFilters && (
         <span className="text-xs text-gray-500 ml-auto">
-          Активных фильтров: {[brandId, categoryId, status].filter(Boolean).length}
+          Активных фильтров:{" "}
+          {[brandId, categoryId, status].filter(Boolean).length}
         </span>
       )}
     </div>

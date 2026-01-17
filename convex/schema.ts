@@ -83,53 +83,54 @@ const brandTable = defineTable({
   status: v.union(v.literal("active"), v.literal("hidden")),
   sortOrder: v.optional(v.number()),
   legacyId: v.optional(v.string()),
-}).index("by_status_sort", ["status", "sortOrder"])
+})
+  .index("by_status_sort", ["status", "sortOrder"])
   .index("by_legacyId", ["legacyId"]);
 
 const itemsTable = defineTable({
-   name: v.string(),
-   slug: v.string(),
-   sku: v.string(),
-   description: v.string(),
+  name: v.string(),
+  slug: v.string(),
+  sku: v.string(),
+  description: v.string(),
 
-   brandId: v.optional(v.id("brands")),  // Optional during migration, make required after
-   categoryId: v.optional(v.id("categories")),  // Optional during migration, make required after
+  brandId: v.optional(v.id("brands")), // Optional during migration, make required after
+  categoryId: v.optional(v.id("categories")), // Optional during migration, make required after
 
-   status: v.union(
-     v.literal("active"),
-     v.literal("draft"),
-     v.literal("archived"),
-     v.literal("preorder"),
-   ),
+  status: v.union(
+    v.literal("active"),
+    v.literal("draft"),
+    v.literal("archived"),
+    v.literal("preorder"),
+  ),
 
-   price: v.number(),
-   oldPrice: v.optional(v.number()),
-   discountAmount: v.optional(v.number()),
-   quantity: v.number(),
+  price: v.number(),
+  oldPrice: v.optional(v.number()),
+  discountAmount: v.optional(v.number()),
+  quantity: v.number(),
 
-   imagesUrl: v.optional(v.array(v.string())),
-   imageStorageIds: v.optional(v.array(v.id("_storage"))),
+  imagesUrl: v.optional(v.array(v.string())),
+  imageStorageIds: v.optional(v.array(v.id("_storage"))),
 
-   documents: v.optional(
-     v.array(
-       v.object({
-         name: v.string(),
-         url: v.string(),
-       }),
-     ),
-   ),
+  documents: v.optional(
+    v.array(
+      v.object({
+        name: v.string(),
+        url: v.string(),
+      }),
+    ),
+  ),
 
-   inStock: v.boolean(),
-   specifications: v.optional(
-     v.record(v.string(), v.union(v.string(), v.number(), v.boolean())),
-     // Examples: { "power": 5.5 }, { "powerKW": 5.5 }, { "sectionCount": 12 }
-   ),
-   // Denormalized collection field for grouping (synced from specifications.collection)
-   collection: v.optional(v.string()),
-   ordersCount: v.number(),
-   labels: v.optional(v.array(v.string())),
-   searchText: v.string(),
-   legacyId: v.optional(v.string()),
+  inStock: v.boolean(),
+  specifications: v.optional(
+    v.record(v.string(), v.union(v.string(), v.number(), v.boolean())),
+    // Examples: { "power": 5.5 }, { "powerKW": 5.5 }, { "sectionCount": 12 }
+  ),
+  // Denormalized collection field for grouping (synced from specifications.collection)
+  collection: v.optional(v.string()),
+  ordersCount: v.number(),
+  labels: v.optional(v.array(v.string())),
+  searchText: v.string(),
+  legacyId: v.optional(v.string()),
 })
   .searchIndex("search_main", {
     searchField: "searchText",
@@ -143,7 +144,14 @@ const itemsTable = defineTable({
   .index("by_slug", ["slug"])
   .index("by_brand_status", ["status", "brandId"])
   .index("by_status", ["status"])
-  .index("by_category_brand_collection", ["categoryId", "brandId", "status", "collection"])
+  .index("by_category_no_status", ["categoryId"])
+  .index("by_brand_no_status", ["brandId"])
+  .index("by_category_brand_collection", [
+    "categoryId",
+    "brandId",
+    "status",
+    "collection",
+  ])
   .index("by_legacyId", ["legacyId"]);
 
 const categoryTable = defineTable({
@@ -180,7 +188,7 @@ const cartsTable = defineTable({
   ),
 
   updatedAt: v.number(),
-  
+
   // Migration tracking
   legacyId: v.optional(v.string()),
 })
@@ -189,8 +197,8 @@ const cartsTable = defineTable({
   .index("by_userId", ["userId", "status"]);
 
 const cartItemsTable = defineTable({
-  cartId: v.optional(v.id("carts")),  // Optional during migration
-  itemId: v.optional(v.id("items")),  // Optional during migration
+  cartId: v.optional(v.id("carts")), // Optional during migration
+  itemId: v.optional(v.id("items")), // Optional during migration
   quantity: v.number(),
   legacyId: v.optional(v.string()),
 })
@@ -250,7 +258,7 @@ const ordersTable = defineTable({
   comment: v.optional(v.string()),
   managerNote: v.optional(v.string()),
   updatedAt: v.number(),
-  
+
   // Migration tracking
   legacyId: v.optional(v.string()),
 })
@@ -261,7 +269,7 @@ const ordersTable = defineTable({
   .index("by_legacyId", ["legacyId"]);
 
 const orderItemsTable = defineTable({
-  orderId: v.optional(v.id("orders")),  // Optional during migration
+  orderId: v.optional(v.id("orders")), // Optional during migration
   itemId: v.optional(v.id("items")),
   name: v.string(),
   sku: v.string(),
@@ -307,64 +315,64 @@ const leadsTable = defineTable({
   .index("by_legacyId", ["legacyId"]);
 
 const reviewsTable = defineTable({
-   itemId: v.optional(v.id("items")),  // Optional during migration
-   userId: v.optional(v.id("users")),
-   legacyId: v.optional(v.string()),
+  itemId: v.optional(v.id("items")), // Optional during migration
+  userId: v.optional(v.id("users")),
+  legacyId: v.optional(v.string()),
 
-   authorName: v.string(),
+  authorName: v.string(),
 
-   rating: v.number(),
-   text: v.optional(v.string()),
-   pros: v.optional(v.string()),
-   cons: v.optional(v.string()),
+  rating: v.number(),
+  text: v.optional(v.string()),
+  pros: v.optional(v.string()),
+  cons: v.optional(v.string()),
 
-   imagesUrl: v.optional(v.array(v.string())),
-   imageStorageIds: v.optional(v.array(v.id("_storage"))),
+  imagesUrl: v.optional(v.array(v.string())),
+  imageStorageIds: v.optional(v.array(v.id("_storage"))),
 
-   status: v.union(
-     v.literal("pending"),
-     v.literal("approved"),
-     v.literal("rejected"),
-   ),
+  status: v.union(
+    v.literal("pending"),
+    v.literal("approved"),
+    v.literal("rejected"),
+  ),
 
-   reply: v.optional(v.string()),
-   replyDate: v.optional(v.number()),
- })
-   .index("by_item_status", ["itemId", "status"])
-   .index("by_status", ["status"])
-   .index("by_user", ["userId"]);
+  reply: v.optional(v.string()),
+  replyDate: v.optional(v.number()),
+})
+  .index("by_item_status", ["itemId", "status"])
+  .index("by_status", ["status"])
+  .index("by_user", ["userId"]);
 
 const collectionGroupsTable = defineTable({
-   categoryId: v.id("categories"),
-   brandId: v.id("brands"),
-   collection: v.string(),
-   representativeItemId: v.id("items"),
+  categoryId: v.id("categories"),
+  brandId: v.id("brands"),
+  collection: v.string(),
+  representativeItemId: v.id("items"),
 
-   variantsCount: v.number(),
-   priceMin: v.number(),
-   priceMax: v.number(),
-   hasDiscount: v.boolean(),
+  variantsCount: v.number(),
+  priceMin: v.number(),
+  priceMax: v.number(),
+  hasDiscount: v.boolean(),
 
-   primaryImageUrl: v.optional(v.string()),
-   representativeSlug: v.optional(v.string()),
- })
-   .index("by_category_brand", ["categoryId", "brandId"])
-   .index("by_category", ["categoryId"]);
+  primaryImageUrl: v.optional(v.string()),
+  representativeSlug: v.optional(v.string()),
+})
+  .index("by_category_brand", ["categoryId", "brandId"])
+  .index("by_category", ["categoryId"]);
 
 export default defineSchema({
-   users: usersTable,
-   authSessions: authSessionsTable,
-   authAccounts: authAccountsTable,
-   authRateLimits: authRateLimitsTable,
-   authRefreshTokens: authRefreshTokensTable,
-   brands: brandTable,
-   items: itemsTable,
-   categories: categoryTable,
-   carts: cartsTable,
-   cartItems: cartItemsTable,
-   orders: ordersTable,
-   orderItems: orderItemsTable,
-   leads: leadsTable,
-   reviews: reviewsTable,
-   collectionGroups: collectionGroupsTable,
- });
+  users: usersTable,
+  authSessions: authSessionsTable,
+  authAccounts: authAccountsTable,
+  authRateLimits: authRateLimitsTable,
+  authRefreshTokens: authRefreshTokensTable,
+  brands: brandTable,
+  items: itemsTable,
+  categories: categoryTable,
+  carts: cartsTable,
+  cartItems: cartItemsTable,
+  orders: ordersTable,
+  orderItems: orderItemsTable,
+  leads: leadsTable,
+  reviews: reviewsTable,
+  collectionGroups: collectionGroupsTable,
+});
