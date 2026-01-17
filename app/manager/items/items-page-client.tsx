@@ -59,17 +59,15 @@ export function ItemsPageClient({
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Reset cursor when search changes
+  // Reset cursor when debounced search changes
   useEffect(() => {
-    if (searchQuery !== localDebouncedSearch) {
-      const newParams = new URLSearchParams(window.location.search);
-      newParams.delete("cursor");
-      const search = newParams.toString();
-      router.replace(`/manager/items${search ? `?${search}` : ""}`, {
-        scroll: false,
-      });
-    }
-  }, [searchQuery, localDebouncedSearch, router]);
+    const newParams = new URLSearchParams(window.location.search);
+    newParams.delete("cursor");
+    const search = newParams.toString();
+    router.replace(`/manager/items${search ? `?${search}` : ""}`, {
+      scroll: false,
+    });
+  }, [localDebouncedSearch, router]);
 
   const openCreateDialog = () => {
     setEditingItem(null);
