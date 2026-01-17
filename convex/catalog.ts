@@ -125,7 +125,12 @@ export const catalog_query_based_on_category_and_filter = query({
       }
 
       if (filter === "Со скидкой") {
-        conditions.push(q.gt(q.field("discountAmount"), 0));
+        conditions.push(
+          q.or(
+            q.gt(q.field("oldPrice"), q.field("price")),
+            q.gt(q.field("discountAmount"), 0),
+          ),
+        );
       }
 
       if (brand) {
@@ -147,11 +152,11 @@ export const catalog_query_based_on_category_and_filter = query({
         (a, b) => (b.ordersCount ?? 0) - (a.ordersCount ?? 0) || a._id.localeCompare(b._id),
       );
     } else if (filter === "Со скидкой") {
-      allItems.sort(
-        (a, b) =>
-          (b.discountAmount ?? 0) - (a.discountAmount ?? 0) ||
-          a._id.localeCompare(b._id),
-      );
+      allItems.sort((a, b) => {
+        const da = a.discountAmount ?? ((a.oldPrice ?? a.price) - a.price);
+        const db = b.discountAmount ?? ((b.oldPrice ?? b.price) - b.price);
+        return (db ?? 0) - (da ?? 0) || a._id.localeCompare(b._id);
+      });
     } else {
       // "Новинки" - sort by creation time desc
       allItems.sort(
@@ -224,7 +229,7 @@ export const catalog_query_grouped_by_collection = query({
       groupsQuery = groupsQuery.filter((q) => q.eq(q.field("brandId"), brand));
     }
 
-    // Filter by discount flag
+    // Filter by discount flag - check if any item in group has discount
     if (filter === "Со скидкой") {
       groupsQuery = groupsQuery.filter((q) =>
         q.eq(q.field("hasDiscount"), true),
@@ -276,11 +281,11 @@ export const catalog_query_grouped_by_collection = query({
         (a, b) => (b.ordersCount ?? 0) - (a.ordersCount ?? 0) || a._id.localeCompare(b._id),
       );
     } else if (filter === "Со скидкой") {
-      validGroups.sort(
-        (a, b) =>
-          (b.discountAmount ?? 0) - (a.discountAmount ?? 0) ||
-          a._id.localeCompare(b._id),
-      );
+      validGroups.sort((a, b) => {
+        const da = a.discountAmount ?? ((a.oldPrice ?? a.price) - a.price);
+        const db = b.discountAmount ?? ((b.oldPrice ?? b.price) - b.price);
+        return (db ?? 0) - (da ?? 0) || a._id.localeCompare(b._id);
+      });
     } else {
       // "Новинки" - sort by creation time desc
       validGroups.sort(

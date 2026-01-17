@@ -43,8 +43,9 @@ function CatalogResultsInner({
   const [cursor, setCursor] = useState(0);
   const [accumulatedResults, setAccumulatedResults] = useState<any[]>([]);
 
-  // Don't group when showing "Хиты продаж" to ensure all sold items appear
-  const shouldGroup = groupByCollection && filter !== "Хиты продаж";
+  // Don't group when showing "Хиты продаж" or "Со скидкой" to ensure accurate filtering
+  const shouldGroup =
+    groupByCollection && filter !== "Хиты продаж" && filter !== "Со скидкой";
   
   const queryResult = useQuery(
     shouldGroup
@@ -241,7 +242,7 @@ export function CatalogClient({
   };
 
   const setSelectedFilter = (filter: FilterType) => {
-    updateParams({ filter: filter === "Новинки" ? null : filter });
+    updateParams({ filter });
   };
 
   const clearAllFilters = () => {
