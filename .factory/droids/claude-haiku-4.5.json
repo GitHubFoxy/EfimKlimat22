@@ -1,8 +1,8 @@
 {
   "name": "claude-haiku-4.5-droid",
-  "description": "Routes short-form creative writing to anthropic/claude-haiku-4.5; disables notification sound; uses safe fallback and 1024 token limit.",
-  "model": "anthropic/claude-haiku-4.5",
-  "tags": ["haiku", "poetry", "creative", "microcopy", "anthropic"],
+  "description": "Routes short-form creative writing to OpenRouter model openrouter/claude-haiku-4.5; disables notification sound; uses safe fallback and 1024 token limit.",
+  "model": "openrouter/claude-haiku-4.5",
+  "tags": ["haiku", "poetry", "creative", "microcopy", "openrouter"],
   "routing": {
     "match_any": ["haiku", "poetry", "microcopy", "creative", "poem", "short poem"],
     "field": "task_tags"
