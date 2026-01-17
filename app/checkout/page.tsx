@@ -93,7 +93,7 @@ export default function CheckoutPage() {
       // Optionally ensure local cart state clears
       await clear({ sessionId });
 
-      setOrderComplete(true);
+      router.push(`/order/${res.orderId}`);
     } catch (error) {
       console.error("Error submitting order:", error);
       alert("Произошла ошибка при оформлении заказа. Попробуйте еще раз.");
@@ -132,55 +132,6 @@ export default function CheckoutPage() {
             >
               Перейти в каталог
             </Button>
-          </div>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (orderComplete) {
-    return (
-      <div className="px-6 py-2 md:px-12 lg:px-28">
-        <Header />
-        <div className="min-h-[400px] flex items-center justify-center">
-          <div className="text-center max-w-md">
-            <div className="mb-6">
-              <svg
-                className="w-20 h-20 mx-auto text-green-500"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-            </div>
-            <h1 className="text-3xl font-semibold mb-4">Заказ оформлен!</h1>
-            <p className="text-lg mb-2">Спасибо за ваш заказ!</p>
-            <p className="text-gray-600 mb-6">
-              Наш менеджер свяжется с вами в ближайшее время для подтверждения
-              заказа.
-            </p>
-            <div className="flex gap-4 justify-center">
-              <Button
-                onClick={() => router.push("/catalog")}
-                className="bg-light-orange hover:bg-amber-500 rounded-full px-8"
-              >
-                Перейти в каталог
-              </Button>
-              <Button
-                onClick={() => router.push("/")}
-                variant="outline"
-                className="rounded-full px-8"
-              >
-                На главную
-              </Button>
-            </div>
           </div>
         </div>
         <Footer />
