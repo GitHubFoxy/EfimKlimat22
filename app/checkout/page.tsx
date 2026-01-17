@@ -361,7 +361,7 @@ export default function CheckoutPage() {
                   required
                   value={formData.phone}
                   onChange={handleInputChange}
-                  placeholder="+7 (999) 123-45-67"
+                  placeholder="81234567890"
                   className="mt-1"
                 />
               </div>
