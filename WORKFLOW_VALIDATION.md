@@ -12,10 +12,15 @@
 
 ### 1. Homepage → Catalog → Add to Cart → Checkout → Order Confirmation
 **Status:** [ ]
-**Notes:**
+**Notes:** 
 ```
 [Describe what works, what doesn't, any errors encountered]
 ```
+The main route renders, both hero button and nav bar works, add to cart from /catalog works, FloatingButton redirects to Checkout, the form is validated a bit, can do an order, cant do payment. 
+
+Need payment wall
+Everything is kinda okay
+
 
 ### 2. Search Functionality
 **Does the search bar in the header work in real-time?**

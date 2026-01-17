@@ -11,14 +11,9 @@ import DisclaimerMessage from "@/components/CatalogComponents/DisclaimerMessage"
 import CatalogFilters from "@/components/CatalogComponents/CatalogFilters";
 import CatalogResultsGrid from "@/components/CatalogComponents/CatalogResultsGrid";
 
-import {
-  Preloaded,
-  usePreloadedQuery,
-  usePaginatedQuery,
-  useQuery,
-} from "convex/react";
+import { Preloaded, usePreloadedQuery, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Id } from "@/convex/_generated/dataModel";
 import { useCartSessionId } from "@/hooks/useCartSession";
@@ -30,100 +25,125 @@ const ALLOWED_FILTERS = new Set<FilterType>([
   "Со скидкой",
 ]);
 
+function CatalogResultsInner({
+  effectiveCategoryId,
+  filter,
+  priceSort,
+  selectedBrand,
+  onClearBrandFilter,
+  groupByCollection,
+}: {
+  effectiveCategoryId: Id<"categories"> | undefined;
+  filter: FilterType;
+  priceSort?: "asc" | "desc" | null;
+  selectedBrand?: Id<"brands"> | null;
+  onClearBrandFilter: () => void;
+  groupByCollection: boolean;
+}) {
+  const [cursor, setCursor] = useState(0);
+  const [accumulatedResults, setAccumulatedResults] = useState<any[]>([]);
+
+  // Don't group when showing "Хиты продаж" to ensure all sold items appear
+  const shouldGroup = groupByCollection && filter !== "Хиты продаж";
+  
+  const queryResult = useQuery(
+    shouldGroup
+      ? api.catalog.catalog_query_grouped_by_collection
+      : api.catalog.catalog_query_based_on_category_and_filter,
+    {
+      category: effectiveCategoryId,
+      filter,
+      brand: selectedBrand || undefined,
+      priceSort: priceSort || undefined,
+      cursor,
+    },
+  );
+
+  // Compute displayed results: accumulated + current page (deduplicated)
+  let displayedResults: any[];
+  if (!queryResult?.page) {
+    displayedResults = accumulatedResults;
+  } else if (cursor === 0) {
+    displayedResults = queryResult.page;
+  } else {
+    const existingIds = new Set(accumulatedResults.map((item) => item._id));
+    const newItems = queryResult.page.filter(
+      (item: any) => !existingIds.has(item._id),
+    );
+    displayedResults = [...accumulatedResults, ...newItems];
+  }
+
+  const isLoading = queryResult === undefined;
+  const isDone = queryResult?.isDone ?? true;
+
+  const handleLoadMore = () => {
+    if (
+      queryResult?.nextCursor !== null &&
+      queryResult?.nextCursor !== undefined
+    ) {
+      setAccumulatedResults(displayedResults);
+      setCursor(queryResult.nextCursor);
+    }
+  };
+
+  return (
+    <CatalogResultsGrid
+      isLoading={isLoading}
+      results={displayedResults}
+      selectedBrand={selectedBrand}
+      onClearBrandFilter={onClearBrandFilter}
+      onLoadMore={handleLoadMore}
+      isDone={isDone}
+    />
+  );
+}
+
 function CatalogResults({
   categoryId,
   filter,
   subcategory,
   priceSort,
-  variantSort,
   selectedBrand,
   onClearBrandFilter,
   groupByCollection,
-  preloadedItemsData,
-  isInitialLoad,
 }: {
   categoryId: Id<"categories"> | null;
   filter: FilterType;
   subcategory?: string | null;
   priceSort?: "asc" | "desc" | null;
-  variantSort?: "asc" | "desc" | null;
   selectedBrand?: Id<"brands"> | null;
   onClearBrandFilter: () => void;
   groupByCollection: boolean;
-  preloadedItemsData?: any;
-  isInitialLoad?: boolean;
 }) {
   const effectiveCategoryId = subcategory
     ? (subcategory as Id<"categories">)
     : categoryId;
 
-  const paginatedQuery = usePaginatedQuery(
-    groupByCollection
-      ? api.catalog.catalog_query_grouped_by_collection
-      : api.catalog.catalog_query_based_on_category_and_filter,
-    {
-      category: effectiveCategoryId || undefined,
-      filter,
-      brand: selectedBrand || undefined,
-    },
-    { initialNumItems: 24 },
-  );
-
-  // Use preloaded data on initial load if available
-  let results = paginatedQuery.results;
-  let status = paginatedQuery.status;
-  let isLoading = paginatedQuery.isLoading;
-  const loadMore = paginatedQuery.loadMore;
-
-  if (isInitialLoad && preloadedItemsData?.page) {
-    results = preloadedItemsData.page;
-    status = preloadedItemsData.status;
-    isLoading = false;
-  }
-
-  // Apply client-side sorting only (brand filtering is now done in query)
-  const sortedResults = [...results];
-
-  // Sort by price if selected
-  if (priceSort === "asc") {
-    sortedResults.sort((a, b) => a.price - b.price);
-  } else if (priceSort === "desc") {
-    sortedResults.sort((a, b) => b.price - a.price);
-  }
+  // Use key to remount component when filters change, resetting cursor state
+  const filterKey = `${effectiveCategoryId}-${filter}-${priceSort}-${selectedBrand}-${groupByCollection}`;
 
   return (
-    <CatalogResultsGrid
-      isLoading={isLoading}
-      results={results}
-      sortedResults={sortedResults}
-      status={status}
+    <CatalogResultsInner
+      key={filterKey}
+      effectiveCategoryId={effectiveCategoryId || undefined}
+      filter={filter}
+      priceSort={priceSort}
       selectedBrand={selectedBrand}
       onClearBrandFilter={onClearBrandFilter}
-      onLoadMore={() => loadMore(24)}
+      groupByCollection={groupByCollection}
     />
-  );
-}
-
-function HydratedCatalogResultsWrapper({ preloadedItems, ...props }: any) {
-  const preloadedItemsData = usePreloadedQuery(preloadedItems);
-  return (
-    <CatalogResultsWrapper {...props} preloadedItemsData={preloadedItemsData} />
   );
 }
 
 export function CatalogClient({
   preloadedCategories,
   preloadedBrands,
-  preloadedItems,
   initialFilter,
 }: {
   preloadedCategories: Preloaded<
     typeof api.catalog.catalog_list_all_categories
   >;
   preloadedBrands: Preloaded<typeof api.catalog.show_all_brands>;
-  preloadedItems: Preloaded<
-    typeof api.catalog.catalog_query_grouped_by_collection
-  > | null;
   initialFilter: FilterType;
 }) {
   const router = useRouter();
@@ -136,7 +156,6 @@ export function CatalogClient({
   const brandsAll = usePreloadedQuery(preloadedBrands) ?? [];
 
   const [priceSort, setPriceSort] = useState<"asc" | "desc" | null>(null);
-  const [variantSort, setVariantSort] = useState<"asc" | "desc" | null>(null);
   const [groupByCollection] = useState(true);
 
   // Derive category from URL
@@ -233,7 +252,6 @@ export function CatalogClient({
       filter: null,
     });
     setPriceSort(null);
-    setVariantSort(null);
   };
 
   // Cart data for floating button
@@ -302,47 +320,23 @@ export function CatalogClient({
         onBrandChange={setSelectedBrand}
         priceSort={priceSort}
         onPriceSortChange={setPriceSort}
-        variantSort={variantSort}
-        onVariantSortChange={setVariantSort}
         onClearAll={clearAllFilters}
       />
 
       {/* Disclaimer message for gas-related subcategories */}
       <DisclaimerMessage selectedSubcategory={selectedSubcategory} />
+
       {/* Paginated catalog results by category & filter */}
-      {preloadedItems ? (
-        <HydratedCatalogResultsWrapper
-          preloadedItems={preloadedItems}
-          selectedCategoryId={selectedCategoryId as Id<"categories"> | null}
-          selectedFilter={selectedFilter}
-          selectedSubcategory={selectedSubcategory}
-          priceSort={priceSort}
-          variantSort={variantSort}
-          selectedBrand={selectedBrand}
-          onClearBrandFilter={() => setSelectedBrand(null)}
-          groupByCollection={groupByCollection}
-          CatalogResultsComponent={CatalogResults}
-          isInitialLoad={
-            !selectedBrand &&
-            selectedFilter === "Новинки" &&
-            !selectedSubcategory
-          }
-        />
-      ) : (
-        <CatalogResultsWrapper
-          selectedCategoryId={selectedCategoryId as Id<"categories"> | null}
-          selectedFilter={selectedFilter}
-          selectedSubcategory={selectedSubcategory}
-          priceSort={priceSort}
-          variantSort={variantSort}
-          selectedBrand={selectedBrand}
-          onClearBrandFilter={() => setSelectedBrand(null)}
-          groupByCollection={groupByCollection}
-          CatalogResultsComponent={CatalogResults}
-          preloadedItemsData={null}
-          isInitialLoad={false}
-        />
-      )}
+      <CatalogResultsWrapper
+        selectedCategoryId={selectedCategoryId as Id<"categories"> | null}
+        selectedFilter={selectedFilter}
+        selectedSubcategory={selectedSubcategory}
+        priceSort={priceSort}
+        selectedBrand={selectedBrand}
+        onClearBrandFilter={() => setSelectedBrand(null)}
+        groupByCollection={groupByCollection}
+        CatalogResultsComponent={CatalogResults}
+      />
 
       <div id="free-consult">
         <FreeConsultmant />

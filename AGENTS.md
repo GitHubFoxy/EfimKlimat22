@@ -28,6 +28,18 @@ No test framework is currently configured. The project doesn't have test files. 
 - Requires `.env.local` with `NEXT_PUBLIC_CONVEX_URL`
 - Convex backend configured in `/convex` directory
 
+## Code Philosophy
+
+**Write simple, elegant, minimal, practical, maintainable code.**
+
+- **Simple**: Clear intent, easy to understand without excessive abstraction
+- **Elegant**: Solutions that are correct and graceful, not complex
+- **Minimal**: Remove duplication, avoid unnecessary dependencies or features
+- **Practical**: Solve real problems, not hypothetical ones
+- **Maintainable**: Future developers (including yourself) can easily modify and extend
+
+When in doubt, choose the simpler solution. Clarity > cleverness.
+
 ## Code Style Guidelines
 
 ### TypeScript Configuration
@@ -288,3 +300,4 @@ No Husky or pre-commit hooks configured. Linting should be run manually before c
 8. Test both development (`bun run dev`)
 9. **When renaming files, use `mv` command, NOT `rm` + recreate**
 10. **Do NOT create summary documents** - just implement changes, let code speak
+11. **NEVER USE MERMAID DIAGRAMS** - explain in text only, be concise

@@ -1,5 +1,6 @@
 import BestDeals from "@/components/BestDeals";
 import { Brands } from "@/components/Brands";
+import FloatingCheckoutButton from "@/components/CatalogComponents/FloatingCheckoutButton";
 import { Footer } from "@/components/Footer";
 import FreeConsultmant from "@/components/FreeConsultmant";
 import Header from "@/components/Header/Header";
@@ -16,6 +17,7 @@ export default function Home() {
       <Brands />
       <FreeConsultmant />
       <Footer />
+      <FloatingCheckoutButton />
     </div>
   );
 }

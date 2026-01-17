@@ -1,7 +1,8 @@
-import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+
+const PAGE_SIZE = 24;
 
 // UTILITY: Get all descendant category IDs (for hierarchical filtering)
 async function getDescendantCategoryIds(
@@ -83,7 +84,7 @@ export const show_all_brands = query({
   },
 });
 
-// Query items based on category and filter type with pagination
+// Query items based on category and filter type with manual offset pagination
 export const catalog_query_based_on_category_and_filter = query({
   args: {
     category: v.optional(v.id("categories")),
@@ -93,151 +94,214 @@ export const catalog_query_based_on_category_and_filter = query({
       v.literal("Со скидкой"),
     ),
     brand: v.optional(v.id("brands")),
-    paginationOpts: paginationOptsValidator,
+    priceSort: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
+    cursor: v.optional(v.number()),
   },
-  handler: async (ctx, { category, filter, brand, paginationOpts }) => {
+  handler: async (ctx, { category, filter, brand, priceSort, cursor = 0 }) => {
     // Get descendant category IDs if category is selected (for hierarchical filtering)
     let categoryIds: Id<"categories">[] | undefined;
     if (category) {
       categoryIds = await getDescendantCategoryIds(ctx, category);
     }
 
-    const itemsQuery = ctx.db
-      .query("items")
-      .filter((q) => {
-        const conditions = [
-          q.eq(q.field("status"), "active"),
-          q.eq(q.field("inStock"), true),
-        ];
+    // Collect all matching items
+    let itemsQuery = ctx.db.query("items");
 
-        if (categoryIds && categoryIds.length > 0) {
-          // Create OR condition for multiple category IDs (includes parent and all descendants)
-          const categoryConditions = categoryIds.map((catId) =>
-            q.eq(q.field("categoryId"), catId),
-          );
-          conditions.push(
-            categoryConditions.length === 1
-              ? categoryConditions[0]
-              : q.or(...categoryConditions),
-          );
-        }
+    itemsQuery = itemsQuery.filter((q) => {
+      const conditions = [
+        q.eq(q.field("status"), "active"),
+        q.eq(q.field("inStock"), true),
+      ];
 
-        if (filter === "Со скидкой") {
-          conditions.push(q.gt(q.field("discountAmount"), 0));
-        }
+      if (categoryIds && categoryIds.length > 0) {
+        const categoryConditions = categoryIds.map((catId) =>
+          q.eq(q.field("categoryId"), catId),
+        );
+        conditions.push(
+          categoryConditions.length === 1
+            ? categoryConditions[0]
+            : q.or(...categoryConditions),
+        );
+      }
 
-        if (brand) {
-          conditions.push(q.eq(q.field("brandId"), brand));
-        }
+      if (filter === "Со скидкой") {
+        conditions.push(q.gt(q.field("discountAmount"), 0));
+      }
 
-        return q.and(...conditions);
-      })
-      .order("desc");
+      if (brand) {
+        conditions.push(q.eq(q.field("brandId"), brand));
+      }
 
-    // Paginate results
-    const paginatedItems = await itemsQuery.paginate(paginationOpts);
+      return q.and(...conditions);
+    });
 
-    // Fetch brand details for each item
+    const allItems = await itemsQuery.collect();
+
+    // Sort in-memory based on priceSort or filter default
+    if (priceSort === "asc") {
+      allItems.sort((a, b) => a.price - b.price || a._id.localeCompare(b._id));
+    } else if (priceSort === "desc") {
+      allItems.sort((a, b) => b.price - a.price || a._id.localeCompare(b._id));
+    } else if (filter === "Хиты продаж") {
+      allItems.sort(
+        (a, b) => (b.ordersCount ?? 0) - (a.ordersCount ?? 0) || a._id.localeCompare(b._id),
+      );
+    } else if (filter === "Со скидкой") {
+      allItems.sort(
+        (a, b) =>
+          (b.discountAmount ?? 0) - (a.discountAmount ?? 0) ||
+          a._id.localeCompare(b._id),
+      );
+    } else {
+      // "Новинки" - sort by creation time desc
+      allItems.sort(
+        (a, b) =>
+          b._creationTime - a._creationTime || a._id.localeCompare(b._id),
+      );
+    }
+
+    // Manual pagination
+    const total = allItems.length;
+    const page = allItems.slice(cursor, cursor + PAGE_SIZE);
+    const nextCursor = cursor + PAGE_SIZE < total ? cursor + PAGE_SIZE : null;
+
+    // Fetch brand details for page items
     const itemsWithBrands = await Promise.all(
-      paginatedItems.page.map(async (item) => {
+      page.map(async (item) => {
         if (!item.brandId) {
-          return {
-            ...item,
-            brandName: "Неизвестно",
-          };
+          return { ...item, brandName: "Неизвестно" };
         }
-        const brand = await ctx.db.get(item.brandId);
-        const brandName = (brand && 'name' in brand) ? (brand.name as string) : "Неизвестно";
-        return {
-          ...item,
-          brandName,
-        };
+        const brandDoc = await ctx.db.get(item.brandId);
+        const brandName =
+          brandDoc && "name" in brandDoc
+            ? (brandDoc.name as string)
+            : "Неизвестно";
+        return { ...item, brandName };
       }),
     );
 
     return {
-      ...paginatedItems,
       page: itemsWithBrands,
+      nextCursor,
+      total,
+      isDone: nextCursor === null,
     };
   },
 });
 
-// Query items grouped by collection (subcategory/category)
+// Query items grouped by collection with manual offset pagination
 export const catalog_query_grouped_by_collection = query({
-   args: {
-     category: v.optional(v.id("categories")),
-     filter: v.union(
-       v.literal("Хиты продаж"),
-       v.literal("Новинки"),
-       v.literal("Со скидкой"),
-     ),
-     brand: v.optional(v.id("brands")),
-     paginationOpts: paginationOptsValidator,
-   },
-   handler: async (ctx, { category, filter, brand, paginationOpts }) => {
-     // Get descendant category IDs if category is selected
-     let categoryIds: Id<"categories">[] | undefined;
-     if (category) {
-       categoryIds = await getDescendantCategoryIds(ctx, category);
-     }
+  args: {
+    category: v.optional(v.id("categories")),
+    filter: v.union(
+      v.literal("Хиты продаж"),
+      v.literal("Новинки"),
+      v.literal("Со скидкой"),
+    ),
+    brand: v.optional(v.id("brands")),
+    priceSort: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
+    cursor: v.optional(v.number()),
+  },
+  handler: async (ctx, { category, filter, brand, priceSort, cursor = 0 }) => {
+    // Get descendant category IDs if category is selected
+    let categoryIds: Id<"categories">[] | undefined;
+    if (category) {
+      categoryIds = await getDescendantCategoryIds(ctx, category);
+    }
 
-     let groupsQuery = ctx.db.query("collectionGroups");
+    let groupsQuery = ctx.db.query("collectionGroups");
 
-     // Filter by categories
-     if (categoryIds && categoryIds.length > 0) {
-       groupsQuery = groupsQuery.filter((q) => {
-         const cats = categoryIds!.map((id) => q.eq(q.field("categoryId"), id));
-         return cats.length === 1 ? cats[0] : q.or(...cats);
-       });
-     }
+    // Filter by categories
+    if (categoryIds && categoryIds.length > 0) {
+      groupsQuery = groupsQuery.filter((q) => {
+        const cats = categoryIds!.map((id) => q.eq(q.field("categoryId"), id));
+        return cats.length === 1 ? cats[0] : q.or(...cats);
+      });
+    }
 
-     // Filter by brand
-     if (brand) {
-       groupsQuery = groupsQuery.filter((q) =>
-         q.eq(q.field("brandId"), brand),
-       );
-     }
+    // Filter by brand
+    if (brand) {
+      groupsQuery = groupsQuery.filter((q) => q.eq(q.field("brandId"), brand));
+    }
 
-     // Filter by discount flag
-     if (filter === "Со скидкой") {
-       groupsQuery = groupsQuery.filter((q) =>
-         q.eq(q.field("hasDiscount"), true),
-       );
-     }
+    // Filter by discount flag
+    if (filter === "Со скидкой") {
+      groupsQuery = groupsQuery.filter((q) =>
+        q.eq(q.field("hasDiscount"), true),
+      );
+    }
 
-     // Order and paginate
-     const paginatedGroups = await groupsQuery.order("desc").paginate(paginationOpts);
+    const allGroups = await groupsQuery.collect();
 
-     // Attach representative item + brandName for each group
-     const pageWithItems = await Promise.all(
-       paginatedGroups.page.map(async (group) => {
-         const item = await ctx.db.get(group.representativeItemId);
-         if (!item) return null;
+    // Fetch representative items for sorting and display
+    const groupsWithItems = await Promise.all(
+      allGroups.map(async (group) => {
+        const item = await ctx.db.get(group.representativeItemId);
+        if (!item) return null;
 
-         let brandName = "Неизвестно";
-         if (item.brandId) {
-           const brandDoc = await ctx.db.get(item.brandId);
-           if (brandDoc && "name" in brandDoc) {
-             brandName = brandDoc.name as string;
-           }
-         }
+        let brandName = "Неизвестно";
+        if (item.brandId) {
+          const brandDoc = await ctx.db.get(item.brandId);
+          if (brandDoc && "name" in brandDoc) {
+            brandName = brandDoc.name as string;
+          }
+        }
 
-         return {
-           ...item,
-           brandName,
-           variantsCount: group.variantsCount,
-           priceRange: { min: group.priceMin, max: group.priceMax },
-           collection: group.collection,
-         };
-       }),
-     );
+        return {
+          ...item,
+          brandName,
+          variantsCount: group.variantsCount,
+          priceRange: { min: group.priceMin, max: group.priceMax },
+          collection: group.collection,
+          _groupId: group._id,
+        };
+      }),
+    );
 
-     return {
-       ...paginatedGroups,
-       page: pageWithItems.filter((x): x is any => x !== null),
-     };
-   },
- });
+    const validGroups = groupsWithItems.filter(
+      (x): x is NonNullable<typeof x> => x !== null,
+    );
+
+    // Sort in-memory based on priceSort or filter default
+    if (priceSort === "asc") {
+      validGroups.sort(
+        (a, b) => a.price - b.price || a._id.localeCompare(b._id),
+      );
+    } else if (priceSort === "desc") {
+      validGroups.sort(
+        (a, b) => b.price - a.price || a._id.localeCompare(b._id),
+      );
+    } else if (filter === "Хиты продаж") {
+      validGroups.sort(
+        (a, b) => (b.ordersCount ?? 0) - (a.ordersCount ?? 0) || a._id.localeCompare(b._id),
+      );
+    } else if (filter === "Со скидкой") {
+      validGroups.sort(
+        (a, b) =>
+          (b.discountAmount ?? 0) - (a.discountAmount ?? 0) ||
+          a._id.localeCompare(b._id),
+      );
+    } else {
+      // "Новинки" - sort by creation time desc
+      validGroups.sort(
+        (a, b) =>
+          b._creationTime - a._creationTime || a._id.localeCompare(b._id),
+      );
+    }
+
+    // Manual pagination
+    const total = validGroups.length;
+    const page = validGroups.slice(cursor, cursor + PAGE_SIZE);
+    const nextCursor = cursor + PAGE_SIZE < total ? cursor + PAGE_SIZE : null;
+
+    return {
+      page,
+      nextCursor,
+      total,
+      isDone: nextCursor === null,
+    };
+  },
+});
 
 // PRODUCT DETAILS
 
@@ -254,7 +318,7 @@ export const show_item = query({
     let brandName = "Неизвестно";
     if (item.brandId) {
       const brand = await ctx.db.get(item.brandId);
-      if (brand && 'name' in brand) {
+      if (brand && "name" in brand) {
         brandName = brand.name as string;
       }
     }
@@ -263,15 +327,15 @@ export const show_item = query({
       ...item,
       brandName,
     };
-    },
-    });
+  },
+});
 
-    // Get single item by slug with all details
-    export const show_item_by_slug = query({
-    args: {
+// Get single item by slug with all details
+export const show_item_by_slug = query({
+  args: {
     slug: v.string(),
-    },
-    handler: async (ctx, { slug }) => {
+  },
+  handler: async (ctx, { slug }) => {
     const item = await ctx.db
       .query("items")
       .withIndex("by_slug", (q) => q.eq("slug", slug))
@@ -283,7 +347,7 @@ export const show_item = query({
     let brandName = "Неизвестно";
     if (item.brandId) {
       const brand = await ctx.db.get(item.brandId);
-      if (brand && 'name' in brand) {
+      if (brand && "name" in brand) {
         brandName = brand.name as string;
       }
     }
@@ -294,8 +358,7 @@ export const show_item = query({
       const group = await ctx.db
         .query("collectionGroups")
         .withIndex("by_category_brand", (q) =>
-          q.eq("categoryId", item.categoryId!)
-            .eq("brandId", item.brandId!)
+          q.eq("categoryId", item.categoryId!).eq("brandId", item.brandId!),
         )
         .filter((q) => q.eq(q.field("collection"), item.collection!))
         .first();
@@ -312,36 +375,36 @@ export const show_item = query({
 
 // Get items by brand, category, and collection (related items for product page)
 export const show_items_by_brand_and_collection = query({
-   args: {
-     itemId: v.id("items"),
-     brandId: v.id("brands"),
-     categoryId: v.id("categories"),
-     collection: v.optional(v.string()),
-   },
-   handler: async (ctx, { itemId, brandId, categoryId, collection }) => {
-     // If collection is provided, get all variants in that collection
-     // Otherwise fall back to brand+category grouping
-     let query = ctx.db
-       .query("items")
-       .filter((q) =>
-         q.and(
-           q.eq(q.field("brandId"), brandId),
-           q.eq(q.field("categoryId"), categoryId),
-           q.eq(q.field("status"), "active"),
-           q.eq(q.field("inStock"), true),
-           q.neq(q.field("_id"), itemId),
-         ),
-       );
+  args: {
+    itemId: v.id("items"),
+    brandId: v.id("brands"),
+    categoryId: v.id("categories"),
+    collection: v.optional(v.string()),
+  },
+  handler: async (ctx, { itemId, brandId, categoryId, collection }) => {
+    // If collection is provided, get all variants in that collection
+    // Otherwise fall back to brand+category grouping
+    let query = ctx.db
+      .query("items")
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("brandId"), brandId),
+          q.eq(q.field("categoryId"), categoryId),
+          q.eq(q.field("status"), "active"),
+          q.eq(q.field("inStock"), true),
+          q.neq(q.field("_id"), itemId),
+        ),
+      );
 
-     // If collection is provided, add collection filter
-     if (collection) {
-       query = query.filter((q) => q.eq(q.field("collection"), collection));
-     }
+    // If collection is provided, add collection filter
+    if (collection) {
+      query = query.filter((q) => q.eq(q.field("collection"), collection));
+    }
 
-     const relatedItems = await query.take(8);
-     return relatedItems;
-   },
- });
+    const relatedItems = await query.take(8);
+    return relatedItems;
+  },
+});
 
 // Get variant count for an item (items with same brand and category)
 export const get_variant_count = query({
@@ -408,6 +471,8 @@ export const catalog_brands_by_category = query({
       }),
     );
 
-    return brands.filter((b): b is any => b !== null && 'status' in b && b.status === "active");
+    return brands.filter(
+      (b): b is any => b !== null && "status" in b && b.status === "active",
+    );
   },
 });

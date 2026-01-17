@@ -34,8 +34,8 @@ interface CatalogFiltersProps {
   priceSort: "asc" | "desc" | null;
   onPriceSortChange: (sort: "asc" | "desc" | null) => void;
 
-  variantSort: "asc" | "desc" | null;
-  onVariantSortChange: (sort: "asc" | "desc" | null) => void;
+  variantSort?: "asc" | "desc" | null;
+  onVariantSortChange?: (sort: "asc" | "desc" | null) => void;
 
   onClearAll?: () => void;
 }
@@ -58,7 +58,7 @@ export default function CatalogFilters({
   onVariantSortChange,
   onClearAll,
 }: CatalogFiltersProps) {
-  const filters = ["Новинки", "Хиты продаж", "Со скидкой"] as const;
+  const filters = ["Хиты продаж", "Новинки", "Со скидкой"] as const;
 
   const hasActiveFilters =
     selectedCategoryId ||
@@ -66,7 +66,7 @@ export default function CatalogFilters({
     selectedBrand ||
     priceSort ||
     variantSort ||
-    selectedFilter !== "Новинки";
+    selectedFilter !== "Хиты продаж";
 
   const clearAll = () => {
     if (onClearAll) {
@@ -76,8 +76,8 @@ export default function CatalogFilters({
       onSubcategoryChange(null);
       onBrandChange(null);
       onPriceSortChange(null);
-      onVariantSortChange(null);
-      onFilterChange("Новинки");
+      onVariantSortChange?.(null);
+      onFilterChange("Хиты продаж");
     }
   };
 
@@ -185,7 +185,7 @@ export default function CatalogFilters({
                   onPriceSortChange(null);
                 } else {
                   onPriceSortChange(val as "asc" | "desc");
-                  onVariantSortChange(null);
+                  onVariantSortChange?.(null);
                 }
               }}
             >
@@ -204,9 +204,9 @@ export default function CatalogFilters({
               value={variantSort ?? "none"}
               onValueChange={(val) => {
                 if (val === "none") {
-                  onVariantSortChange(null);
+                  onVariantSortChange?.(null);
                 } else {
-                  onVariantSortChange(val as "asc" | "desc");
+                  onVariantSortChange?.(val as "asc" | "desc");
                   onPriceSortChange(null);
                 }
               }}
