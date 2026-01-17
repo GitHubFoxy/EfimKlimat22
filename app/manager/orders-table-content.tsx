@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DataTable } from "./data-table";
+import { useRouter, useSearchParams } from "next/navigation";
 import { getOrderColumns, type ConvexOrder } from "./columns";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -12,7 +13,28 @@ import { DeleteOrderDialog } from "./delete-order-dialog";
 import { Id } from "@/convex/_generated/dataModel";
 
 export function OrdersTableContent() {
-  const [cursor, setCursor] = useState<string | null>(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const [cursor, setCursor] = useState<string | null>(
+    (searchParams.get("cursor") as string) ?? null,
+  );
+
+  // URL sync utilities
+  const updateParams = (updates: Record<string, string | null>) => {
+    const newParams = new URLSearchParams(searchParams.toString());
+    for (const [key, value] of Object.entries(updates)) {
+      if (value === null) {
+        newParams.delete(key);
+      } else {
+        newParams.set(key, value);
+      }
+    }
+    const search = newParams.toString();
+    router.replace(`/manager/orders${search ? `?${search}` : ""}`, {
+      scroll: false,
+    });
+  };
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<{
     id: Id<"orders">;
@@ -89,12 +111,14 @@ export function OrdersTableContent() {
 
   const handleNextPage = () => {
     if (ordersData.continueCursor) {
+      updateParams({ cursor: ordersData.continueCursor });
       setCursor(ordersData.continueCursor);
       window.scrollTo(0, 0);
     }
   };
 
   const handlePreviousPage = () => {
+    updateParams({ cursor: null });
     setCursor(null);
     window.scrollTo(0, 0);
   };

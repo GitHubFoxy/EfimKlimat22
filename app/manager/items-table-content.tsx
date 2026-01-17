@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useQuery, usePreloadedQuery, Preloaded } from "convex/react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,41 +35,114 @@ export function ItemsTableContent({
   onEditItem,
   onDeleteItem,
 }: ItemsTableContentProps) {
-  const [cursor, setCursor] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<SortBy>("createdAt");
-  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
-  const [prevSearchQuery, setPrevSearchQuery] = useState(searchQuery);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Initialize from URL params
+  const [cursor, setCursor] = useState<string | null>(
+    (searchParams.get("cursor") as string) ?? null,
+  );
+  const [sortBy, setSortBy] = useState<SortBy>(
+    (searchParams.get("sortBy") as SortBy) ?? "createdAt",
+  );
+  const [sortOrder, setSortOrder] = useState<SortOrder>(
+    (searchParams.get("sortOrder") as SortOrder) ?? "desc",
+  );
 
   // Filter state
-  const [brandId, setBrandId] = useState<Id<"brands"> | undefined>();
-  const [categoryId, setCategoryId] = useState<Id<"categories"> | undefined>();
-  const [status, setStatus] = useState<ItemStatus | undefined>();
+  const [brandId, setBrandId] = useState<Id<"brands"> | undefined>(
+    (searchParams.get("brandId") as Id<"brands">) ?? undefined,
+  );
+  const [categoryId, setCategoryId] = useState<Id<"categories"> | undefined>(
+    (searchParams.get("categoryId") as Id<"categories">) ?? undefined,
+  );
+  const [status, setStatus] = useState<ItemStatus | undefined>(
+    (searchParams.get("status") as ItemStatus) ?? undefined,
+  );
 
-  if (searchQuery !== prevSearchQuery) {
-    setPrevSearchQuery(searchQuery);
-    setCursor(null);
-  }
+  // URL sync utilities
+  const updateParams = (updates: Record<string, string | null>) => {
+    const newParams = new URLSearchParams(searchParams.toString());
+    for (const [key, value] of Object.entries(updates)) {
+      if (value === null) {
+        newParams.delete(key);
+      } else {
+        newParams.set(key, value);
+      }
+    }
+    const search = newParams.toString();
+    router.replace(`/manager/items${search ? `?${search}` : ""}`, {
+      scroll: false,
+    });
+  };
 
   const handleSortChange = (newSortBy: SortBy) => {
-    if (newSortBy === sortBy) {
-      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-    } else {
-      setSortBy(newSortBy);
-      setSortOrder("desc");
-    }
+    const newOrder =
+      newSortBy === sortBy ? (sortOrder === "asc" ? "desc" : "asc") : "desc";
+    updateParams({ sortBy: newSortBy, sortOrder: newOrder, cursor: null });
+    setSortBy(newSortBy);
+    setSortOrder(newOrder);
     setCursor(null);
   };
 
   // Reset cursor when filters change
   const handleFilterChange = () => {
+    updateParams({ cursor: null });
     setCursor(null);
   };
 
   const handleClearFilters = () => {
+    updateParams({
+      brandId: null,
+      categoryId: null,
+      status: null,
+      cursor: null,
+    });
     setBrandId(undefined);
     setCategoryId(undefined);
     setStatus(undefined);
     setCursor(null);
+  };
+
+  const handleBrandChange = (brand: string) => {
+    const brandIdValue =
+      brand === "__all__" ? undefined : (brand as Id<"brands">);
+    updateParams({ brandId: brandIdValue as string | null, cursor: null });
+    setBrandId(brandIdValue);
+    setCursor(null);
+  };
+
+  const handleCategoryChange = (category: string) => {
+    const categoryIdValue =
+      category === "__all__" ? undefined : (category as Id<"categories">);
+    updateParams({
+      categoryId: categoryIdValue as string | null,
+      cursor: null,
+    });
+    setCategoryId(categoryIdValue);
+    setCursor(null);
+  };
+
+  const handleStatusChange = (statusValue: string) => {
+    const statusFilter =
+      statusValue === "__all__" ? undefined : (statusValue as ItemStatus);
+    updateParams({ status: statusFilter as string | null, cursor: null });
+    setStatus(statusFilter);
+    setCursor(null);
+  };
+
+  const handleNextPage = () => {
+    if (itemsData?.continueCursor) {
+      updateParams({ cursor: itemsData.continueCursor });
+      setCursor(itemsData.continueCursor);
+      window.scrollTo(0, 0);
+    }
+  };
+
+  const handlePrevPage = () => {
+    updateParams({ cursor: null });
+    setCursor(null);
+    window.scrollTo(0, 0);
   };
 
   // Use preloaded query on initial page load
@@ -110,13 +184,6 @@ export function ItemsTableContent({
   const itemsData =
     itemsDataQuery ?? (isDefaultQuery ? itemsDataPreloaded : undefined);
 
-  const handleNextPage = () => {
-    if (itemsData?.continueCursor) {
-      setCursor(itemsData.continueCursor);
-      window.scrollTo(0, 0);
-    }
-  };
-
   const handlePreviousPage = () => {
     setCursor(null);
     window.scrollTo(0, 0);
@@ -138,18 +205,9 @@ export function ItemsTableContent({
         brandId={brandId}
         categoryId={categoryId}
         status={status}
-        onBrandChange={(id) => {
-          setBrandId(id);
-          handleFilterChange();
-        }}
-        onCategoryChange={(id) => {
-          setCategoryId(id);
-          handleFilterChange();
-        }}
-        onStatusChange={(s) => {
-          setStatus(s);
-          handleFilterChange();
-        }}
+        onBrandChange={handleBrandChange}
+        onCategoryChange={handleCategoryChange}
+        onStatusChange={handleStatusChange}
         onClearFilters={handleClearFilters}
       />
 

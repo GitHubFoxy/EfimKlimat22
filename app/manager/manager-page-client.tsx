@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useQuery, useAction } from "convex/react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Input } from "@/components/ui/input";
@@ -19,19 +20,33 @@ import { DeleteUserDialog } from "./delete-user-dialog";
 import { ForceChangePasswordDialog } from "@/components/Auth/ForceChangePasswordDialog";
 import { api } from "@/convex/_generated/api";
 
-
 type Section = "orders" | "items" | "leads" | "users";
 
 interface ManagerPageClientProps {
   itemsPreload: any;
   brandsPreload: any;
   categoriesPreload: any;
+  initialParams: {
+    tab: string;
+    search: string;
+    page: string | null;
+  };
 }
 
-export function ManagerPageClient({ itemsPreload, brandsPreload, categoriesPreload }: ManagerPageClientProps) {
-  const [activeSection, setActiveSection] = useState<Section>("items");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+export function ManagerPageClient({
+  itemsPreload,
+  brandsPreload,
+  categoriesPreload,
+  initialParams,
+}: ManagerPageClientProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const [activeSection, setActiveSection] = useState<Section>(
+    initialParams.tab as Section,
+  );
+  const [searchQuery, setSearchQuery] = useState(initialParams.search);
+  const [debouncedSearch, setDebouncedSearch] = useState(initialParams.search);
 
   const currentUser = useQuery(api.users.getCurrentUserWithTempPassword);
   const changePassword = useAction(api.users.changePassword);
@@ -56,14 +71,39 @@ export function ManagerPageClient({ itemsPreload, brandsPreload, categoriesPrelo
   const [isDeleteUserDialogOpen, setIsDeleteUserDialogOpen] = useState(false);
   const [deletingUser, setDeletingUser] = useState<any | null>(null);
 
-  // Simple debounce implementation
+  const [localDebouncedSearch, setLocalDebouncedSearch] = useState(searchQuery);
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedSearch(searchQuery);
+      setLocalDebouncedSearch(searchQuery);
     }, 300);
-
     return () => clearTimeout(timer);
   }, [searchQuery]);
+
+  // URL sync utilities
+  const updateParams = (updates: Record<string, string | null>) => {
+    const newParams = new URLSearchParams(searchParams.toString());
+    for (const [key, value] of Object.entries(updates)) {
+      if (value === null) {
+        newParams.delete(key);
+      } else {
+        newParams.set(key, value);
+      }
+    }
+    const search = newParams.toString();
+    router.replace(`/manager${search ? `?${search}` : ""}`, { scroll: false });
+  };
+
+  // Sync tab changes to URL
+  const handleSectionChange = (section: Section) => {
+    setActiveSection(section);
+    updateParams({ tab: section });
+  };
+
+  // Sync search to URL
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+    updateParams({ search: query || null });
+  };
 
   const getTitle = () => {
     switch (activeSection) {
@@ -108,10 +148,7 @@ export function ManagerPageClient({ itemsPreload, brandsPreload, categoriesPrelo
 
   return (
     <>
-      <AppSidebar
-        activeSection={activeSection}
-        onSectionChange={setActiveSection}
-      />
+      <AppSidebar />
       <div className="flex flex-col flex-1">
         {/* Header */}
         <header className="border-b-2 bg-white">
@@ -139,7 +176,7 @@ export function ManagerPageClient({ itemsPreload, brandsPreload, categoriesPrelo
         <main className="flex-1 overflow-auto">
           <Tabs
             value={activeSection}
-            onValueChange={(val) => setActiveSection(val as Section)}
+            onValueChange={(val) => handleSectionChange(val as Section)}
             className="w-full"
           >
             {/* Orders Tab */}
@@ -152,7 +189,7 @@ export function ManagerPageClient({ itemsPreload, brandsPreload, categoriesPrelo
                     <Input
                       placeholder="Поиск заказов..."
                       value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onChange={(e) => handleSearchChange(e.target.value)}
                       className="pl-10"
                     />
                   </div>
@@ -173,16 +210,18 @@ export function ManagerPageClient({ itemsPreload, brandsPreload, categoriesPrelo
                     <Input
                       placeholder="Поиск товаров..."
                       value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onChange={(e) => handleSearchChange(e.target.value)}
                       className="pl-10"
                     />
                   </div>
                 </div>
 
                 {/* Items Table */}
-                <ItemsTableContent 
-                  itemsPreload={itemsPreload} 
-                  searchQuery={activeSection === "items" ? debouncedSearch : ""}
+                <ItemsTableContent
+                  itemsPreload={itemsPreload}
+                  searchQuery={
+                    activeSection === "items" ? localDebouncedSearch : ""
+                  }
                   onEditItem={handleEditItem}
                   onDeleteItem={handleDeleteItem}
                 />
@@ -199,7 +238,7 @@ export function ManagerPageClient({ itemsPreload, brandsPreload, categoriesPrelo
                     <Input
                       placeholder="Поиск лидов..."
                       value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onChange={(e) => handleSearchChange(e.target.value)}
                       className="pl-10"
                     />
                   </div>
@@ -220,15 +259,17 @@ export function ManagerPageClient({ itemsPreload, brandsPreload, categoriesPrelo
                     <Input
                       placeholder="Поиск пользователей..."
                       value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onChange={(e) => handleSearchChange(e.target.value)}
                       className="pl-10"
                     />
                   </div>
                 </div>
 
                 {/* Users Table */}
-                <UsersTableContent 
-                  searchQuery={activeSection === "users" ? debouncedSearch : ""}
+                <UsersTableContent
+                  searchQuery={
+                    activeSection === "users" ? localDebouncedSearch : ""
+                  }
                   onEditUser={(user) => {
                     setEditingUser(user);
                     setIsUserDialogOpen(true);

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { DataTable } from "./data-table";
+import { useRouter, useSearchParams } from "next/navigation";
 import { leadColumns, type Lead } from "./columns";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -9,7 +10,28 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export function LeadsTableContent() {
-  const [cursor, setCursor] = useState<string | null>(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const [cursor, setCursor] = useState<string | null>(
+    (searchParams.get("cursor") as string) ?? null,
+  );
+
+  // URL sync utilities
+  const updateParams = (updates: Record<string, string | null>) => {
+    const newParams = new URLSearchParams(searchParams.toString());
+    for (const [key, value] of Object.entries(updates)) {
+      if (value === null) {
+        newParams.delete(key);
+      } else {
+        newParams.set(key, value);
+      }
+    }
+    const search = newParams.toString();
+    router.replace(`/manager/leads${search ? `?${search}` : ""}`, {
+      scroll: false,
+    });
+  };
 
   // Fetch leads data with pagination
   const leadsData = useQuery(api.manager.list_leads, {
@@ -18,9 +40,7 @@ export function LeadsTableContent() {
 
   if (!leadsData) {
     return (
-      <div className="p-4 text-center text-gray-500">
-        Загрузка лидов...
-      </div>
+      <div className="p-4 text-center text-gray-500">Загрузка лидов...</div>
     );
   }
 
@@ -46,12 +66,14 @@ export function LeadsTableContent() {
 
   const handleNextPage = () => {
     if (leadsData.continueCursor) {
+      updateParams({ cursor: leadsData.continueCursor });
       setCursor(leadsData.continueCursor);
       window.scrollTo(0, 0);
     }
   };
 
   const handlePreviousPage = () => {
+    updateParams({ cursor: null });
     setCursor(null);
     window.scrollTo(0, 0);
   };

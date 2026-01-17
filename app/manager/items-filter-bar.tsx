@@ -19,9 +19,9 @@ interface ItemsFilterBarProps {
   brandId: Id<"brands"> | undefined;
   categoryId: Id<"categories"> | undefined;
   status: ItemStatus | undefined;
-  onBrandChange: (id: Id<"brands"> | undefined) => void;
-  onCategoryChange: (id: Id<"categories"> | undefined) => void;
-  onStatusChange: (status: ItemStatus | undefined) => void;
+  onBrandChange: (value: string) => void;
+  onCategoryChange: (value: string) => void;
+  onStatusChange: (value: string) => void;
   onClearFilters: () => void;
 }
 
@@ -44,12 +44,7 @@ export function ItemsFilterBar({
       <span className="text-sm font-medium text-gray-700">Фильтры:</span>
 
       {/* Brand Filter */}
-      <Select
-        value={brandId ?? "__all__"}
-        onValueChange={(v) =>
-          onBrandChange(v === "__all__" ? undefined : (v as Id<"brands">))
-        }
-      >
+      <Select value={brandId ?? "__all__"} onValueChange={onBrandChange}>
         <SelectTrigger className="w-[180px] bg-white">
           <SelectValue placeholder="Все бренды" />
         </SelectTrigger>
@@ -64,14 +59,7 @@ export function ItemsFilterBar({
       </Select>
 
       {/* Category Filter */}
-      <Select
-        value={categoryId ?? "__all__"}
-        onValueChange={(v) =>
-          onCategoryChange(
-            v === "__all__" ? undefined : (v as Id<"categories">),
-          )
-        }
-      >
+      <Select value={categoryId ?? "__all__"} onValueChange={onCategoryChange}>
         <SelectTrigger className="w-[200px] bg-white">
           <SelectValue placeholder="Все категории" />
         </SelectTrigger>
@@ -86,12 +74,7 @@ export function ItemsFilterBar({
       </Select>
 
       {/* Status Filter */}
-      <Select
-        value={status ?? "__all__"}
-        onValueChange={(v) =>
-          onStatusChange(v === "__all__" ? undefined : (v as ItemStatus))
-        }
-      >
+      <Select value={status ?? "__all__"} onValueChange={onStatusChange}>
         <SelectTrigger className="w-[150px] bg-white">
           <SelectValue placeholder="Все статусы" />
         </SelectTrigger>

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { ShoppingCart, BoxesIcon, Users } from "lucide-react";
 
 import {
@@ -18,46 +19,44 @@ import {
 } from "@/components/ui/sidebar";
 import { UserProfileSidebar } from "@/components/UserProfileSidebar";
 
-type Section = "orders" | "items" | "leads" | "users";
-
-interface AppSidebarProps {
-  activeSection?: string;
-  onSectionChange?: (section: Section) => void;
-}
-
 const items = [
   {
     title: "Товары",
-    id: "items",
+    href: "/manager/items",
     icon: BoxesIcon,
   },
   {
     title: "Лиды",
-    id: "leads",
+    href: "/manager/leads",
     icon: Users,
   },
   {
     title: "Заказы",
-    id: "orders",
+    href: "/manager/orders",
     icon: ShoppingCart,
   },
   {
     title: "Пользователи",
-    id: "users",
+    href: "/manager/users",
     icon: Users,
   },
 ];
 
-export function AppSidebar({
-  activeSection = "orders",
-  onSectionChange,
-}: AppSidebarProps) {
+export function AppSidebar() {
+  const pathname = usePathname();
+
   return (
     <Sidebar className="border-r">
       <SidebarHeader>
         <Link href="/">
           <div className="flex items-center gap-2 px-2 cursor-pointer hover:opacity-80 transition-opacity">
-            <Image src="/logo_.jpg" alt="Logo" width={48} height={48} className="w-12 h-12 object-contain" />
+            <Image
+              src="/logo_.jpg"
+              alt="Logo"
+              width={48}
+              height={48}
+              className="w-12 h-12 object-contain"
+            />
             <span className="font-medium text-sm">Климат22</span>
           </div>
         </Link>
@@ -71,17 +70,18 @@ export function AppSidebar({
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    onClick={() => onSectionChange?.(item.id as Section)}
-                    className={`text-gray-600 hover:bg-gray-100 cursor-pointer ${
-                      activeSection === item.id
-                        ? "bg-gray-100 text-gray-900"
-                        : ""
-                    }`}
-                  >
-                    <item.icon className="w-4 h-4" />
-                    <span>{item.title}</span>
-                  </SidebarMenuButton>
+                  <Link href={item.href}>
+                    <SidebarMenuButton
+                      className={`text-gray-600 hover:bg-gray-100 cursor-pointer ${
+                        pathname === item.href
+                          ? "bg-gray-100 text-gray-900"
+                          : ""
+                      }`}
+                    >
+                      <item.icon className="w-4 h-4" />
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  </Link>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
