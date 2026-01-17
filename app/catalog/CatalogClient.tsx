@@ -264,7 +264,7 @@ export function CatalogClient({
   const searchResults = useQuery(api.main.search_items, { query }) ?? [];
 
   return (
-    <div className="px-6 py-2 md:px-12 lg:px-28 xl:max-w-7xl xl:mx-auto">
+    <div className="px-6 py-2 md:px-12 lg:px-28 xl:max-w-7xl xl:mx-auto" suppressHydrationWarning>
       <Header />
       {/* Optional search results section (from header search) */}
       {query && (
