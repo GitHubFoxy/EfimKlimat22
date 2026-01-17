@@ -12,7 +12,7 @@ const authMiddleware = convexAuthNextjsMiddleware(
     if (isProtectedRoute(request) && !(await convexAuth.isAuthenticated())) {
       return nextjsMiddlewareRedirect(request, "/auth/signin");
     }
-  }
+  },
 );
 
 export function proxy(request: NextRequest, event?: NextFetchEvent) {
@@ -20,5 +20,5 @@ export function proxy(request: NextRequest, event?: NextFetchEvent) {
 }
 
 export const config = {
-  matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],
+  matcher: ["/manager((?!.*\\..*).*)", "/api/auth/:path*"],
 };
