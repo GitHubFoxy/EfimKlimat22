@@ -1,0 +1,21 @@
+{
+  "name": "anthropic-claude-haiku-4.5-droid",
+  "description": "Routes short-form creative writing to Anthropic model anthropic/claude-haiku-4.5; disables notification sound; uses safe fallback and 1024 token limit.",
+  "model": "anthropic/claude-haiku-4.5",
+  "tags": ["haiku", "poetry", "creative", "microcopy", "anthropic"],
+  "routing": {
+    "match_any": ["haiku", "poetry", "microcopy", "creative", "poem", "short poem"],
+    "field": "task_tags"
+  },
+  "settings": {
+    "max_tokens_per_request": 1024,
+    "temperature": 0.6,
+    "top_p": 0.9,
+    "notifications": { "sound": false }
+  },
+  "fallbacks": ["anthropic/default", "openrouter/claude-haiku-4.5", "openai/gpt-4o-mini"],
+  "examples": [
+    { "prompt": "Write a haiku about winter in Barnaul", "route": "anthropic/claude-haiku-4.5" },
+    { "prompt": "Refactor convex manager.ts", "route": "default" }
+  ]
+}
