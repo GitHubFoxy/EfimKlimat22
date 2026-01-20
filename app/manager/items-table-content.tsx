@@ -107,7 +107,7 @@ export function ItemsTableContent({
   const handleBrandChange = (brand: string) => {
     const brandIdValue =
       brand === "__all__" ? undefined : (brand as Id<"brands">);
-    updateParams({ brandId: brandIdValue as string | null, cursor: null });
+    updateParams({ brandId: brandIdValue ?? null, cursor: null });
     setBrandId(brandIdValue);
     setCursor(null);
   };
@@ -116,7 +116,7 @@ export function ItemsTableContent({
     const categoryIdValue =
       category === "__all__" ? undefined : (category as Id<"categories">);
     updateParams({
-      categoryId: categoryIdValue as string | null,
+      categoryId: categoryIdValue ? (categoryIdValue as string) : null,
       cursor: null,
     });
     setCategoryId(categoryIdValue);

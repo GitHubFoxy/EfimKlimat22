@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import {
@@ -34,8 +35,29 @@ export function ItemsFilterBar({
   onStatusChange,
   onClearFilters,
 }: ItemsFilterBarProps) {
+  const [parentCategoryId, setParentCategoryId] = useState<Id<"categories"> | undefined>(undefined);
   const brands = useQuery(api.manager.list_brands_all);
-  const categories = useQuery(api.manager.list_categories_all);
+  const catHierarchy = useQuery(api.manager.list_categories_hierarchy);
+  
+  const parents = catHierarchy?.parents || [];
+  const childrenMap = catHierarchy?.childrenMap || {};
+  const currentSubcategories = parentCategoryId ? (childrenMap[parentCategoryId.toString()] || []) : [];
+  
+  // When parent category changes, reset subcategory
+  const handleParentCategoryChange = (parentId: string) => {
+    if (parentId === "__all__") {
+      setParentCategoryId(undefined);
+      onCategoryChange("__all__");
+    } else {
+      setParentCategoryId(parentId as Id<"categories">);
+      onCategoryChange("__all__");
+    }
+  };
+  
+  // When subcategory changes
+  const handleSubcategoryChange = (subcatId: string) => {
+    onCategoryChange(subcatId);
+  };
 
   const hasActiveFilters = brandId || categoryId || status;
 
@@ -58,20 +80,37 @@ export function ItemsFilterBar({
         </SelectContent>
       </Select>
 
-      {/* Category Filter */}
-      <Select value={categoryId ?? "__all__"} onValueChange={onCategoryChange}>
+      {/* Parent Category Filter */}
+      <Select value={parentCategoryId ?? "__all__"} onValueChange={handleParentCategoryChange}>
         <SelectTrigger className="w-[200px] bg-white">
           <SelectValue placeholder="Все категории" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="__all__">Все категории</SelectItem>
-          {categories?.map((cat) => (
+          {parents.map((cat) => (
             <SelectItem key={cat._id} value={cat._id}>
               {cat.name}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
+
+      {/* Subcategory Filter */}
+      {parentCategoryId && (
+        <Select value={categoryId ?? "__all__"} onValueChange={handleSubcategoryChange}>
+          <SelectTrigger className="w-[200px] bg-white">
+            <SelectValue placeholder="Все подкатегории" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">Все подкатегории</SelectItem>
+            {currentSubcategories.map((cat) => (
+              <SelectItem key={cat._id} value={cat._id}>
+                {cat.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
 
       {/* Status Filter */}
       <Select value={status ?? "__all__"} onValueChange={onStatusChange}>

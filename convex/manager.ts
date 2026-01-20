@@ -799,3 +799,27 @@ export const list_categories_all = query({
     return await ctx.db.query("categories").collect();
   },
 });
+
+export const list_categories_hierarchy = query({
+  handler: async (ctx) => {
+    const categories = await ctx.db.query("categories").collect();
+    
+    const parents = categories.filter(c => !c.parentId);
+    const childrenMap = new Map<string, typeof categories>();
+    
+    categories.forEach(cat => {
+      if (cat.parentId) {
+        const parentId = cat.parentId.toString();
+        if (!childrenMap.has(parentId)) {
+          childrenMap.set(parentId, []);
+        }
+        childrenMap.get(parentId)!.push(cat);
+      }
+    });
+    
+    return {
+      parents,
+      childrenMap: Object.fromEntries(childrenMap),
+    };
+  },
+});
