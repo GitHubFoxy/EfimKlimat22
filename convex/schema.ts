@@ -85,6 +85,7 @@ const brandTable = defineTable({
   legacyId: v.optional(v.string()),
 })
   .index("by_status_sort", ["status", "sortOrder"])
+  .index("by_slug", ["slug"])
   .index("by_legacyId", ["legacyId"]);
 
 const itemsTable = defineTable({

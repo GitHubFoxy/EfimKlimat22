@@ -30,6 +30,7 @@ function CatalogResultsInner({
   filter,
   priceSort,
   selectedBrand,
+  selectedBrandSlug,
   onClearBrandFilter,
   groupByCollection,
 }: {
@@ -37,6 +38,7 @@ function CatalogResultsInner({
   filter: FilterType;
   priceSort?: "asc" | "desc" | null;
   selectedBrand?: Id<"brands"> | null;
+  selectedBrandSlug?: string | null;
   onClearBrandFilter: () => void;
   groupByCollection: boolean;
 }) {
@@ -54,7 +56,7 @@ function CatalogResultsInner({
     {
       category: effectiveCategoryId,
       filter,
-      brand: selectedBrand || undefined,
+      brand: selectedBrandSlug || undefined,
       priceSort: priceSort || undefined,
       cursor,
     },
@@ -105,6 +107,7 @@ function CatalogResults({
   subcategory,
   priceSort,
   selectedBrand,
+  selectedBrandSlug,
   onClearBrandFilter,
   groupByCollection,
 }: {
@@ -113,6 +116,7 @@ function CatalogResults({
   subcategory?: string | null;
   priceSort?: "asc" | "desc" | null;
   selectedBrand?: Id<"brands"> | null;
+  selectedBrandSlug?: string | null;
   onClearBrandFilter: () => void;
   groupByCollection: boolean;
 }) {
@@ -121,7 +125,7 @@ function CatalogResults({
     : categoryId;
 
   // Use key to remount component when filters change, resetting cursor state
-  const filterKey = `${effectiveCategoryId}-${filter}-${priceSort}-${selectedBrand}-${groupByCollection}`;
+  const filterKey = `${effectiveCategoryId}-${filter}-${priceSort}-${selectedBrandSlug}-${groupByCollection}`;
 
   return (
     <CatalogResultsInner
@@ -130,6 +134,7 @@ function CatalogResults({
       filter={filter}
       priceSort={priceSort}
       selectedBrand={selectedBrand}
+      selectedBrandSlug={selectedBrandSlug}
       onClearBrandFilter={onClearBrandFilter}
       groupByCollection={groupByCollection}
     />
@@ -154,7 +159,8 @@ export function CatalogClient({
 
   const categoriesRaw = usePreloadedQuery(preloadedCategories);
   const categories = useMemo(() => categoriesRaw ?? [], [categoriesRaw]);
-  const brandsAll = usePreloadedQuery(preloadedBrands) ?? [];
+  const brandsAllRaw = usePreloadedQuery(preloadedBrands);
+  const brandsAll = useMemo(() => brandsAllRaw ?? [], [brandsAllRaw]);
 
   const [priceSort, setPriceSort] = useState<"asc" | "desc" | null>(null);
   const [groupByCollection] = useState(true);
@@ -168,12 +174,19 @@ export function CatalogClient({
     return cat?._id ?? null;
   }, [categorySlug, categories]);
 
-  // Derive brand from URL
-  const brandParam = params.get("brand");
-  const selectedBrand = useMemo<Id<"brands"> | null>(
-    () => (brandParam as Id<"brands">) ?? null,
-    [brandParam],
+  // Derive brand from URL (now uses slug)
+  const brandSlugParam = params.get("brand");
+  const selectedBrandSlug = useMemo<string | null>(
+    () => brandSlugParam ?? null,
+    [brandSlugParam],
   );
+
+  // Resolve brand slug to ID for queries
+  const selectedBrand = useMemo<Id<"brands"> | null>(() => {
+    if (!brandSlugParam || !brandsAll.length) return null;
+    const brand = brandsAll.find((b) => b.slug === brandSlugParam);
+    return brand?._id ?? null;
+  }, [brandSlugParam, brandsAll]);
 
   // Derive filter from URL
   const filterParam = params.get("filter");
@@ -233,7 +246,12 @@ export function CatalogClient({
   };
 
   const setSelectedBrand = (id: Id<"brands"> | null) => {
-    updateParams({ brand: id });
+    if (!id) {
+      updateParams({ brand: null });
+      return;
+    }
+    const brand = brandsAll.find((b) => b._id === id);
+    updateParams({ brand: brand?.slug ?? null });
   };
 
   const setSelectedSubcategory = (id: Id<"categories"> | null) => {
@@ -334,6 +352,7 @@ export function CatalogClient({
         selectedSubcategory={selectedSubcategory}
         priceSort={priceSort}
         selectedBrand={selectedBrand}
+        selectedBrandSlug={selectedBrandSlug}
         onClearBrandFilter={() => setSelectedBrand(null)}
         groupByCollection={groupByCollection}
         CatalogResultsComponent={CatalogResults}

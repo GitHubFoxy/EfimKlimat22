@@ -10,6 +10,7 @@ interface CatalogResultsWrapperProps {
   selectedSubcategory: string | null;
   priceSort: "asc" | "desc" | null;
   selectedBrand: Id<"brands"> | null;
+  selectedBrandSlug: string | null;
   onClearBrandFilter: () => void;
   groupByCollection: boolean;
   CatalogResultsComponent: React.ComponentType<{
@@ -18,6 +19,7 @@ interface CatalogResultsWrapperProps {
     subcategory?: string | null;
     priceSort?: "asc" | "desc" | null;
     selectedBrand?: Id<"brands"> | null;
+    selectedBrandSlug?: string | null;
     onClearBrandFilter: () => void;
     groupByCollection: boolean;
   }>;
@@ -29,6 +31,7 @@ export default function CatalogResultsWrapper({
   selectedSubcategory,
   priceSort,
   selectedBrand,
+  selectedBrandSlug,
   onClearBrandFilter,
   groupByCollection,
   CatalogResultsComponent,
@@ -40,6 +43,7 @@ export default function CatalogResultsWrapper({
       subcategory={selectedSubcategory === "none" ? null : selectedSubcategory}
       priceSort={priceSort}
       selectedBrand={selectedBrand}
+      selectedBrandSlug={selectedBrandSlug}
       onClearBrandFilter={onClearBrandFilter}
       groupByCollection={groupByCollection}
     />

@@ -25,21 +25,21 @@ Everything is kinda okay
 ### 2. Search Functionality
 **Does the search bar in the header work in real-time?**
 Status: [ ]
-**Notes:**
+**Notes:** YES
 ```
 
 ```
 
 **Does it show the right number of results?**
 Status: [ ]
-**Notes:**
+**Notes:** YES 
 ```
 
 ```
 
 **Does clicking a result navigate to the product page correctly?**
 Status: [ ]
-**Notes:**
+**Notes:** YES 
 ```
 
 ```
@@ -47,21 +47,21 @@ Status: [ ]
 ### 3. Product Filtering & Sorting
 **Do category/brand filters work?**
 Status: [ ]
-**Notes:**
+**Notes:** yes 
 ```
 
 ```
 
 **Does price sorting (low→high, high→low) work?**
 Status: [ ]
-**Notes:**
+**Notes:** yes
 ```
 
 ```
 
 **Do the "Хиты продаж" / "Новинки" / "Со скидкой" quick filters work?**
 Status: [ ]
-**Notes:**
+**Notes:** No
 ```
 
 ```
@@ -73,21 +73,21 @@ Status: [ ]
 ### 4. Cart Persistence
 **Does adding an item to cart persist across page navigation?**
 Status: [ ]
-**Notes:**
+**Notes:** YES
 ```
 
 ```
 
 **If you add the same item twice, does quantity increment?**
 Status: [ ]
-**Notes:**
+**Notes:** YES
 ```
 
 ```
 
 **Does the cart icon show the correct item count?**
 Status: [ ]
-**Notes:**
+**Notes:** YES
 ```
 
 ```
@@ -95,42 +95,42 @@ Status: [ ]
 ### 5. Checkout Form Validation
 **Are all required fields validated (name, phone, address)?**
 Status: [ ]
-**Notes:**
+**Notes:** NO, not needed (they are req, after that manager will call)
 ```
 
 ```
 
 **Does phone number format validation work?**
 Status: [ ]
-**Notes:**
+**Notes:** Not needed
 ```
 
 ```
 
 **Do delivery method options appear correctly (pickup, courier, transport)?**
 Status: [ ]
-**Notes:**
+**Notes:** YES
 ```
 
 ```
 
 ### 6. Order Placement
 **After submitting checkout, does it create an order in the database?**
-Status: [ ]
+Status: [ ] YES
 **Notes:**
 ```
 
 ```
 
 **Does the order confirmation page load with correct details?**
-Status: [ ]
+Status: [ ] YES
 **Notes:**
 ```
 
 ```
 
 **Does the order number generate correctly?**
-Status: [ ]
+Status: [ ] YES
 **Notes:**
 ```
 
@@ -142,14 +142,14 @@ Status: [ ]
 
 ### 7. Admin Authentication
 **Can a manager log in with phone + password?**
-Status: [ ]
+Status: [ ] YES
 **Notes:**
 ```
 
 ```
 
 **Are non-managers blocked from accessing `/manager`?**
-Status: [ ]
+Status: [ ] YES
 **Notes:**
 ```
 

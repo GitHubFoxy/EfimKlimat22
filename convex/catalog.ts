@@ -4,6 +4,62 @@ import { Id } from "./_generated/dataModel";
 
 const PAGE_SIZE = 24;
 
+// BRAND RESOLUTION: slug or legacy ID -> brandId + slug
+export const brand_resolve_from_url_param = query({
+  args: { brand: v.string() },
+  handler: async (ctx, args) => {
+    const raw = args.brand.trim();
+    if (!raw) return null;
+
+    // 1) Prefer slug lookup
+    const bySlug = await ctx.db
+      .query("brands")
+      .withIndex("by_slug", (q: any) => q.eq("slug", raw))
+      .unique();
+    if (bySlug) return { brandId: bySlug._id, slug: bySlug.slug };
+
+    // 2) Backward-compatible: try as legacy ID
+    try {
+      const doc = await ctx.db.get(raw as Id<"brands">);
+      if (doc && "status" in doc) {
+        return { brandId: doc._id, slug: (doc as any).slug };
+      }
+    } catch {
+      // invalid id format => ignore
+    }
+
+    return null;
+  },
+});
+
+// INTERNAL: Resolve brand from slug or ID (used by other queries)
+async function brand_resolve_from_url_param_internal(
+  ctx: any,
+  brandParam: string,
+): Promise<{ brandId: Id<"brands">; slug: string } | null> {
+  const raw = brandParam.trim();
+  if (!raw) return null;
+
+  // 1) Prefer slug lookup
+  const bySlug = await ctx.db
+    .query("brands")
+    .withIndex("by_slug", (q: any) => q.eq("slug", raw))
+    .unique();
+  if (bySlug) return { brandId: bySlug._id, slug: bySlug.slug };
+
+  // 2) Backward-compatible: try as legacy ID
+  try {
+    const doc = await ctx.db.get(raw as Id<"brands">);
+    if (doc && "status" in doc) {
+      return { brandId: doc._id, slug: (doc as any).slug };
+    }
+  } catch {
+    // invalid id format => ignore
+  }
+
+  return null;
+}
+
 // UTILITY: Get all descendant category IDs (for hierarchical filtering)
 async function getDescendantCategoryIds(
   ctx: any,
@@ -93,11 +149,17 @@ export const catalog_query_based_on_category_and_filter = query({
       v.literal("Новинки"),
       v.literal("Со скидкой"),
     ),
-    brand: v.optional(v.id("brands")),
+    brand: v.optional(v.string()), // Now accepts slug or legacy ID
     priceSort: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
     cursor: v.optional(v.number()),
   },
-  handler: async (ctx, { category, filter, brand, priceSort, cursor = 0 }) => {
+  handler: async (ctx, { category, filter, brand: brandParam, priceSort, cursor = 0 }) => {
+    // Resolve brand param (slug or ID) to brandId
+    let brandId: Id<"brands"> | undefined;
+    if (brandParam) {
+      const resolved = await brand_resolve_from_url_param_internal(ctx, brandParam);
+      brandId = resolved?.brandId;
+    }
     // Get descendant category IDs if category is selected (for hierarchical filtering)
     let categoryIds: Id<"categories">[] | undefined;
     if (category) {
@@ -133,8 +195,8 @@ export const catalog_query_based_on_category_and_filter = query({
         );
       }
 
-      if (brand) {
-        conditions.push(q.eq(q.field("brandId"), brand));
+      if (brandId) {
+        conditions.push(q.eq(q.field("brandId"), brandId));
       }
 
       return q.and(...conditions);
@@ -203,11 +265,17 @@ export const catalog_query_grouped_by_collection = query({
       v.literal("Новинки"),
       v.literal("Со скидкой"),
     ),
-    brand: v.optional(v.id("brands")),
+    brand: v.optional(v.string()), // Now accepts slug or legacy ID
     priceSort: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
     cursor: v.optional(v.number()),
   },
-  handler: async (ctx, { category, filter, brand, priceSort, cursor = 0 }) => {
+  handler: async (ctx, { category, filter, brand: brandParam, priceSort, cursor = 0 }) => {
+    // Resolve brand param (slug or ID) to brandId
+    let brandId: Id<"brands"> | undefined;
+    if (brandParam) {
+      const resolved = await brand_resolve_from_url_param_internal(ctx, brandParam);
+      brandId = resolved?.brandId;
+    }
     // Get descendant category IDs if category is selected
     let categoryIds: Id<"categories">[] | undefined;
     if (category) {
@@ -225,8 +293,8 @@ export const catalog_query_grouped_by_collection = query({
     }
 
     // Filter by brand
-    if (brand) {
-      groupsQuery = groupsQuery.filter((q) => q.eq(q.field("brandId"), brand));
+    if (brandId) {
+      groupsQuery = groupsQuery.filter((q) => q.eq(q.field("brandId"), brandId));
     }
 
     // Filter by discount flag - check if any item in group has discount
