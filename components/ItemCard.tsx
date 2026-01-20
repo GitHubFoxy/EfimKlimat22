@@ -210,27 +210,32 @@ export const ItemCard = ({ e, variantCount }: ItemCardProps) => {
 
       {/* Name and price section */}
       <Link href={href} className="block mb-3">
-        <div className="flex flex-col justify-between items-start gap-3">
-          <p className="text-base leading-6 line-clamp-2 h-12 overflow-hidden">
-            {e.name}
-            {getSpecificationSummary(e.specifications) &&
-              ` ${getSpecificationSummary(e.specifications)}`}
-          </p>
-          <p className="font-medium whitespace-nowrap shrink-0 text-right">
-            {e.priceRange ? (
-              <>
-                {formatPrice(e.priceRange.min)}
-                {e.priceRange.min !== e.priceRange.max && (
-                  <> - {formatPrice(e.priceRange.max)}</>
-                )}
-                {" руб."}
-              </>
-            ) : (
-              <>{formatPrice(e.price)} руб.</>
-            )}
-          </p>
-        </div>
-      </Link>
+         <div className="flex flex-col items-start gap-2">
+           {e.brandName && (
+             <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-1">
+               {e.brandName}
+             </p>
+           )}
+           <p className="text-base leading-6 line-clamp-2">
+             {e.name}
+             {getSpecificationSummary(e.specifications) &&
+               ` ${getSpecificationSummary(e.specifications)}`}
+           </p>
+           <p className="font-medium mt-auto w-full text-right">
+             {e.priceRange ? (
+               <>
+                 {formatPrice(e.priceRange.min)}
+                 {e.priceRange.min !== e.priceRange.max && (
+                   <> - {formatPrice(e.priceRange.max)}</>
+                 )}
+                 {" руб."}
+               </>
+             ) : (
+               <>{formatPrice(e.price)} руб.</>
+             )}
+           </p>
+         </div>
+       </Link>
 
       {/* Add to Cart Button or Quantity Controls */}
       {cartItemData ? (
