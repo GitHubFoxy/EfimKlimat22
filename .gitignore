@@ -42,3 +42,10 @@ yarn-error.log*
 next-env.d.ts
 .osgrep
 docs/
+
+# build/import scripts and temp directories
+/.factory/
+/.sisyphus/
+/auth endpoint/
+/import-*.mts
+/convex_import.zip
