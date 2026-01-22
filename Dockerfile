@@ -7,7 +7,7 @@ WORKDIR /app
 # 2. Install dependencies
 FROM base AS deps
 COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile
+RUN bun install
 
 # 3. Build the application
 FROM base AS builder
