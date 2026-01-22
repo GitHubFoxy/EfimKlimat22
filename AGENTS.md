@@ -245,17 +245,17 @@ No Husky or pre-commit hooks configured. Linting should be run manually before c
 
 ### Security Vulnerabilities
 
-- **Critical**: Manager/admin mutations lack authorization checks (`update_item`, `delete_item`, `update_order_status`)
-- **Critical**: Role management via `localStorage` (manipulable by client: `useRole.ts`)
+- **Fixed**: Manager/admin mutations now use `requireRole` for server-side authorization.
+- **Fixed**: Role management is authoritative via Convex; `localStorage` is no longer used for roles.
 - **Critical**: Weak password policy (6 chars minimum vs 8-12+ recommended)
 - **High**: Missing input validation on checkout (phone/email format)
 - **High**: No rate limiting on mutations
 - **Medium**: PII exposure in manager queries returning all user data
-- **Recommendation**: Add `requireManager()` middleware, fetch roles from server only, enforce strong passwords, implement input validation schemas
+- **Recommendation**: Enforce strong passwords (8+ chars), implement input validation schemas for checkout, and add rate limiting for sensitive mutations.
 
 ### Performance Issues
 
-- **Images**: `hero.jpg` (252KB) unoptimized, no lazy loading except one instance, 7.3MB+ images in `public/`
+- **Images**: `hero.jpg` (251KB) and several large `.json` seed files (up to 442KB) exist in `public/`.
 - **N+1 Queries**: Brand/category lookups in `catalog.ts` create queries for each item
 - **Missing Code Splitting**: No `dynamic()` imports, all components load eagerly
 - **Re-renders**: `ItemCard` and other heavy components lack `React.memo()`

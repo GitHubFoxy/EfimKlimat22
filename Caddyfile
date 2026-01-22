@@ -1,0 +1,7 @@
+klimat22.com {
+    reverse_proxy app:3000
+}
+
+www.klimat22.com {
+    redir https://klimat22.com{uri}
+}
