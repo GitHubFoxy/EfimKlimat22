@@ -9,7 +9,8 @@ services:
     restart: always
     environment:
       - NEXT_PUBLIC_CONVEX_URL=${NEXT_PUBLIC_CONVEX_URL}
-    # Expose port only to internal network (Caddy)
+      - CONVEX_SELF_HOSTED_URL=${CONVEX_SELF_HOSTED_URL}
+      - CONVEX_SELF_HOSTED_ADMIN_KEY=${CONVEX_SELF_HOSTED_ADMIN_KEY}
     expose:
       - "3000"
 

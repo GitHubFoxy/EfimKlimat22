@@ -12,7 +12,10 @@ git pull
 # 2. Check for .env file
 if [ ! -f .env ]; then
     echo "❌ Error: .env file not found!"
-    echo "Please create a .env file with NEXT_PUBLIC_CONVEX_URL"
+    echo "Please create a .env file with:"
+    echo "NEXT_PUBLIC_CONVEX_URL"
+    echo "CONVEX_SELF_HOSTED_URL"
+    echo "CONVEX_SELF_HOSTED_ADMIN_KEY"
     exit 1
 fi
 
