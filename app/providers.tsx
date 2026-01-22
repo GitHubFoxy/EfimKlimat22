@@ -1,7 +1,7 @@
-"use client";
+'use client'
 
-import { ReactNode } from "react";
-import ConvexClientProvider from "@/components/ConvexClientProvider";
+import { ReactNode } from 'react'
+import ConvexClientProvider from '@/components/ConvexClientProvider'
 
 /**
  * AppProviders wraps the application with essential client-side providers.
@@ -19,5 +19,5 @@ import ConvexClientProvider from "@/components/ConvexClientProvider";
  * See: https://radix-ui.com/docs/primitives/utilities/id-provider
  */
 export function AppProviders({ children }: { children: ReactNode }) {
-  return <ConvexClientProvider>{children}</ConvexClientProvider>;
+  return <ConvexClientProvider>{children}</ConvexClientProvider>
 }

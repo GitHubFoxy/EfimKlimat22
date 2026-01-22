@@ -4,12 +4,12 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --color-light-orange: #F5AD3E;
-  --color-dark-orange: #E09118;
-  --color-light-gray: #F1F1F1;
-  --color-dark-gray: #D5D5D5;
-  --color-blackish: #2F2F2F;
-  --color-redish: #C81919;
+  --color-light-orange: #f5ad3e;
+  --color-dark-orange: #e09118;
+  --color-light-gray: #f1f1f1;
+  --color-dark-gray: #d5d5d5;
+  --color-blackish: #2f2f2f;
+  --color-redish: #c81919;
 }
 
 @theme inline {
@@ -42,7 +42,7 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
-  --color-primary: #2F2F2F;
+  --color-primary: #2f2f2f;
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);

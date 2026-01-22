@@ -1,5 +1,5 @@
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { type ClassValue, clsx } from 'clsx'
+import { twMerge } from 'tailwind-merge'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -20,12 +20,12 @@ export function cn(...inputs: ClassValue[]) {
 export function formatPrice(
   price: number,
   options?: {
-    locale?: string;
-    currency?: string;
-    decimals?: number;
-  }
+    locale?: string
+    currency?: string
+    decimals?: number
+  },
 ): string {
-  const { locale = 'ru-RU', currency, decimals } = options || {};
+  const { locale = 'ru-RU', currency, decimals } = options || {}
 
   return new Intl.NumberFormat(locale, {
     ...(currency && {
@@ -34,7 +34,7 @@ export function formatPrice(
     }),
     minimumFractionDigits: decimals ?? 0,
     maximumFractionDigits: decimals ?? 0,
-  }).format(price);
+  }).format(price)
 }
 
 /**
@@ -54,13 +54,17 @@ export function getRussianPlural(
   count: number,
   singular: string,
   few: string,
-  many: string
+  many: string,
 ): string {
   if (count % 10 === 1 && count % 100 !== 11) {
-    return `${count} ${singular}`;
+    return `${count} ${singular}`
   }
-  if (count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 10 || count % 100 >= 20)) {
-    return `${count} ${few}`;
+  if (
+    count % 10 >= 2 &&
+    count % 10 <= 4 &&
+    (count % 100 < 10 || count % 100 >= 20)
+  ) {
+    return `${count} ${few}`
   }
-  return `${count} ${many}`;
+  return `${count} ${many}`
 }

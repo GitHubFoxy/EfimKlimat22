@@ -1,28 +1,28 @@
-"use client";
+'use client'
 
-import { Id } from "@/convex/_generated/dataModel";
+import { Id } from '@/convex/_generated/dataModel'
 
-type FilterType = "Хиты продаж" | "Новинки" | "Со скидкой";
+type FilterType = 'Хиты продаж' | 'Новинки' | 'Со скидкой'
 
 interface CatalogResultsWrapperProps {
-  selectedCategoryId: Id<"categories"> | null;
-  selectedFilter: FilterType;
-  selectedSubcategory: string | null;
-  priceSort: "asc" | "desc" | null;
-  selectedBrand: Id<"brands"> | null;
-  selectedBrandSlug: string | null;
-  onClearBrandFilter: () => void;
-  groupByCollection: boolean;
+  selectedCategoryId: Id<'categories'> | null
+  selectedFilter: FilterType
+  selectedSubcategory: string | null
+  priceSort: 'asc' | 'desc' | null
+  selectedBrand: Id<'brands'> | null
+  selectedBrandSlug: string | null
+  onClearBrandFilter: () => void
+  groupByCollection: boolean
   CatalogResultsComponent: React.ComponentType<{
-    categoryId: Id<"categories"> | null;
-    filter: FilterType;
-    subcategory?: string | null;
-    priceSort?: "asc" | "desc" | null;
-    selectedBrand?: Id<"brands"> | null;
-    selectedBrandSlug?: string | null;
-    onClearBrandFilter: () => void;
-    groupByCollection: boolean;
-  }>;
+    categoryId: Id<'categories'> | null
+    filter: FilterType
+    subcategory?: string | null
+    priceSort?: 'asc' | 'desc' | null
+    selectedBrand?: Id<'brands'> | null
+    selectedBrandSlug?: string | null
+    onClearBrandFilter: () => void
+    groupByCollection: boolean
+  }>
 }
 
 export default function CatalogResultsWrapper({
@@ -40,12 +40,12 @@ export default function CatalogResultsWrapper({
     <CatalogResultsComponent
       categoryId={selectedCategoryId}
       filter={selectedFilter}
-      subcategory={selectedSubcategory === "none" ? null : selectedSubcategory}
+      subcategory={selectedSubcategory === 'none' ? null : selectedSubcategory}
       priceSort={priceSort}
       selectedBrand={selectedBrand}
       selectedBrandSlug={selectedBrandSlug}
       onClearBrandFilter={onClearBrandFilter}
       groupByCollection={groupByCollection}
     />
-  );
+  )
 }

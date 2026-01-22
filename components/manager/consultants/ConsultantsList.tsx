@@ -1,49 +1,46 @@
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button'
+import EmptyState from '@/components/ui/EmptyState'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import EmptyState from "@/components/ui/EmptyState";
-import type { Id } from "@/convex/_generated/dataModel";
+} from '@/components/ui/select'
+import type { Id } from '@/convex/_generated/dataModel'
 
-type ConsultantStatus = "new" | "processing" | "done";
+type ConsultantStatus = 'new' | 'processing' | 'done'
 
 export const CONSULTANT_STATUS_OPTIONS: {
-  value: ConsultantStatus;
-  label: string;
+  value: ConsultantStatus
+  label: string
 }[] = [
-  { value: "new", label: "Ожидает" },
-  { value: "processing", label: "В процессе" },
-  { value: "done", label: "Готово" },
-];
+  { value: 'new', label: 'Ожидает' },
+  { value: 'processing', label: 'В процессе' },
+  { value: 'done', label: 'Готово' },
+]
 
 interface Consultant {
-  _id: Id<"leads">;
-  name: string;
-  phone: string;
-  message?: string;
-  updatedAt?: number;
-  assignedManager?: Id<"users">;
-  status: string;
+  _id: Id<'leads'>
+  name: string
+  phone: string
+  message?: string
+  updatedAt?: number
+  assignedManager?: Id<'users'>
+  status: string
 }
 
 interface ConsultantsListProps {
-  consultants: Consultant[] | undefined;
-  managerId: string | null;
-  role: string | null;
+  consultants: Consultant[] | undefined
+  managerId: string | null
+  role: string | null
   updateStatus: (args: {
-    consultantId: Id<"leads">;
-    status: ConsultantStatus;
-  }) => void;
-  claim: (args: {
-    consultantId: Id<"leads">;
-    managerId: Id<"users">;
-  }) => void;
-  unclaim: (args: { consultantId: Id<"leads"> }) => void;
-  onResetStatus: () => void;
+    consultantId: Id<'leads'>
+    status: ConsultantStatus
+  }) => void
+  claim: (args: { consultantId: Id<'leads'>; managerId: Id<'users'> }) => void
+  unclaim: (args: { consultantId: Id<'leads'> }) => void
+  onResetStatus: () => void
 }
 
 export default function ConsultantsList({
@@ -58,38 +55,38 @@ export default function ConsultantsList({
   if ((consultants?.length ?? 0) === 0) {
     return (
       <EmptyState
-        title="Запросов на консультацию нет"
-        description="Нет консультаций для текущего фильтра. Измените статус или проверьте позже."
+        title='Запросов на консультацию нет'
+        description='Нет консультаций для текущего фильтра. Измените статус или проверьте позже.'
         secondaryActions={[
           {
-            label: "Изменить статус",
+            label: 'Изменить статус',
             onClick: onResetStatus,
           },
         ]}
       />
-    );
+    )
   }
 
   return (
-    <div className="space-y-3">
+    <div className='space-y-3'>
       {consultants!.map((c) => (
         <div
           key={c._id}
-          className="border rounded p-3 flex flex-col md:flex-row md:items-center justify-between gap-4"
+          className='border rounded p-3 flex flex-col md:flex-row md:items-center justify-between gap-4'
         >
-          <div className="space-y-1">
-            <div className="text-sm">Имя: {c.name}</div>
-            <div className="text-sm">Телефон: {c.phone}</div>
-            {c.message && <div className="text-sm">Сообщение: {c.message}</div>}
-            <div className="text-xs text-muted-foreground">
-              Обновлено:{" "}
-              {c.updatedAt ? new Date(c.updatedAt).toLocaleString() : "—"}
+          <div className='space-y-1'>
+            <div className='text-sm'>Имя: {c.name}</div>
+            <div className='text-sm'>Телефон: {c.phone}</div>
+            {c.message && <div className='text-sm'>Сообщение: {c.message}</div>}
+            <div className='text-xs text-muted-foreground'>
+              Обновлено:{' '}
+              {c.updatedAt ? new Date(c.updatedAt).toLocaleString() : '—'}
             </div>
-            <div className="text-xs">
-              Назначен: {c.assignedManager ? String(c.assignedManager) : "—"}
+            <div className='text-xs'>
+              Назначен: {c.assignedManager ? String(c.assignedManager) : '—'}
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className='flex flex-wrap items-center gap-2'>
             <Select
               value={c.status as ConsultantStatus}
               onValueChange={(v: ConsultantStatus) =>
@@ -99,7 +96,7 @@ export default function ConsultantsList({
                 })
               }
             >
-              <SelectTrigger className="w-[140px]">
+              <SelectTrigger className='w-[140px]'>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -111,11 +108,11 @@ export default function ConsultantsList({
               </SelectContent>
             </Select>
             <Button
-              variant="outline"
+              variant='outline'
               onClick={() =>
                 updateStatus({
                   consultantId: c._id,
-                  status: "processing",
+                  status: 'processing',
                 })
               }
             >
@@ -125,31 +122,31 @@ export default function ConsultantsList({
               onClick={() =>
                 updateStatus({
                   consultantId: c._id,
-                  status: "done",
+                  status: 'done',
                 })
               }
             >
               Готово
             </Button>
             <Button
-              variant="secondary"
+              variant='secondary'
               disabled={!managerId}
               onClick={() =>
                 managerId &&
                 claim({
                   consultantId: c._id,
-                  managerId: managerId as Id<"users">,
+                  managerId: managerId as Id<'users'>,
                 })
               }
             >
               Взять
             </Button>
-            {(role === "admin" ||
+            {(role === 'admin' ||
               (managerId &&
                 c.assignedManager &&
                 String(c.assignedManager) === managerId)) && (
               <Button
-                variant="destructive"
+                variant='destructive'
                 onClick={() => unclaim({ consultantId: c._id })}
               >
                 Снять
@@ -159,5 +156,5 @@ export default function ConsultantsList({
         </div>
       ))}
     </div>
-  );
+  )
 }

@@ -1,5 +1,6 @@
-import { mutation } from "./_generated/server";
-import { v, ConvexError } from "convex/values";
+import { ConvexError, v } from 'convex/values'
+import { mutation } from './_generated/server'
+import { requireRole } from './authHelpers'
 
 /**
  * Generic insert mutation for importing documents
@@ -12,22 +13,23 @@ export const insertDoc = mutation({
     doc: v.any(),
   },
   handler: async (ctx, { collection, doc }) => {
+    await requireRole(ctx, ['admin'])
     try {
-      const id = await ctx.db.insert(collection as any, doc);
-      return { ok: true, id: id.toString() };
+      const id = await ctx.db.insert(collection as any, doc)
+      return { ok: true, id: id.toString() }
     } catch (error: any) {
-      const message = error instanceof Error ? error.message : String(error);
-      console.error(`[Import Error] ${collection}:`, message);
-      console.error(`[Import Doc] ${JSON.stringify(doc).substring(0, 500)}`);
+      const message = error instanceof Error ? error.message : String(error)
+      console.error(`[Import Error] ${collection}:`, message)
+      console.error(`[Import Doc] ${JSON.stringify(doc).substring(0, 500)}`)
       // Return error instead of throwing so client can see it
       return {
         ok: false,
         error: message,
         collection,
-      };
+      }
     }
   },
-});
+})
 
 /**
  * Batch insert for performance (up to 100 docs at a time)
@@ -38,11 +40,12 @@ export const insertBatch = mutation({
     docs: v.array(v.any()),
   },
   handler: async (ctx, { collection, docs }) => {
-    const ids: string[] = [];
+    await requireRole(ctx, ['admin'])
+    const ids: string[] = []
     for (const doc of docs) {
-      const id = await ctx.db.insert(collection as any, doc);
-      ids.push(id.toString());
+      const id = await ctx.db.insert(collection as any, doc)
+      ids.push(id.toString())
     }
-    return ids;
+    return ids
   },
-});
+})

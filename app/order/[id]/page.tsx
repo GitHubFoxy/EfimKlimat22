@@ -1,17 +1,21 @@
-import { preloadQuery } from "convex/nextjs";
-import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
-import { OrderClient } from "./OrderClient";
+'use client'
 
-export default async function OrderPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const preloadedOrder = await preloadQuery(api.orders.get_order_by_id, {
-    id: id as Id<"orders">,
-  });
+import { useQuery } from 'convex/react'
+import { useParams } from 'next/navigation'
+import { api } from '@/convex/_generated/api'
+import { Id } from '@/convex/_generated/dataModel'
+import { useCartSessionId } from '@/hooks/useCartSession'
+import { OrderClient } from './OrderClient'
 
-  return <OrderClient preloadedOrder={preloadedOrder} />;
+export default function OrderPage() {
+  const params = useParams()
+  const id = params.id as string
+  const sessionId = useCartSessionId()
+
+  const order = useQuery(api.orders.get_order_by_id, {
+    id: id as Id<'orders'>,
+    sessionId,
+  })
+
+  return <OrderClient order={order} />
 }

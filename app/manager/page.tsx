@@ -1,5 +1,7 @@
-import { redirect } from "next/navigation";
+import { redirect } from 'next/navigation'
+import { requireManagerRole } from '@/lib/auth-server'
 
-export default function ManagerPage() {
-  redirect("/manager/items");
+export default async function ManagerPage() {
+  await requireManagerRole()
+  redirect('/manager/items')
 }

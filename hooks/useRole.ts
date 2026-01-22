@@ -1,37 +1,21 @@
-"use client";
+'use client'
 
-import { useEffect, useState } from "react";
+import { useQuery } from 'convex/react'
+import { api } from '@/convex/_generated/api'
 
-export type Role = "user" | "manager" | "admin";
+export type Role = 'guest' | 'user' | 'manager' | 'admin'
 
-export function useRole() {
-  const [role, setRole] = useState<Role>(() => {
-    if (typeof window === "undefined") return "user";
-    const stored = window.localStorage.getItem("role") as Role | null;
-    if (stored) return stored;
-    return process.env.NODE_ENV === "development" ? "manager" : "user";
-  });
+/**
+ * Fetch user role from server (authoritative source)
+ * CRITICAL: Never trust client-side role - server is authority
+ * Used only for UI rendering (show/hide buttons, menu items, etc.)
+ * All authorization decisions must happen server-side
+ *
+ * @returns Role fetched from database, defaults to "guest" if loading/unauthenticated
+ */
+export function useRole(): Role {
+  const role = useQuery(api.users.getUserRole)
 
-  const [managerId, setManagerId] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null;
-    return window.localStorage.getItem("managerId");
-  });
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem("role", role);
-    } catch {
-      // Local storage might be full or disabled
-    }
-  }, [role]);
-
-  useEffect(() => {
-    try {
-      if (managerId) window.localStorage.setItem("managerId", managerId);
-    } catch {
-      // Local storage might be full or disabled
-    }
-  }, [managerId]);
-
-  return { role, setRole, managerId, setManagerId } as const;
+  // undefined = loading, null/empty becomes guest
+  return (role as Role) ?? 'guest'
 }

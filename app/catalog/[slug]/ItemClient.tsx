@@ -1,39 +1,39 @@
-"use client";
+'use client'
 
-import Header from "@/components/Header/Header";
-import { Footer } from "@/components/Footer";
-import ItemCard from "@/components/ItemCard";
-import { Preloaded, usePreloadedQuery, useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { Doc } from "@/convex/_generated/dataModel";
-import Link from "next/link";
-import { formatPrice } from "@/lib/utils";
+import { Preloaded, usePreloadedQuery, useQuery } from 'convex/react'
+import Image from 'next/image'
+import Link from 'next/link'
+import { Footer } from '@/components/Footer'
+import FreeConsultmant from '@/components/FreeConsultmant'
+import Header from '@/components/Header/Header'
+import ItemCard from '@/components/ItemCard'
 import {
   Breadcrumb,
-  BreadcrumbList,
   BreadcrumbItem,
   BreadcrumbLink,
+  BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+} from '@/components/ui/breadcrumb'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
-import FreeConsultmant from "@/components/FreeConsultmant";
-import Image from "next/image";
+} from '@/components/ui/tooltip'
+import { api } from '@/convex/_generated/api'
+import { Doc } from '@/convex/_generated/dataModel'
+import { formatPrice } from '@/lib/utils'
 
 export function ItemClient({
   preloadedItem,
   itemSlug,
 }: {
-  preloadedItem: Preloaded<typeof api.catalog.show_item_by_slug>;
-  itemSlug: string;
+  preloadedItem: Preloaded<typeof api.catalog.show_item_by_slug>
+  itemSlug: string
 }) {
   // Use preloaded item data - server rendered and becomes reactive after hydration
-  const item = usePreloadedQuery(preloadedItem);
+  const item = usePreloadedQuery(preloadedItem)
 
   // Fetch related items by brand, category, and collection (client-side for reactivity)
   const relatedItems = useQuery(
@@ -45,21 +45,21 @@ export function ItemClient({
           categoryId: item.categoryId,
           collection: item.collection,
         }
-      : "skip",
-  ) as Doc<"items">[] | undefined;
+      : 'skip',
+  ) as Doc<'items'>[] | undefined
 
   return (
-    <div className="px-6 py-6 md:px-12 lg:px-28 xl:max-w-7xl xl:mx-auto">
+    <div className='px-6 py-6 md:px-12 lg:px-28 xl:max-w-7xl xl:mx-auto'>
       <Header />
 
       {/* Breadcrumbs */}
-      <div className="mt-4 mb-6">
+      <div className='mt-4 mb-6'>
         {item ? (
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link href="/">Главная</Link>
+                  <Link href='/'>Главная</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
 
@@ -67,7 +67,7 @@ export function ItemClient({
 
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link href="/catalog">Каталог</Link>
+                  <Link href='/catalog'>Каталог</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
 
@@ -75,25 +75,25 @@ export function ItemClient({
 
               <BreadcrumbItem>
                 <BreadcrumbPage>
-                  {item.brandName ? item.brandName : ""} {item.name}
+                  {item.brandName ? item.brandName : ''} {item.name}
                 </BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
         ) : (
-          <div className="text-sm text-gray-500">Загрузка навигации...</div>
+          <div className='text-sm text-gray-500'>Загрузка навигации...</div>
         )}
       </div>
 
       {/* Main content */}
       {item === null ? (
-        <div className="p-8 text-center">Товар не найден</div>
+        <div className='p-8 text-center'>Товар не найден</div>
       ) : (
         <>
-          <div className="flex flex-col lg:flex-row gap-4 mt-4 items-start">
-            <div className="flex flex-col gap-4 flex-1">
-              <div className="bg-white rounded-3xl p-2 shadow-sm border border-gray-100">
-                <div className="max-w-sm mx-auto">
+          <div className='flex flex-col lg:flex-row gap-4 mt-4 items-start'>
+            <div className='flex flex-col gap-4 flex-1'>
+              <div className='bg-white rounded-3xl p-2 shadow-sm border border-gray-100'>
+                <div className='max-w-sm mx-auto'>
                   <ItemCard
                     e={item}
                     variantCount={
@@ -106,53 +106,53 @@ export function ItemClient({
 
               {/* Related Items Section */}
               {relatedItems && relatedItems.length > 0 && (
-                <div className="bg-white rounded-3xl p-4 shadow-sm border border-gray-100">
+                <div className='bg-white rounded-3xl p-4 shadow-sm border border-gray-100'>
                   <TooltipProvider>
-                    <h2 className="text-xl font-semibold mb-4">
+                    <h2 className='text-xl font-semibold mb-4'>
                       Товары из коллекции
                     </h2>
-                    <div className="grid grid-cols-4 gap-3 overflow-x-auto">
+                    <div className='grid grid-cols-4 gap-3 overflow-x-auto'>
                       {relatedItems.map((relatedItem) => (
                         <Tooltip key={relatedItem._id}>
                           <TooltipTrigger asChild>
                             <Link
                               href={`/catalog/${relatedItem.slug}`}
-                              className="block min-w-20"
+                              className='block min-w-20'
                             >
-                              <div className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200 hover:border-gray-300 transition-colors">
+                              <div className='relative aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200 hover:border-gray-300 transition-colors'>
                                 <Image
-                                  src={item.imagesUrl?.[0] || "/not-found.jpg"}
+                                  src={item.imagesUrl?.[0] || '/not-found.jpg'}
                                   alt={relatedItem.name}
                                   fill
-                                  className="object-cover"
+                                  className='object-cover'
                                 />
                               </div>
                             </Link>
                           </TooltipTrigger>
                           <TooltipContent>
-                            <div className="space-y-1">
-                              <p className="font-medium">{relatedItem.name}</p>
+                            <div className='space-y-1'>
+                              <p className='font-medium'>{relatedItem.name}</p>
                               {relatedItem.specifications &&
                                 Object.entries(relatedItem.specifications)
                                   .filter(([key]) =>
                                     [
-                                      "power",
-                                      "powerKW",
-                                      "capacity",
-                                      "volume",
-                                      "efficiency",
+                                      'power',
+                                      'powerKW',
+                                      'capacity',
+                                      'volume',
+                                      'efficiency',
                                     ].includes(key),
                                   )
                                   .slice(0, 2)
                                   .map(([key, value]) => (
                                     <p
                                       key={key}
-                                      className="text-sm text-gray-600"
+                                      className='text-sm text-gray-600'
                                     >
                                       {key}: {value}
                                     </p>
                                   ))}
-                              <p className="text-sm font-medium text-amber-600">
+                              <p className='text-sm font-medium text-amber-600'>
                                 {formatPrice(relatedItem.price)} руб.
                               </p>
                             </div>
@@ -165,39 +165,39 @@ export function ItemClient({
               )}
             </div>
 
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex-1">
-              <h1 className="text-2xl font-semibold mb-2">
-                {item.brandName ? item.brandName : ""} {item.name}
+            <div className='bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex-1'>
+              <h1 className='text-2xl font-semibold mb-2'>
+                {item.brandName ? item.brandName : ''} {item.name}
               </h1>
 
-              <p className="text-lg font-medium mb-2 text-amber-600">
+              <p className='text-lg font-medium mb-2 text-amber-600'>
                 {formatPrice(item.price)} руб.
               </p>
 
-              <p className="text-sm text-gray-500 mb-4">
-                В наличии: {item.quantity ?? "—"}
+              <p className='text-sm text-gray-500 mb-4'>
+                В наличии: {item.quantity ?? '—'}
               </p>
 
-              <div className="text-sm text-gray-700 whitespace-pre-line mb-4">
-                {item.description ?? "Описание отсутствует"}
+              <div className='text-sm text-gray-700 whitespace-pre-line mb-4'>
+                {item.description ?? 'Описание отсутствует'}
               </div>
 
               {/* Specifications Table */}
               {item.specifications &&
                 Object.keys(item.specifications).length > 0 && (
-                  <div className="mt-6">
-                    <h3 className="text-sm font-semibold text-gray-900 mb-3 border-b pb-2">
+                  <div className='mt-6'>
+                    <h3 className='text-sm font-semibold text-gray-900 mb-3 border-b pb-2'>
                       Характеристики
                     </h3>
-                    <div className="space-y-2">
+                    <div className='space-y-2'>
                       {Object.entries(item.specifications).map(
                         ([key, value]) => (
                           <div
                             key={key}
-                            className="flex justify-between text-sm py-1 border-b border-gray-50 last:border-0"
+                            className='flex justify-between text-sm py-1 border-b border-gray-50 last:border-0'
                           >
-                            <span className="text-gray-500">{key}</span>
-                            <span className="font-medium text-gray-900">
+                            <span className='text-gray-500'>{key}</span>
+                            <span className='font-medium text-gray-900'>
                               {String(value)}
                             </span>
                           </div>
@@ -208,7 +208,7 @@ export function ItemClient({
                 )}
 
               {item.discountAmount ? (
-                <span className="text-sm text-red-600 font-medium">
+                <span className='text-sm text-red-600 font-medium'>
                   Скидка: {item.discountAmount}%
                 </span>
               ) : null}
@@ -216,16 +216,16 @@ export function ItemClient({
           </div>
 
           {/* Free consultation section */}
-          <div className="mt-10">
+          <div className='mt-10'>
             <FreeConsultmant />
           </div>
 
           {/* Footer */}
-          <div className="mt-12">
+          <div className='mt-12'>
             <Footer />
           </div>
         </>
       )}
     </div>
-  );
+  )
 }

@@ -1,15 +1,15 @@
-"use client";
+'use client'
 
-import ItemCard from "@/components/ItemCard";
-import EmptyState from "@/components/ui/EmptyState";
+import ItemCard from '@/components/ItemCard'
+import EmptyState from '@/components/ui/EmptyState'
 
 interface CatalogResultsGridProps {
-  isLoading: boolean;
-  results: any[];
-  selectedBrand?: string | null;
-  onClearBrandFilter: () => void;
-  onLoadMore: () => void;
-  isDone: boolean;
+  isLoading: boolean
+  results: any[]
+  selectedBrand?: string | null
+  onClearBrandFilter: () => void
+  onLoadMore: () => void
+  isDone: boolean
 }
 
 export default function CatalogResultsGrid({
@@ -21,47 +21,47 @@ export default function CatalogResultsGrid({
   isDone,
 }: CatalogResultsGridProps) {
   return (
-    <div className="px-4 mb-8">
+    <div className='px-4 mb-8'>
       {isLoading && results.length === 0 ? (
-        <div className="text-center py-8">Загрузка...</div>
+        <div className='text-center py-8'>Загрузка...</div>
       ) : results.length === 0 ? (
         selectedBrand ? (
           <EmptyState
             title={`Товары бренда не найдены`}
-            description="Попробуйте выбрать другой бренд или сбросьте фильтр"
+            description='Попробуйте выбрать другой бренд или сбросьте фильтр'
             primaryAction={{
-              label: "Сбросить фильтр по бренду",
+              label: 'Сбросить фильтр по бренду',
               onClick: onClearBrandFilter,
             }}
             secondaryActions={[
-              { label: "Связаться с консультантом", href: "#free-consult" },
+              { label: 'Связаться с консультантом', href: '#free-consult' },
             ]}
           />
         ) : (
           <EmptyState
-            title="В этой категории пока нет товаров по выбранному фильтру"
-            description="Если вам нужна помощь с подбором, свяжитесь с консультантом"
+            title='В этой категории пока нет товаров по выбранному фильтру'
+            description='Если вам нужна помощь с подбором, свяжитесь с консультантом'
             secondaryActions={[
-              { label: "Связаться с консультантом", href: "#free-consult" },
+              { label: 'Связаться с консультантом', href: '#free-consult' },
             ]}
           />
         )
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6'>
             {results.map((e, index: number) => (
               <div
                 key={e._id?.toString?.() ?? index}
-                className="flex flex-col items-center bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 p-4 md:p-5"
+                className='flex flex-col items-center bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 p-4 md:p-5'
               >
                 <ItemCard e={e} variantCount={e.variantsCount} />
               </div>
             ))}
           </div>
           {!isDone && (
-            <div className="flex justify-center mt-6">
+            <div className='flex justify-center mt-6'>
               <button
-                className="px-4 py-2 rounded-md border disabled:opacity-50"
+                className='px-4 py-2 rounded-md border disabled:opacity-50'
                 onClick={onLoadMore}
               >
                 Показать еще
@@ -71,5 +71,5 @@ export default function CatalogResultsGrid({
         </>
       )}
     </div>
-  );
+  )
 }

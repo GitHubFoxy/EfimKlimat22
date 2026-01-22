@@ -1,82 +1,82 @@
-"use client";
+'use client'
 
-import { Footer } from "@/components/Footer";
-import Header from "@/components/Header/Header";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useCartSessionId } from "@/hooks/useCartSession";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { useState } from "react";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import { useMutation, useQuery } from 'convex/react'
+import Image from 'next/image'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { Footer } from '@/components/Footer'
+import Header from '@/components/Header/Header'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { api } from '@/convex/_generated/api'
+import { useCartSessionId } from '@/hooks/useCartSession'
 
 export default function CheckoutPage() {
-  const router = useRouter();
-  const sessionId = useCartSessionId();
+  const router = useRouter()
+  const sessionId = useCartSessionId()
   const itemsData = useQuery(
     api.cart.listItems,
-    sessionId ? { sessionId } : "skip",
-  );
-  const summary = useQuery(api.cart.get, sessionId ? { sessionId } : "skip");
-  const clear = useMutation(api.cart.clear);
-  const createOrder = useMutation(api.cart.createOrder);
+    sessionId ? { sessionId } : 'skip',
+  )
+  const summary = useQuery(api.cart.get, sessionId ? { sessionId } : 'skip')
+  const clear = useMutation(api.cart.clear)
+  const createOrder = useMutation(api.cart.createOrder)
 
   const [formData, setFormData] = useState({
-    name: "",
-    phone: "",
-    email: "",
-    city: "Барнаул",
-    street: "",
-    addressDetails: "",
-    comment: "",
-    deliveryType: "courier" as "pickup" | "courier" | "transport",
-    paymentMethod: "card_online" as
-      | "card_online"
-      | "cash_on_delivery"
-      | "card_on_delivery"
-      | "b2b_invoice",
-  });
+    name: '',
+    phone: '',
+    email: '',
+    city: 'Барнаул',
+    street: '',
+    addressDetails: '',
+    comment: '',
+    deliveryType: 'courier' as 'pickup' | 'courier' | 'transport',
+    paymentMethod: 'card_online' as
+      | 'card_online'
+      | 'cash_on_delivery'
+      | 'card_on_delivery'
+      | 'b2b_invoice',
+  })
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [orderComplete, setOrderComplete] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [orderComplete, setOrderComplete] = useState(false)
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
 
     if (!sessionId || !itemsData?.items || itemsData.items.length === 0) {
-      return;
+      return
     }
 
-    setIsSubmitting(true);
+    setIsSubmitting(true)
 
     try {
       // Build address object only for non-pickup delivery
       const address =
-        formData.deliveryType !== "pickup" && formData.city && formData.street
+        formData.deliveryType !== 'pickup' && formData.city && formData.street
           ? {
               city: formData.city,
               street: formData.street,
               details: formData.addressDetails || undefined,
             }
-          : undefined;
+          : undefined
 
       // Create order in backend (Convex)
       const res = await createOrder({
@@ -88,47 +88,47 @@ export default function CheckoutPage() {
         address,
         paymentMethod: formData.paymentMethod,
         deliveryPrice: 0, // Will be calculated by manager
-      });
+      })
 
       // Optionally ensure local cart state clears
-      await clear({ sessionId });
+      await clear({ sessionId })
 
-      router.push(`/order/${res.orderId}`);
+      router.push(`/order/${res.orderId}`)
     } catch (error) {
-      console.error("Error submitting order:", error);
-      alert("Произошла ошибка при оформлении заказа. Попробуйте еще раз.");
+      console.error('Error submitting order:', error)
+      alert('Произошла ошибка при оформлении заказа. Попробуйте еще раз.')
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false)
     }
-  };
+  }
 
   if (!sessionId || !itemsData) {
     return (
-      <div className="px-6 py-2 md:px-12 lg:px-28">
+      <div className='px-6 py-2 md:px-12 lg:px-28'>
         <Header />
-        <div className="min-h-[400px] flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-lg">Загрузка...</p>
+        <div className='min-h-[400px] flex items-center justify-center'>
+          <div className='text-center'>
+            <p className='text-lg'>Загрузка...</p>
           </div>
         </div>
         <Footer />
       </div>
-    );
+    )
   }
 
   if (itemsData.items.length === 0 && !orderComplete) {
     return (
-      <div className="px-6 py-2 md:px-12 lg:px-28">
+      <div className='px-6 py-2 md:px-12 lg:px-28'>
         <Header />
-        <div className="min-h-[400px] flex items-center justify-center">
-          <div className="text-center">
-            <h1 className="text-2xl font-semibold mb-4">Корзина пуста</h1>
-            <p className="mb-6">
+        <div className='min-h-[400px] flex items-center justify-center'>
+          <div className='text-center'>
+            <h1 className='text-2xl font-semibold mb-4'>Корзина пуста</h1>
+            <p className='mb-6'>
               Добавьте товары в корзину перед оформлением заказа
             </p>
             <Button
-              onClick={() => router.push("/catalog")}
-              className="bg-light-orange hover:bg-amber-500 rounded-full px-8"
+              onClick={() => router.push('/catalog')}
+              className='bg-light-orange hover:bg-amber-500 rounded-full px-8'
             >
               Перейти в каталог
             </Button>
@@ -136,39 +136,39 @@ export default function CheckoutPage() {
         </div>
         <Footer />
       </div>
-    );
+    )
   }
 
   return (
-    <div className="px-6 py-2 md:px-12 lg:px-28">
+    <div className='px-6 py-2 md:px-12 lg:px-28'>
       <Header />
 
-      <div className="max-w-6xl mx-auto my-12">
-        <h1 className="text-3xl font-semibold mb-8">Оформление заказа</h1>
+      <div className='max-w-6xl mx-auto my-12'>
+        <h1 className='text-3xl font-semibold mb-8'>Оформление заказа</h1>
 
-        <div className="grid grid-cols-1 grid-rows-2 lg:grid-cols-2 lg:grid-rows-1 gap-8">
+        <div className='grid grid-cols-1 grid-rows-2 lg:grid-cols-2 lg:grid-rows-1 gap-8'>
           {/* Order Summary */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 h-fit row-start-1 lg:row-start-auto">
-            <h2 className="text-xl font-semibold mb-6">Ваш заказ</h2>
+          <div className='bg-white rounded-2xl p-6 shadow-sm border border-gray-100 h-fit row-start-1 lg:row-start-auto'>
+            <h2 className='text-xl font-semibold mb-6'>Ваш заказ</h2>
 
-            <div className="space-y-4 mb-6 ">
+            <div className='space-y-4 mb-6 '>
               {itemsData.items.map((item: any) => (
-                <div key={item._id} className="flex gap-4">
-                  <div className="relative w-20 h-20 rounded-lg overflow-hidden shrink-0 bg-gray-50">
+                <div key={item._id} className='flex gap-4'>
+                  <div className='relative w-20 h-20 rounded-lg overflow-hidden shrink-0 bg-gray-50'>
                     <Image
-                      src={item.image ?? "/kotel.jpg"}
+                      src={item.image ?? '/kotel.jpg'}
                       alt={item.name}
                       fill
-                      className="object-contain"
+                      className='object-contain'
                     />
                   </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-sm mb-1">{item.name}</p>
-                    <p className="text-sm text-gray-600">
+                  <div className='flex-1'>
+                    <p className='font-medium text-sm mb-1'>{item.name}</p>
+                    <p className='text-sm text-gray-600'>
                       Количество: {item.quantity} шт.
                     </p>
-                    <p className="text-sm font-semibold mt-1">
-                      {(item.price * item.quantity).toLocaleString("ru-RU")}{" "}
+                    <p className='text-sm font-semibold mt-1'>
+                      {(item.price * item.quantity).toLocaleString('ru-RU')}{' '}
                       руб.
                     </p>
                   </div>
@@ -176,39 +176,39 @@ export default function CheckoutPage() {
               ))}
             </div>
 
-            <hr className="my-6" />
+            <hr className='my-6' />
 
-            <div className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Товаров:</span>
+            <div className='space-y-3'>
+              <div className='flex justify-between text-sm'>
+                <span className='text-gray-600'>Товаров:</span>
                 <span>{itemsData.count} шт.</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Сумма:</span>
-                <span>{itemsData.subtotal.toLocaleString("ru-RU")} руб.</span>
+              <div className='flex justify-between text-sm'>
+                <span className='text-gray-600'>Сумма:</span>
+                <span>{itemsData.subtotal.toLocaleString('ru-RU')} руб.</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Доставка:</span>
-                <span className="text-green-600">Уточняется</span>
+              <div className='flex justify-between text-sm'>
+                <span className='text-gray-600'>Доставка:</span>
+                <span className='text-green-600'>Уточняется</span>
               </div>
               <hr />
-              <div className="flex justify-between text-lg font-semibold">
+              <div className='flex justify-between text-lg font-semibold'>
                 <span>Итого:</span>
-                <span>{itemsData.subtotal.toLocaleString("ru-RU")} руб.</span>
+                <span>{itemsData.subtotal.toLocaleString('ru-RU')} руб.</span>
               </div>
             </div>
 
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-              <p className="text-sm text-blue-900">
+            <div className='mt-6 p-4 bg-blue-50 rounded-lg'>
+              <p className='text-sm text-blue-900'>
                 <strong>Обратите внимание:</strong> Стоимость доставки будет
                 рассчитана менеджером и сообщена вам при подтверждении заказа.
                 <Dialog>
                   <DialogTrigger asChild>
-                    <span className="ml-2 underline cursor-pointer text-blue-700">
+                    <span className='ml-2 underline cursor-pointer text-blue-700'>
                       Подробнее
                     </span>
                   </DialogTrigger>
-                  <DialogContent className="sm:max-w-xl max-h-[80vh] overflow-y-auto">
+                  <DialogContent className='sm:max-w-xl max-h-[80vh] overflow-y-auto'>
                     <DialogHeader>
                       <DialogTitle>Доставка и оплата</DialogTitle>
                       <DialogDescription>
@@ -217,10 +217,10 @@ export default function CheckoutPage() {
                         информацию об условиях доставки.
                       </DialogDescription>
                     </DialogHeader>
-                    <div className="space-y-4 text-sm text-gray-800">
+                    <div className='space-y-4 text-sm text-gray-800'>
                       <div>
-                        <p className="font-semibold">1. Способы доставки</p>
-                        <ul className="list-disc pl-5 space-y-1">
+                        <p className='font-semibold'>1. Способы доставки</p>
+                        <ul className='list-disc pl-5 space-y-1'>
                           <li>
                             Курьерская доставка по [Ваш город]: Доставка
                             осуществляется нашей курьерской службой до двери.
@@ -240,8 +240,8 @@ export default function CheckoutPage() {
                       </div>
 
                       <div>
-                        <p className="font-semibold">2. Сроки доставки</p>
-                        <ul className="list-disc pl-5 space-y-1">
+                        <p className='font-semibold'>2. Сроки доставки</p>
+                        <ul className='list-disc pl-5 space-y-1'>
                           <li>
                             Сборка и передача заказа в службу доставки занимает
                             1-3 рабочих дня.
@@ -258,8 +258,8 @@ export default function CheckoutPage() {
                       </div>
 
                       <div>
-                        <p className="font-semibold">3. Стоимость доставки</p>
-                        <ul className="list-disc pl-5 space-y-1">
+                        <p className='font-semibold'>3. Стоимость доставки</p>
+                        <ul className='list-disc pl-5 space-y-1'>
                           <li>
                             Стоимость доставки по [Ваш город]: 500 рублей.
                           </li>
@@ -277,7 +277,7 @@ export default function CheckoutPage() {
                       </div>
 
                       <div>
-                        <p className="font-semibold">4. Получение заказа</p>
+                        <p className='font-semibold'>4. Получение заказа</p>
                         <p>
                           При получении товара, пожалуйста, проверьте его
                           внешний вид и комплектность в присутствии курьера или
@@ -292,141 +292,141 @@ export default function CheckoutPage() {
           </div>
 
           {/* Order Form */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 row-start-2 lg:row-start-auto">
-            <h2 className="text-xl font-semibold mb-6">Контактные данные</h2>
+          <div className='bg-white rounded-2xl p-6 shadow-sm border border-gray-100 row-start-2 lg:row-start-auto'>
+            <h2 className='text-xl font-semibold mb-6'>Контактные данные</h2>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className='space-y-4'>
               <div>
-                <Label htmlFor="name">Ваше имя *</Label>
+                <Label htmlFor='name'>Ваше имя *</Label>
                 <Input
-                  id="name"
-                  name="name"
-                  type="text"
+                  id='name'
+                  name='name'
+                  type='text'
                   required
                   value={formData.name}
                   onChange={handleInputChange}
-                  placeholder="Иван Иванов"
-                  className="mt-1"
+                  placeholder='Иван Иванов'
+                  className='mt-1'
                 />
               </div>
 
               <div>
-                <Label htmlFor="phone">Телефон *</Label>
+                <Label htmlFor='phone'>Телефон *</Label>
                 <Input
-                  id="phone"
-                  name="phone"
-                  type="tel"
+                  id='phone'
+                  name='phone'
+                  type='tel'
                   required
                   value={formData.phone}
                   onChange={handleInputChange}
-                  placeholder="81234567890"
-                  className="mt-1"
+                  placeholder='81234567890'
+                  className='mt-1'
                 />
               </div>
 
               <div>
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor='email'>Email</Label>
                 <Input
-                  id="email"
-                  name="email"
-                  type="email"
+                  id='email'
+                  name='email'
+                  type='email'
                   value={formData.email}
                   onChange={handleInputChange}
-                  placeholder="example@email.com"
-                  className="mt-1"
+                  placeholder='example@email.com'
+                  className='mt-1'
                 />
               </div>
 
               <div>
-                <Label htmlFor="deliveryType">Способ доставки *</Label>
+                <Label htmlFor='deliveryType'>Способ доставки *</Label>
                 <select
-                  id="deliveryType"
-                  name="deliveryType"
+                  id='deliveryType'
+                  name='deliveryType'
                   required
                   value={formData.deliveryType}
                   onChange={(e) =>
                     setFormData((prev) => ({
                       ...prev,
                       deliveryType: e.target.value as
-                        | "pickup"
-                        | "courier"
-                        | "transport",
+                        | 'pickup'
+                        | 'courier'
+                        | 'transport',
                     }))
                   }
-                  className="mt-1 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className='mt-1 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500'
                 >
-                  <option value="pickup">Самовывоз</option>
-                  <option value="courier">Курьером</option>
-                  <option value="transport">Транспортной компанией</option>
+                  <option value='pickup'>Самовывоз</option>
+                  <option value='courier'>Курьером</option>
+                  <option value='transport'>Транспортной компанией</option>
                 </select>
               </div>
 
-              {formData.deliveryType !== "pickup" && (
+              {formData.deliveryType !== 'pickup' && (
                 <>
                   <div>
-                    <Label htmlFor="city">Город *</Label>
+                    <Label htmlFor='city'>Город *</Label>
                     <Input
-                      id="city"
-                      name="city"
-                      type="text"
+                      id='city'
+                      name='city'
+                      type='text'
                       required
                       value={formData.city}
                       onChange={handleInputChange}
-                      placeholder="Барнаул"
-                      className="mt-1"
+                      placeholder='Барнаул'
+                      className='mt-1'
                       disabled
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="street">Улица, дом *</Label>
+                    <Label htmlFor='street'>Улица, дом *</Label>
                     <Input
-                      id="street"
-                      name="street"
-                      type="text"
+                      id='street'
+                      name='street'
+                      type='text'
                       required
                       value={formData.street}
                       onChange={handleInputChange}
-                      placeholder="ул. Примерная, д. 1"
-                      className="mt-1"
+                      placeholder='ул. Примерная, д. 1'
+                      className='mt-1'
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="addressDetails">
+                    <Label htmlFor='addressDetails'>
                       Квартира, подъезд, этаж
                     </Label>
                     <Input
-                      id="addressDetails"
-                      name="addressDetails"
-                      type="text"
+                      id='addressDetails'
+                      name='addressDetails'
+                      type='text'
                       value={formData.addressDetails}
                       onChange={handleInputChange}
-                      placeholder="кв. 1, подъезд 2, этаж 3"
-                      className="mt-1"
+                      placeholder='кв. 1, подъезд 2, этаж 3'
+                      className='mt-1'
                     />
                   </div>
                 </>
               )}
 
               <div>
-                <Label htmlFor="comment">Комментарий к заказу</Label>
+                <Label htmlFor='comment'>Комментарий к заказу</Label>
                 <Textarea
-                  id="comment"
-                  name="comment"
+                  id='comment'
+                  name='comment'
                   value={formData.comment}
                   onChange={handleInputChange}
-                  placeholder="Дополнительная информация..."
-                  className="mt-1"
+                  placeholder='Дополнительная информация...'
+                  className='mt-1'
                   rows={4}
                 />
               </div>
 
               <div>
-                <Label htmlFor="paymentMethod">Способ оплаты *</Label>
+                <Label htmlFor='paymentMethod'>Способ оплаты *</Label>
                 <select
-                  id="paymentMethod"
-                  name="paymentMethod"
+                  id='paymentMethod'
+                  name='paymentMethod'
                   required
                   value={formData.paymentMethod}
                   onChange={(e) =>
@@ -435,42 +435,42 @@ export default function CheckoutPage() {
                       paymentMethod: e.target.value as any,
                     }))
                   }
-                  className="mt-1 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className='mt-1 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500'
                 >
-                  <option value="card_online">Картой онлайн (ВТБ)</option>
-                  <option value="cash_on_delivery">
+                  <option value='card_online'>Картой онлайн (ВТБ)</option>
+                  <option value='cash_on_delivery'>
                     Наличными при получении
                   </option>
-                  <option value="card_on_delivery">Картой при получении</option>
-                  <option value="b2b_invoice" disabled>
+                  <option value='card_on_delivery'>Картой при получении</option>
+                  <option value='b2b_invoice' disabled>
                     Счет на оплату (для юрлиц)
                   </option>
                 </select>
               </div>
 
-              <div className="mt-2">
-                <div className="bg-white rounded-lg border border-gray-100 p-3">
-                  <p className="text-sm text-gray-600 mb-2">
+              <div className='mt-2'>
+                <div className='bg-white rounded-lg border border-gray-100 p-3'>
+                  <p className='text-sm text-gray-600 mb-2'>
                     Принимаемые способы оплаты:
                   </p>
                   <Dialog>
                     <DialogTrigger asChild>
-                      <span className="text-sm text-blue-700 underline cursor-pointer">
+                      <span className='text-sm text-blue-700 underline cursor-pointer'>
                         Подробнее
                       </span>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-xl max-h-[80vh] overflow-y-auto">
+                    <DialogContent className='sm:max-w-xl max-h-[80vh] overflow-y-auto'>
                       <DialogHeader>
                         <DialogTitle>Безопасность онлайн-платежей</DialogTitle>
                       </DialogHeader>
-                      <div className="space-y-3 text-sm text-gray-800">
+                      <div className='space-y-3 text-sm text-gray-800'>
                         <p>
                           После завершения оформления заказа в нашем магазине,
                           вы будете автоматически перенаправлены на защищенную
                           страницу платежного шлюза ПАО &quot;ВТБ&quot; для
                           ввода данных вашей банковской карты.
                         </p>
-                        <ul className="list-disc pl-5 space-y-1">
+                        <ul className='list-disc pl-5 space-y-1'>
                           <li>
                             После завершения оформления заказа в нашем магазине,
                             вы будете автоматически перенаправлены на защищенную
@@ -504,23 +504,23 @@ export default function CheckoutPage() {
                       </div>
                     </DialogContent>
                   </Dialog>
-                  <div className="flex items-center gap-2 mt-6">
-                    <div className="h-8 w-16 flex items-center justify-center rounded-full bg-white">
+                  <div className='flex items-center gap-2 mt-6'>
+                    <div className='h-8 w-16 flex items-center justify-center rounded-full bg-white'>
                       <Image
-                        src="/payment-logo/mir.png"
-                        alt="Оплата картами Мир"
+                        src='/payment-logo/mir.png'
+                        alt='Оплата картами Мир'
                         width={64}
                         height={24}
-                        className="object-contain rounded-full bg-white"
+                        className='object-contain rounded-full bg-white'
                       />
                     </div>
-                    <div className="h-8 w-16 flex items-center justify-center rounded-full bg-white">
+                    <div className='h-8 w-16 flex items-center justify-center rounded-full bg-white'>
                       <Image
-                        src="/payment-logo/vtb.png"
-                        alt="Оплата через ВТБ"
+                        src='/payment-logo/vtb.png'
+                        alt='Оплата через ВТБ'
                         width={64}
                         height={24}
-                        className="object-contain rounded-full bg-white"
+                        className='object-contain rounded-full bg-white'
                       />
                     </div>
                   </div>
@@ -528,11 +528,11 @@ export default function CheckoutPage() {
               </div>
 
               <Button
-                type="submit"
+                type='submit'
                 disabled={isSubmitting}
-                className="w-full bg-light-orange hover:bg-amber-500 hover:cursor-pointer rounded-full h-12 text-lg"
+                className='w-full bg-light-orange hover:bg-amber-500 hover:cursor-pointer rounded-full h-12 text-lg'
               >
-                {isSubmitting ? "Оформление..." : "Оформить заказ"}
+                {isSubmitting ? 'Оформление...' : 'Оформить заказ'}
               </Button>
             </form>
           </div>
@@ -541,5 +541,5 @@ export default function CheckoutPage() {
 
       <Footer />
     </div>
-  );
+  )
 }

@@ -1,5 +1,6 @@
-import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { v } from 'convex/values'
+import { mutation, query } from './_generated/server'
+import { validateMessage, validateName, validatePhone } from './validation'
 
 // Get list of available consultants
 export const listAvailable = query({
@@ -7,9 +8,9 @@ export const listAvailable = query({
   handler: async (ctx) => {
     // Return empty array for now - implement when consultants table is added
     // This is a placeholder for FreeConsultant component
-    return [];
+    return []
   },
-});
+})
 
 // Submit a consultant request (creates a lead)
 export const submit_consultant_request = mutation({
@@ -19,14 +20,19 @@ export const submit_consultant_request = mutation({
     message: v.optional(v.string()),
   },
   handler: async (ctx, { name, phone, message }) => {
-    const leadId = await ctx.db.insert("leads", {
+    // Input validation
+    validateName(name)
+    validatePhone(phone)
+    validateMessage(message)
+
+    const leadId = await ctx.db.insert('leads', {
       name,
       phone,
-      type: "callback",
+      type: 'callback',
       message,
-      status: "new",
+      status: 'new',
       updatedAt: Date.now(),
-    });
-    return { leadId };
+    })
+    return { leadId }
   },
-});
+})

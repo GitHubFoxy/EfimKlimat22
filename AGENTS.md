@@ -14,7 +14,8 @@ bun run dev:backend            # Start Convex dev server
 bun run predev                 # Run convex dev --until-success before dev
 
 # Code Quality
-bun run lint                   # Run ESLint
+bun run lint                   # Run Biome (linter + formatter import organizer)
+bun run format                 # Fix formatting with Biome
 bun run typecheck              # Run TypeScript type checking (tsc --noEmit)
 ```
 
@@ -51,18 +52,19 @@ When in doubt, choose the simpler solution. Clarity > cleverness.
 - React JSX transform
 - Incremental builds enabled
 
-### ESLint Rules
+### Biome Configuration
 
-- Extends Next.js core web vitals and TypeScript config
-- Disabled rules:
-  - `@typescript-eslint/no-unused-vars`: off
-  - `@typescript-eslint/no-explicit-any`: off
+- All-in-one linter, formatter, and import organizer (Rust-based, 10-100x faster than ESLint)
+- Configured in `biome.json`
+- Formatting style: single quotes, 2-space indent, no semicolons
+- Tailwind CSS directives support enabled
+- Key disabled rules (matching old ESLint config):
+  - `suspicious.noExplicitAny`: off
+  - `suspicious.noEmptyBlockStatements`: off
+  - `useExhaustiveDependencies`: warn (React hooks)
+  - `performance.noImgElement`: warn (legacy `<img>` tags)
 - Run linting with: `bun run lint`
-
-### Prettier
-
-- Empty config (`{}`) - uses default Prettier settings
-- No custom formatting rules specified
+- Auto-fix with: `bun run format`
 
 ### Import Order & Structure
 
@@ -291,13 +293,15 @@ No Husky or pre-commit hooks configured. Linting should be run manually before c
 ### Agent Reminders
 
 1. Always run `bun run lint` AND `bun run typecheck` after making changes (do NOT build)
-2. Use TypeScript strict mode - avoid `any` unless necessary
-3. Follow existing import patterns and aliases
-4. Check for existing utilities in `/lib` before creating new ones
-5. Maintain Russian locale defaults for formatting
-6. Use shadcn/ui components when possible for consistency
-7. Add `"use client"` directive only when browser APIs are needed
-8. Test both development (`bun run dev`)
-9. **When renaming files, use `mv` command, NOT `rm` + recreate**
-10. **Do NOT create summary documents** - just implement changes, let code speak
-11. **NEVER USE MERMAID DIAGRAMS** - explain in text only, be concise
+2. Biome handles linting, formatting, and import organizing automatically
+3. Use TypeScript strict mode - avoid `any` unless necessary
+4. Follow existing import patterns and aliases
+5. Check for existing utilities in `/lib` before creating new ones
+6. Maintain Russian locale defaults for formatting
+7. Use shadcn/ui components when possible for consistency
+8. Add `"use client"` directive only when browser APIs are needed
+9. Test both development (`bun run dev`)
+10. **When renaming files, use `mv` command, NOT `rm` + recreate**
+11. **Do NOT create summary documents** - just implement changes, let code speak
+12. **NEVER USE MERMAID DIAGRAMS** - explain in text only, be concise
+13. **NEVER give time estimates** - Don't estimate how long tasks will take, just do the work

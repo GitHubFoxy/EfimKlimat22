@@ -24,10 +24,12 @@ import type * as main from "../main.js";
 import type * as manager from "../manager.js";
 import type * as migrations from "../migrations.js";
 import type * as migrations_backfill_collection_field from "../migrations/backfill_collection_field.js";
+import type * as migrations_convert_power_to_segments from "../migrations/convert_power_to_segments.js";
 import type * as migrations_init_collection_groups from "../migrations/init_collection_groups.js";
 import type * as orders from "../orders.js";
 import type * as test_category_filter from "../test_category_filter.js";
 import type * as users from "../users.js";
+import type * as validation from "../validation.js";
 
 import type {
   ApiFromModules,
@@ -52,10 +54,12 @@ declare const fullApi: ApiFromModules<{
   manager: typeof manager;
   migrations: typeof migrations;
   "migrations/backfill_collection_field": typeof migrations_backfill_collection_field;
+  "migrations/convert_power_to_segments": typeof migrations_convert_power_to_segments;
   "migrations/init_collection_groups": typeof migrations_init_collection_groups;
   orders: typeof orders;
   test_category_filter: typeof test_category_filter;
   users: typeof users;
+  validation: typeof validation;
 }>;
 
 /**
