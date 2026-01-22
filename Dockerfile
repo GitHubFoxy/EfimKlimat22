@@ -22,6 +22,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ARG NEXT_PUBLIC_CONVEX_URL
 ENV NEXT_PUBLIC_CONVEX_URL=${NEXT_PUBLIC_CONVEX_URL}
 
+# Generate Convex types before building
+RUN bun x convex codegen
+
 RUN bun run build
 
 # 4. Production image
