@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # 1. Base image for dependencies and build
-FROM oven/bun:1 AS base
+FROM docker.io/oven/bun:1 AS base
 WORKDIR /app
 
 # 2. Install dependencies
@@ -25,7 +25,7 @@ ENV NEXT_PUBLIC_CONVEX_URL=${NEXT_PUBLIC_CONVEX_URL}
 RUN bun run build
 
 # 4. Production image
-FROM oven/bun:1-slim AS runner
+FROM docker.io/oven/bun:1-slim AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production

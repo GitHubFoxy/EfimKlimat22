@@ -16,7 +16,7 @@ services:
 
   caddy:
     container_name: klimat22-caddy
-    image: caddy:alpine
+    image: docker.io/library/caddy:alpine
     restart: always
     ports:
       - "80:80"

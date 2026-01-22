@@ -17,8 +17,12 @@ if ! grep -q "net.ipv4.ip_unprivileged_port_start=80" /etc/sysctl.conf; then
 fi
 
 # 3. Enable lingering
-# This ensures your containers don't die when you log out of SSH
 echo "👻 Enabling user lingering..."
 loginctl enable-linger $USER
+
+# 4. Configure registries (fixes short-name resolution error)
+echo "🌐 Configuring image registries..."
+sudo mkdir -p /etc/containers
+echo 'unqualified-search-registries = ["docker.io", "quay.io"]' | sudo tee /etc/containers/registries.conf
 
 echo "✅ Setup complete! You can now use ./deploy.sh"
