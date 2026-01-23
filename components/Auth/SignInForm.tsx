@@ -23,17 +23,13 @@ export function SignInForm() {
   const currentUser = useQuery(api.users.getCurrentUserWithTempPassword)
 
   useEffect(() => {
-    if (
-      isAuthenticated &&
-      currentUser !== undefined &&
-      !currentUser?.mustChangePassword
-    ) {
+    if (isAuthenticated && currentUser !== undefined && currentUser !== null) {
       router.push('/manager')
     }
   }, [isAuthenticated, currentUser, router])
 
   // Show nothing while authenticated user is being redirected
-  if (isAuthenticated && currentUser !== undefined) {
+  if (isAuthenticated && currentUser !== undefined && currentUser !== null) {
     return null
   }
 
