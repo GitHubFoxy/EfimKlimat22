@@ -19,7 +19,7 @@ const authMiddleware = convexAuthNextjsMiddleware(
 
     // Protect /manager routes - require authentication
     if (isManagerRoute(request) && !isAuthenticated) {
-      return nextjsMiddlewareRedirect(request, '/auth')
+      return nextjsMiddlewareRedirect(request, '/auth/signin')
     }
 
     // Note: Role-based authorization happens at the page level
