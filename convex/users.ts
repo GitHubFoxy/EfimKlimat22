@@ -5,7 +5,13 @@ import {
 } from '@convex-dev/auth/server'
 import { ConvexError, v } from 'convex/values'
 import { api, internal } from './_generated/api'
-import { action, internalMutation, mutation, query } from './_generated/server'
+import {
+  action,
+  internalAction,
+  internalMutation,
+  mutation,
+  query,
+} from './_generated/server'
 import { normalizePhone } from './auth'
 import { requirePermanentPassword, requireRole } from './authHelpers'
 import { validateName, validatePassword, validatePhone } from './validation'
@@ -298,6 +304,38 @@ export const get_user_by_id = query({
 })
 
 // Test helper: Create a test user (admin only)
+/**
+ * INTERNAL: Bootstrap user creation (no auth required)
+ * Run via Convex dashboard: npx convex run users:bootstrapUser
+ */
+export const bootstrapUser = internalAction({
+  args: {
+    phone: v.string(),
+    name: v.string(),
+    password: v.string(),
+    role: v.union(v.literal('user'), v.literal('manager'), v.literal('admin')),
+  },
+  handler: async (ctx, { phone, name, password, role }) => {
+    const normalizedPhone = normalizePhone(phone)
+
+    await createAccount(ctx, {
+      provider: 'phone',
+      account: { id: normalizedPhone, secret: password },
+      profile: {
+        phone: normalizedPhone,
+        name,
+        role,
+        status: 'active',
+      },
+    })
+
+    return {
+      phone: normalizedPhone,
+      message: `User created: ${normalizedPhone}`,
+    }
+  },
+})
+
 export const createTestUser = action({
   args: {
     phone: v.string(),

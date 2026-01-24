@@ -27,9 +27,8 @@ ENV NEXT_PUBLIC_CONVEX_URL=${NEXT_PUBLIC_CONVEX_URL}
 ENV CONVEX_SELF_HOSTED_URL=${CONVEX_SELF_HOSTED_URL}
 ENV CONVEX_SELF_HOSTED_ADMIN_KEY=${CONVEX_SELF_HOSTED_ADMIN_KEY}
 
-# Generate Convex types before building
-RUN bun x convex codegen
-
+# Note: convex/_generated should be included in the build context
+# Run `bunx convex codegen` locally before building
 RUN bun run build
 
 # 4. Production image

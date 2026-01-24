@@ -1,7 +1,13 @@
 klimat22.com {
-    reverse_proxy app:3000
+    reverse_proxy app:3000 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto https
+        flush_interval -1
+    }
 }
 
 www.klimat22.com {
-    redir https://klimat22.com{uri}
+    redir https://klimat22.com{uri} permanent
 }
