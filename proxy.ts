@@ -1,9 +1,8 @@
 import {
   convexAuthNextjsMiddleware,
   createRouteMatcher,
-  nextjsMiddlewareRedirect,
 } from '@convex-dev/auth/nextjs/server'
-import { NextFetchEvent, NextRequest } from 'next/server'
+import { NextFetchEvent, NextRequest, NextResponse } from 'next/server'
 
 const isManagerRoute = createRouteMatcher(['/manager(.*)'])
 const isAuthRoute = createRouteMatcher(['/auth(.*)'])
@@ -14,12 +13,19 @@ const authMiddleware = convexAuthNextjsMiddleware(
 
     // Redirect authenticated users away from auth pages
     if (isAuthRoute(request) && isAuthenticated) {
-      return nextjsMiddlewareRedirect(request, '/')
+      const redirectTo = request.nextUrl.searchParams.get('redirect') || '/'
+      const url = request.nextUrl.clone()
+      url.pathname = redirectTo
+      url.search = ''
+      return NextResponse.redirect(url)
     }
 
     // Protect /manager routes - require authentication
     if (isManagerRoute(request) && !isAuthenticated) {
-      return nextjsMiddlewareRedirect(request, '/auth/signin')
+      const url = request.nextUrl.clone()
+      url.pathname = '/auth/signin'
+      url.searchParams.set('redirect', request.nextUrl.pathname)
+      return NextResponse.redirect(url)
     }
 
     // Note: Role-based authorization happens at the page level

@@ -2,7 +2,7 @@
 
 import { useAuthActions, useAuthToken } from '@convex-dev/auth/react'
 import { useQuery } from 'convex/react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,18 +15,20 @@ export function SignInForm() {
   const token = useAuthToken()
   const isAuthenticated = token !== null
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   const currentUser = useQuery(api.users.getCurrentUserWithTempPassword)
+  const redirectTo = searchParams.get('redirect') || '/manager'
 
   useEffect(() => {
     if (isAuthenticated && currentUser !== undefined && currentUser !== null) {
-      router.push('/manager')
+      router.push(redirectTo)
     }
-  }, [isAuthenticated, currentUser, router])
+  }, [isAuthenticated, currentUser, router, redirectTo])
 
   // Show nothing while authenticated user is being redirected
   if (isAuthenticated && currentUser !== undefined && currentUser !== null) {
