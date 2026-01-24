@@ -45,10 +45,5 @@ export function proxy(request: NextRequest, event?: NextFetchEvent) {
 }
 
 export const config = {
-  matcher: [
-    // Match all routes except static files and Next.js internals
-    '/((?!.*\\..*|_next).*)',
-    '/',
-    '/(api|trpc)(.*)',
-  ],
+  matcher: ['/manager(.*)', '/auth(.*)', '/(api|trpc)(.*)'],
 }

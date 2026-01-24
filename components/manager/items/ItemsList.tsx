@@ -256,18 +256,19 @@ export default function ItemsList({
                     ? String(getEdit(it).category)
                     : '__none__'
                 }
-                onValueChange={(v: string) =>
+                onValueChange={(v) => {
+                  const value = v as string
                   setItemEdits((prev) => ({
                     ...prev,
                     [String(it._id)]: {
                       ...getEdit(it),
                       category:
-                        v === '__none__'
+                        value === '__none__'
                           ? undefined
-                          : (v as unknown as Id<'categories'>),
+                          : (value as unknown as Id<'categories'>),
                     },
                   }))
-                }
+                }}
               >
                 <SelectTrigger>
                   <SelectValue />

@@ -203,10 +203,12 @@ export default function CheckoutPage() {
                 <strong>Обратите внимание:</strong> Стоимость доставки будет
                 рассчитана менеджером и сообщена вам при подтверждении заказа.
                 <Dialog>
-                  <DialogTrigger asChild>
-                    <span className='ml-2 underline cursor-pointer text-blue-700'>
-                      Подробнее
-                    </span>
+                  <DialogTrigger
+                    render={
+                      <span className='ml-2 underline cursor-pointer text-blue-700' />
+                    }
+                  >
+                    Подробнее
                   </DialogTrigger>
                   <DialogContent className='sm:max-w-xl max-h-[80vh] overflow-y-auto'>
                     <DialogHeader>
@@ -454,10 +456,12 @@ export default function CheckoutPage() {
                     Принимаемые способы оплаты:
                   </p>
                   <Dialog>
-                    <DialogTrigger asChild>
-                      <span className='text-sm text-blue-700 underline cursor-pointer'>
-                        Подробнее
-                      </span>
+                    <DialogTrigger
+                      render={
+                        <span className='text-sm text-blue-700 underline cursor-pointer' />
+                      }
+                    >
+                      Подробнее
                     </DialogTrigger>
                     <DialogContent className='sm:max-w-xl max-h-[80vh] overflow-y-auto'>
                       <DialogHeader>

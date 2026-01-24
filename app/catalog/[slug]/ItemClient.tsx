@@ -114,20 +114,22 @@ export function ItemClient({
                     <div className='grid grid-cols-4 gap-3 overflow-x-auto'>
                       {relatedItems.map((relatedItem) => (
                         <Tooltip key={relatedItem._id}>
-                          <TooltipTrigger asChild>
-                            <Link
-                              href={`/catalog/${relatedItem.slug}`}
-                              className='block min-w-20'
-                            >
-                              <div className='relative aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200 hover:border-gray-300 transition-colors'>
-                                <Image
-                                  src={item.imagesUrl?.[0] || '/not-found.jpg'}
-                                  alt={relatedItem.name}
-                                  fill
-                                  className='object-cover'
-                                />
-                              </div>
-                            </Link>
+                          <TooltipTrigger
+                            render={
+                              <Link
+                                href={`/catalog/${relatedItem.slug}`}
+                                className='block min-w-20'
+                              />
+                            }
+                          >
+                            <div className='relative aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200 hover:border-gray-300 transition-colors'>
+                              <Image
+                                src={item.imagesUrl?.[0] || '/not-found.jpg'}
+                                alt={relatedItem.name}
+                                fill
+                                className='object-cover'
+                              />
+                            </div>
                           </TooltipTrigger>
                           <TooltipContent>
                             <div className='space-y-1'>

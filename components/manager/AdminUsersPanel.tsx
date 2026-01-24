@@ -1,13 +1,13 @@
-import { Label } from '@radix-ui/react-label'
+import { useAction, useMutation, useQuery } from 'convex/react'
+import { useState } from 'react'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@radix-ui/react-select'
-import { useAction, useMutation, useQuery } from 'convex/react'
-import { useState } from 'react'
+} from '@/components/ui/select'
 import { api } from '@/convex/_generated/api'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'

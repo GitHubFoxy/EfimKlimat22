@@ -84,10 +84,12 @@ export const Footer = () => {
           </div>
           <div className='flex flex-col gap-2 pt-4'>
             <Dialog>
-              <DialogTrigger asChild>
-                <span className='underline cursor-pointer text-blue-700'>
-                  Пользовательское соглашение
-                </span>
+              <DialogTrigger
+                render={
+                  <span className='underline cursor-pointer text-blue-700' />
+                }
+              >
+                Пользовательское соглашение
               </DialogTrigger>
               <DialogContent className='sm:max-w-xl max-h-[80vh] overflow-y-auto'>
                 <DialogHeader>
@@ -196,10 +198,12 @@ export const Footer = () => {
             </Dialog>
 
             <Dialog>
-              <DialogTrigger asChild>
-                <span className='underline cursor-pointer text-blue-700'>
-                  Условия возврата и отмены
-                </span>
+              <DialogTrigger
+                render={
+                  <span className='underline cursor-pointer text-blue-700' />
+                }
+              >
+                Условия возврата и отмены
               </DialogTrigger>
               <DialogContent className='sm:max-w-xl max-h-[80vh] overflow-y-auto'>
                 <DialogHeader>
@@ -371,10 +375,12 @@ export const Footer = () => {
             </Dialog>
 
             <Dialog>
-              <DialogTrigger asChild>
-                <span className='underline cursor-pointer text-blue-700'>
-                  Лицензии и сертификаты
-                </span>
+              <DialogTrigger
+                render={
+                  <span className='underline cursor-pointer text-blue-700' />
+                }
+              >
+                Лицензии и сертификаты
               </DialogTrigger>
               <DialogContent className='sm:max-w-xl max-h-[80vh] overflow-y-auto'>
                 <DialogHeader>

@@ -53,12 +53,7 @@ export function ForceChangePasswordDialog({
 
   return (
     <Dialog open={true} onOpenChange={() => {}}>
-      <DialogContent
-        className='sm:max-w-sm'
-        showCloseButton={false}
-        onPointerDownOutside={(e) => e.preventDefault()}
-        onEscapeKeyDown={(e) => e.preventDefault()}
-      >
+      <DialogContent className='sm:max-w-sm' showCloseButton={false}>
         <DialogHeader>
           <DialogTitle className='text-center'>Изменение пароля</DialogTitle>
         </DialogHeader>

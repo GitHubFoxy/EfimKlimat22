@@ -30,7 +30,10 @@ export default function FilterCard({ filters, onReset }: FilterCardProps) {
           <label className='block text-sm font-medium text-gray-700 mb-1'>
             {filter.label}
           </label>
-          <Select value={filter.value} onValueChange={filter.onChange}>
+          <Select
+            value={filter.value}
+            onValueChange={(value) => filter.onChange?.(value as string)}
+          >
             <SelectTrigger className='w-40'>
               <SelectValue placeholder='Select...' />
             </SelectTrigger>

@@ -80,20 +80,22 @@ export default function Cart({ className }: { className?: string }) {
 
   return (
     <Dialog>
-      <DialogTrigger asChild>
-        <Button
-          className={twMerge(
-            'relative w-12 h-12 bg-light-orange rounded-full cursor-pointer',
-            className,
-          )}
-        >
-          <ShoppingCart />
-          {itemsData && itemsData.count > 0 && (
-            <p className='top-0 right-0 absolute w-3 h-3 rounded-full bg-white border-dark-gray text-black flex items-center justify-center text-xs'>
-              {itemsData.count}
-            </p>
-          )}
-        </Button>
+      <DialogTrigger
+        render={
+          <Button
+            className={twMerge(
+              'relative w-12 h-12 bg-light-orange rounded-full cursor-pointer',
+              className,
+            )}
+          />
+        }
+      >
+        <ShoppingCart />
+        {itemsData && itemsData.count > 0 && (
+          <p className='top-0 right-0 absolute w-3 h-3 rounded-full bg-white border-dark-gray text-black flex items-center justify-center text-xs'>
+            {itemsData.count}
+          </p>
+        )}
       </DialogTrigger>
       <DialogContent className='sm:max-w-[425px]'>
         <DialogHeader>

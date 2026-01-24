@@ -89,10 +89,10 @@ export default function ConsultantsList({
           <div className='flex flex-wrap items-center gap-2'>
             <Select
               value={c.status as ConsultantStatus}
-              onValueChange={(v: ConsultantStatus) =>
+              onValueChange={(v) =>
                 updateStatus({
                   consultantId: c._id,
-                  status: v,
+                  status: v as ConsultantStatus,
                 })
               }
             >

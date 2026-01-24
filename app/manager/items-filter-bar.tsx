@@ -70,7 +70,10 @@ export function ItemsFilterBar({
       <span className='text-sm font-medium text-gray-700'>Фильтры:</span>
 
       {/* Brand Filter */}
-      <Select value={brandId ?? '__all__'} onValueChange={onBrandChange}>
+      <Select
+        value={brandId ?? '__all__'}
+        onValueChange={(value) => onBrandChange(value as string)}
+      >
         <SelectTrigger className='w-[180px] bg-white'>
           <SelectValue placeholder='Все бренды' />
         </SelectTrigger>
@@ -87,7 +90,7 @@ export function ItemsFilterBar({
       {/* Parent Category Filter */}
       <Select
         value={parentCategoryId ?? '__all__'}
-        onValueChange={handleParentCategoryChange}
+        onValueChange={(value) => handleParentCategoryChange(value as string)}
       >
         <SelectTrigger className='w-[200px] bg-white'>
           <SelectValue placeholder='Все категории' />
@@ -106,7 +109,7 @@ export function ItemsFilterBar({
       {parentCategoryId && (
         <Select
           value={categoryId ?? '__all__'}
-          onValueChange={handleSubcategoryChange}
+          onValueChange={(value) => handleSubcategoryChange(value as string)}
         >
           <SelectTrigger className='w-[200px] bg-white'>
             <SelectValue placeholder='Все подкатегории' />
@@ -123,7 +126,10 @@ export function ItemsFilterBar({
       )}
 
       {/* Status Filter */}
-      <Select value={status ?? '__all__'} onValueChange={onStatusChange}>
+      <Select
+        value={status ?? '__all__'}
+        onValueChange={(value) => onStatusChange(value as string)}
+      >
         <SelectTrigger className='w-[150px] bg-white'>
           <SelectValue placeholder='Все статусы' />
         </SelectTrigger>

@@ -44,7 +44,7 @@ export default function ManagerFilters({
     <div className='flex flex-col gap-4 md:flex-row md:items-center md:flex-wrap mb-6'>
       <div className='flex items-center gap-4'>
         <Label className='text-sm whitespace-nowrap'>Раздел:</Label>
-        <Select value={section} onValueChange={(v: Section) => setSection(v)}>
+        <Select value={section} onValueChange={(v) => setSection(v as Section)}>
           <SelectTrigger className='w-[180px]'>
             <SelectValue />
           </SelectTrigger>
@@ -64,7 +64,10 @@ export default function ManagerFilters({
           <Label className='text-sm whitespace-nowrap'>
             Фильтр по статусу:
           </Label>
-          <Select value={statusValue} onValueChange={onStatusChange}>
+          <Select
+            value={statusValue}
+            onValueChange={(value) => onStatusChange(value as string)}
+          >
             <SelectTrigger className='w-[180px]'>
               <SelectValue />
             </SelectTrigger>
@@ -84,8 +87,9 @@ export default function ManagerFilters({
           <span className='text-sm whitespace-nowrap'>Просмотр:</span>
           <Select
             value={viewMine ? 'mine' : 'all'}
-            onValueChange={(v: string) => {
-              if (v === 'mine') {
+            onValueChange={(v) => {
+              const value = v as string
+              if (value === 'mine') {
                 if (!managerId) {
                   alert('Сначала выберите аккаунт менеджера')
                   setViewMine(false)

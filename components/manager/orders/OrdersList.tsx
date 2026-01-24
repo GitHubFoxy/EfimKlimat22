@@ -89,8 +89,8 @@ export default function OrdersList({
           <div className='flex flex-wrap items-center gap-2'>
             <Select
               value={o.status as Status}
-              onValueChange={async (v: Status) =>
-                updateStatus({ orderId: o._id, status: v })
+              onValueChange={(v) =>
+                updateStatus({ orderId: o._id, status: v as Status })
               }
             >
               <SelectTrigger className='w-[140px]'>
