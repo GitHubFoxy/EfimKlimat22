@@ -128,21 +128,21 @@ export default function HeaderSearch({ className }: { className?: string }) {
               }}
             >
               <Button
-                asChild
+                render={
+                  <Link
+                    href={
+                      debounced
+                        ? `/catalog?query=${encodeURIComponent(debounced)}`
+                        : '/catalog'
+                    }
+                    aria-label='Смотреть все результаты'
+                  />
+                }
                 variant='outline'
                 size='sm'
                 className='w-full justify-center rounded-xl bg-light-orange text-white'
               >
-                <Link
-                  href={
-                    debounced
-                      ? `/catalog?query=${encodeURIComponent(debounced)}`
-                      : '/catalog'
-                  }
-                  aria-label='Смотреть все результаты'
-                >
-                  Смотреть все
-                </Link>
+                Смотреть все
               </Button>
             </li>
           </ul>

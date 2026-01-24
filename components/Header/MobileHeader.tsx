@@ -109,13 +109,11 @@ export function MobileHeader({ PhoneNumber }: { PhoneNumber: string }) {
             </Link>
           </div>
           <Button
-            asChild
+            render={<a href={`tel:${PhoneNumber}`} aria-label='Позвонить' />}
             className='bg-blackish hover:bg-blackish rounded-full cursor-pointer'
           >
-            <a href={`tel:${PhoneNumber}`} aria-label='Позвонить'>
-              <Phone />
-              {PhoneNumber}
-            </a>
+            <Phone />
+            {PhoneNumber}
           </Button>
         </div>
       </div>

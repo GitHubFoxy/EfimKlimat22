@@ -24,16 +24,16 @@ export function BugReportBanner() {
           <Button
             variant='outline'
             size='sm'
-            asChild
+            render={
+              <a
+                href='https://t.me/beruseruko'
+                target='_blank'
+                rel='noopener noreferrer'
+              />
+            }
             className='text-amber-900 border-amber-300 hover:bg-amber-100'
           >
-            <a
-              href='https://t.me/beruseruko'
-              target='_blank'
-              rel='noopener noreferrer'
-            >
-              Сообщить об ошибке
-            </a>
+            Сообщить об ошибке
           </Button>
           <button
             onClick={() => setIsDismissed(true)}
