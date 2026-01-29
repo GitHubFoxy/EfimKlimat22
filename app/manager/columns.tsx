@@ -77,11 +77,11 @@ export const columns: ColumnDef<Order>[] = [
       const order = row.original
       return (
         <DropdownMenu>
-          <DropdownMenuTrigger
-            render={<Button variant='ghost' className='h-8 w-8 p-0' />}
-          >
-            <span className='sr-only'>Открыть меню</span>
-            <MoreHorizontal className='h-4 w-4' />
+          <DropdownMenuTrigger asChild>
+            <Button variant='ghost' className='h-8 w-8 p-0'>
+              <span className='sr-only'>Открыть меню</span>
+              <MoreHorizontal className='h-4 w-4' />
+            </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align='end'>
             <DropdownMenuLabel>Действия</DropdownMenuLabel>
@@ -160,11 +160,11 @@ export const getItemColumns = (handlers?: {
         const item = row.original as any
         return (
           <DropdownMenu>
-            <DropdownMenuTrigger
-              render={<Button variant='ghost' className='h-8 w-8 p-0' />}
-            >
-              <span className='sr-only'>Открыть меню</span>
-              <MoreHorizontal className='h-4 w-4' />
+            <DropdownMenuTrigger asChild>
+              <Button variant='ghost' className='h-8 w-8 p-0'>
+                <span className='sr-only'>Открыть меню</span>
+                <MoreHorizontal className='h-4 w-4' />
+              </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align='end'>
               <DropdownMenuLabel>Действия</DropdownMenuLabel>
@@ -270,11 +270,11 @@ export const leadColumns: ColumnDef<Lead>[] = [
     cell: () => {
       return (
         <DropdownMenu>
-          <DropdownMenuTrigger
-            render={<Button variant='ghost' className='h-8 w-8 p-0' />}
-          >
-            <span className='sr-only'>Открыть меню</span>
-            <MoreHorizontal className='h-4 w-4' />
+          <DropdownMenuTrigger asChild>
+            <Button variant='ghost' className='h-8 w-8 p-0'>
+              <span className='sr-only'>Открыть меню</span>
+              <MoreHorizontal className='h-4 w-4' />
+            </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align='end'>
             <DropdownMenuLabel>Действия</DropdownMenuLabel>
@@ -405,11 +405,11 @@ export const getOrderColumns = (handlers?: {
         const order = row.original
         return (
           <DropdownMenu>
-            <DropdownMenuTrigger
-              render={<Button variant='ghost' className='h-8 w-8 p-0' />}
-            >
-              <span className='sr-only'>Открыть меню</span>
-              <MoreHorizontal className='h-4 w-4' />
+            <DropdownMenuTrigger asChild>
+              <Button variant='ghost' className='h-8 w-8 p-0'>
+                <span className='sr-only'>Открыть меню</span>
+                <MoreHorizontal className='h-4 w-4' />
+              </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align='end'>
               <DropdownMenuLabel>Действия</DropdownMenuLabel>

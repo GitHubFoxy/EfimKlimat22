@@ -18,29 +18,29 @@ export const Hero = () => {
 
         <div className='flex flex-col gap-2  md:flex-row md:w-full'>
           <Button
-            render={<Link href={'/catalog'} />}
+            asChild
             className='bg-light-orange h-[36px] rounded-full md:h-[57px]'
           >
-            Выбрать товары
+            <Link href={'/catalog'}>Выбрать товары</Link>
           </Button>
           <Button
-            render={
-              <Link
-                href='#free-consultant'
-                onClick={(e) => {
-                  e.preventDefault()
-                  const el = document.getElementById('free-consultant')
-                  if (el) {
-                    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                    history.replaceState(null, '', '#free-consultant')
-                  }
-                }}
-              />
-            }
+            asChild
             className='cursor-pointer bg-transparent border border-blackish h-[36px] rounded-full md:h-[57px]'
             variant={'outline'}
           >
-            Заказать консультацию
+            <Link
+              href='#free-consultant'
+              onClick={(e) => {
+                e.preventDefault()
+                const el = document.getElementById('free-consultant')
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                  history.replaceState(null, '', '#free-consultant')
+                }
+              }}
+            >
+              Заказать консультацию
+            </Link>
           </Button>
         </div>
       </div>

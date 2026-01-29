@@ -17,12 +17,10 @@ export const FormaObratnoySvyzi = () => {
   return (
     <Dialog>
       <form action='' onSubmit={(e) => e.preventDefault()}>
-        <DialogTrigger
-          render={
-            <Button className='bg-amber-400 text-black font-normal text-lg cursor-pointer hover:bg-amber-500/30' />
-          }
-        >
-          Консультация
+        <DialogTrigger asChild>
+          <Button className='bg-amber-400 text-black font-normal text-lg cursor-pointer hover:bg-amber-500/30'>
+            Консультация
+          </Button>
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>

@@ -26,6 +26,13 @@ import type { Id } from '@/convex/_generated/dataModel'
 
 type ItemStatus = 'active' | 'draft' | 'preorder'
 
+type CategoryNode = {
+  _id: Id<'categories'>
+  name: string
+  order: number
+  parentId?: Id<'categories'>
+}
+
 interface ItemsFilterBarProps {
   brandId: Id<'brands'> | undefined
   categoryId: Id<'categories'> | undefined
@@ -49,7 +56,9 @@ export function ItemsFilterBar({
     Id<'categories'> | undefined
   >(undefined)
   const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false)
-  const [orderValue, setOrderValue] = useState(0)
+  const [orderDrafts, setOrderDrafts] = useState<
+    Record<string, { order: number }>
+  >({})
   const brands = useQuery(api.manager.list_brands_all)
   const catHierarchy = useQuery(api.manager.list_categories_hierarchy)
   const updateCategoryOrder = useMutation(api.manager.update_category_order)
@@ -59,9 +68,28 @@ export function ItemsFilterBar({
   const currentSubcategories = parentCategoryId
     ? childrenMap[parentCategoryId.toString()] || []
     : []
-  const selectedParent = parentCategoryId
-    ? parents.find((cat) => cat._id === parentCategoryId)
-    : undefined
+
+  const buildOrderDrafts = () => {
+    const drafts: Record<string, { order: number }> = {}
+    const sortedParents = [...parents].sort((a, b) => {
+      const orderDiff = a.order - b.order
+      if (orderDiff !== 0) return orderDiff
+      return a.name.localeCompare(b.name)
+    })
+    sortedParents.forEach((parent) => {
+      drafts[parent._id] = { order: parent.order }
+      const children = childrenMap[parent._id.toString()] || []
+      const sortedChildren = [...children].sort((a, b) => {
+        const orderDiff = a.order - b.order
+        if (orderDiff !== 0) return orderDiff
+        return a.name.localeCompare(b.name)
+      })
+      sortedChildren.forEach((child) => {
+        drafts[child._id] = { order: child.order }
+      })
+    })
+    setOrderDrafts(drafts)
+  }
 
   // When parent category changes, reset subcategory
   const handleParentCategoryChange = (parentId: string) => {
@@ -80,30 +108,67 @@ export function ItemsFilterBar({
   }
 
   const hasActiveFilters = brandId || categoryId || status
-  const canEditCategoryOrder = Boolean(parentCategoryId && selectedParent)
-
   const handleOpenOrderDialog = () => {
-    if (!selectedParent) return
-    setOrderValue(
-      Number.isFinite(selectedParent.order) ? selectedParent.order : 0,
-    )
+    buildOrderDrafts()
     setIsOrderDialogOpen(true)
   }
 
-  const handleSaveOrder = async () => {
-    if (!selectedParent) return
-    try {
-      await updateCategoryOrder({
-        id: selectedParent._id,
-        order: Number(orderValue),
+  const getDraftOrder = (category: CategoryNode) => {
+    const draft = orderDrafts[category._id]
+    if (!draft) return category.order
+    return draft.order
+  }
+
+  const handleOrderChange = (category: CategoryNode, nextValue: number) => {
+    const normalizedOrder = Math.trunc(nextValue)
+    const siblings = category.parentId
+      ? childrenMap[category.parentId.toString()] || []
+      : parents
+
+    setOrderDrafts((prev) => {
+      const currentOrder = prev[category._id]?.order ?? category.order
+      const nextDrafts = {
+        ...prev,
+        [category._id]: { order: normalizedOrder },
+      }
+
+      const siblingToSwap = siblings.find((sibling) => {
+        if (sibling._id === category._id) return false
+        const siblingOrder = nextDrafts[sibling._id]?.order ?? sibling.order
+        return siblingOrder === normalizedOrder
       })
-      toast.success('Порядок категории обновлен')
+
+      if (siblingToSwap && Number.isFinite(currentOrder)) {
+        nextDrafts[siblingToSwap._id] = { order: currentOrder }
+      }
+
+      return nextDrafts
+    })
+  }
+
+  const handleSaveOrder = async () => {
+    try {
+      const updates = Object.entries(orderDrafts)
+        .map(([id, draft]) => ({
+          id: id as Id<'categories'>,
+          order: draft.order,
+        }))
+        .filter((entry) => Number.isFinite(entry.order))
+
+      await Promise.all(updates.map((entry) => updateCategoryOrder(entry)))
+      toast.success('Порядок категорий обновлен')
       setIsOrderDialogOpen(false)
     } catch (error) {
       toast.error('Ошибка при обновлении порядка')
       console.error(error)
     }
   }
+
+  const parentPreview = [...parents].sort((a, b) => {
+    const orderDiff = getDraftOrder(a) - getDraftOrder(b)
+    if (orderDiff !== 0) return orderDiff
+    return a.name.localeCompare(b.name)
+  })
 
   return (
     <div className='flex flex-wrap items-center gap-3 p-4 bg-gray-50 rounded-lg mb-4'>
@@ -149,7 +214,6 @@ export function ItemsFilterBar({
           variant='ghost'
           size='icon'
           onClick={handleOpenOrderDialog}
-          disabled={!canEditCategoryOrder}
           title='Настройки категории'
         >
           <Settings className='w-4 h-4' />
@@ -214,24 +278,94 @@ export function ItemsFilterBar({
       )}
 
       <Dialog open={isOrderDialogOpen} onOpenChange={setIsOrderDialogOpen}>
-        <DialogContent>
+        <DialogContent className='sm:max-w-xl max-h-[80vh] overflow-hidden flex flex-col'>
           <DialogHeader>
-            <DialogTitle>Порядок категории</DialogTitle>
+            <DialogTitle>Порядок категорий</DialogTitle>
           </DialogHeader>
-          <div className='space-y-3'>
-            <div className='text-sm text-gray-600'>
-              {selectedParent?.name ?? 'Категория'}
-            </div>
+          <div className='flex-1 min-h-0 space-y-4 overflow-y-auto pr-1'>
             <div className='space-y-2'>
-              <Label htmlFor='category-order'>Порядок сортировки</Label>
-              <Input
-                id='category-order'
-                type='number'
-                value={orderValue}
-                onChange={(event) =>
-                  setOrderValue(Math.trunc(Number(event.target.value)))
-                }
-              />
+              <Label>Категории и подкатегории</Label>
+              <div className='space-y-3'>
+                {parents.map((parent) => {
+                  const children =
+                    childrenMap[parent._id.toString()] || ([] as CategoryNode[])
+                  return (
+                    <div key={parent._id} className='space-y-2'>
+                      <div className='flex items-center gap-3'>
+                        <div className='min-w-0 flex-1 text-sm font-medium text-gray-900'>
+                          {parent.name}
+                        </div>
+                        <Input
+                          type='number'
+                          className='w-24'
+                          value={getDraftOrder(parent)}
+                          onChange={(event) =>
+                            handleOrderChange(
+                              parent,
+                              Number(event.target.value),
+                            )
+                          }
+                        />
+                      </div>
+                      {children.length > 0 && (
+                        <div className='space-y-2 pl-4'>
+                          {children.map((child) => (
+                            <div
+                              key={child._id}
+                              className='flex items-center gap-3'
+                            >
+                              <div className='min-w-0 flex-1 text-sm text-gray-700'>
+                                {child.name}
+                              </div>
+                              <Input
+                                type='number'
+                                className='w-24'
+                                value={getDraftOrder(child)}
+                                onChange={(event) =>
+                                  handleOrderChange(
+                                    child,
+                                    Number(event.target.value),
+                                  )
+                                }
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+            <div className='space-y-2 rounded-md border border-gray-200 bg-gray-50 p-3'>
+              <div className='text-sm font-medium text-gray-900'>Превью</div>
+              <div className='space-y-2 text-sm text-gray-700'>
+                {parentPreview.map((parent) => {
+                  const children =
+                    childrenMap[parent._id.toString()] || ([] as CategoryNode[])
+                  const childPreview = [...children].sort((a, b) => {
+                    const orderDiff = getDraftOrder(a) - getDraftOrder(b)
+                    if (orderDiff !== 0) return orderDiff
+                    return a.name.localeCompare(b.name)
+                  })
+                  return (
+                    <div key={parent._id} className='space-y-1'>
+                      <div className='font-medium'>
+                        {getDraftOrder(parent)}. {parent.name}
+                      </div>
+                      {childPreview.length > 0 && (
+                        <div className='space-y-1 pl-4'>
+                          {childPreview.map((child) => (
+                            <div key={child._id}>
+                              {getDraftOrder(child)}. {child.name}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           </div>
           <DialogFooter>
