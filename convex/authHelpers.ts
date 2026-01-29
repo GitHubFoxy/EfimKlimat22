@@ -1,23 +1,41 @@
 import { getAuthUserId } from '@convex-dev/auth/server'
 import { ConvexError } from 'convex/values'
-import type { Id } from './_generated/dataModel'
+import { api } from './_generated/api'
+import type { Doc, Id } from './_generated/dataModel'
 
 /**
  * Shared authentication helper: Requires a permanent password (no temp password set)
  * Returns authenticated user or throws error
  */
-export async function requirePermanentPassword(ctx: any) {
+type UserAuthRecord = Omit<Doc<'users'>, 'tempPassword'> & {
+  tempPassword?: string
+  mustChangePassword?: boolean
+  role?: string
+}
+
+export async function requirePermanentPassword(
+  ctx: any,
+): Promise<UserAuthRecord> {
   const userId = await getAuthUserId(ctx)
   if (!userId) {
     throw new ConvexError('Not authenticated')
   }
 
-  const user = await ctx.db.get(userId)
+  const user = (
+    ctx.db?.get
+      ? await ctx.db.get(userId)
+      : await ctx.runQuery(api.users.getCurrentUserWithTempPassword)
+  ) as UserAuthRecord | null
   if (!user) {
     throw new ConvexError('User not found')
   }
 
-  if (user.tempPassword) {
+  const mustChangePassword =
+    typeof user.mustChangePassword === 'boolean'
+      ? user.mustChangePassword
+      : Boolean(user.tempPassword)
+
+  if (mustChangePassword) {
     throw new ConvexError(
       'You must change your password before using the system',
     )
@@ -30,10 +48,14 @@ export async function requirePermanentPassword(ctx: any) {
  * Shared authorization helper: Requires permanent password AND specific role(s)
  * Returns authenticated user or throws error
  */
-export async function requireRole(ctx: any, allowedRoles: string[]) {
+export async function requireRole(
+  ctx: any,
+  allowedRoles: string[],
+): Promise<UserAuthRecord> {
   const user = await requirePermanentPassword(ctx)
 
-  if (!allowedRoles.includes(user.role)) {
+  const role = user.role ?? 'guest'
+  if (!allowedRoles.includes(role)) {
     throw new ConvexError(
       `Unauthorized. Required role(s): ${allowedRoles.join(', ')}`,
     )

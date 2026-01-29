@@ -5,6 +5,32 @@ import { api } from '@/convex/_generated/api'
 
 export type ServerRole = 'guest' | 'user' | 'manager' | 'admin'
 
+export interface ServerAuthState {
+  role: ServerRole
+  mustChangePassword: boolean
+}
+
+async function getServerAuthState(): Promise<ServerAuthState> {
+  try {
+    const token = await convexAuthNextjsToken()
+    if (!token) {
+      return { role: 'guest', mustChangePassword: false }
+    }
+
+    const [role, user] = await Promise.all([
+      fetchQuery(api.users.getUserRole, {}, { token }),
+      fetchQuery(api.users.getCurrentUserWithTempPassword, {}, { token }),
+    ])
+
+    return {
+      role: (role as ServerRole) ?? 'guest',
+      mustChangePassword: Boolean(user?.mustChangePassword),
+    }
+  } catch {
+    return { role: 'guest', mustChangePassword: false }
+  }
+}
+
 /**
  * Get current user's role from database (server-side)
  * Uses convexAuthNextjsToken for authenticated server-side queries
@@ -37,6 +63,16 @@ export async function requireManagerRole(): Promise<ServerRole> {
   return role
 }
 
+export async function requireManagerRoleWithTempPassword(): Promise<ServerAuthState> {
+  const authState = await getServerAuthState()
+
+  if (authState.role !== 'manager' && authState.role !== 'admin') {
+    redirect('/')
+  }
+
+  return authState
+}
+
 /**
  * Require admin role for server components
  * Redirects to home if user doesn't have admin role
@@ -49,6 +85,16 @@ export async function requireAdminRole(): Promise<ServerRole> {
   }
 
   return role
+}
+
+export async function requireAdminRoleWithTempPassword(): Promise<ServerAuthState> {
+  const authState = await getServerAuthState()
+
+  if (authState.role !== 'admin') {
+    redirect('/')
+  }
+
+  return authState
 }
 
 /**

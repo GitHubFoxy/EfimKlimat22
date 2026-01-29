@@ -1,9 +1,10 @@
 'use client'
 
-import { Preloaded, usePreloadedQuery } from 'convex/react'
+import type { Preloaded } from 'convex/react'
 import { Plus, Search } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { ForceChangePasswordGate } from '@/components/Auth/ForceChangePasswordGate'
 import { AppSidebar } from '@/components/app-sidebar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,9 +20,10 @@ type SortOrder = 'asc' | 'desc'
 type ItemStatus = 'active' | 'draft' | 'preorder'
 
 interface ItemsPageClientProps {
-  itemsPreload: Preloaded<typeof api.manager.list_items>
-  brandsPreload: Preloaded<typeof api.manager.list_brands_all>
-  categoriesPreload: Preloaded<typeof api.manager.list_categories_all>
+  itemsPreload: Preloaded<typeof api.manager.list_items> | null
+  brandsPreload: Preloaded<typeof api.manager.list_brands_all> | null
+  categoriesPreload: Preloaded<typeof api.manager.list_categories_all> | null
+  shouldSkipLoad?: boolean
   initialParams: {
     cursor: string | null
     brandId: string | null
@@ -36,6 +38,7 @@ export function ItemsPageClient({
   itemsPreload,
   brandsPreload,
   categoriesPreload,
+  shouldSkipLoad = false,
   initialParams,
 }: ItemsPageClientProps) {
   const router = useRouter()
@@ -126,27 +129,31 @@ export function ItemsPageClient({
             </div>
 
             {/* Items Table */}
-            <ItemsTableContent
-              itemsPreload={itemsPreload}
-              searchQuery={localDebouncedSearch}
-              onEditItem={handleEditItem}
-              onDeleteItem={handleDeleteItem}
-            />
+            {!shouldSkipLoad && itemsPreload && (
+              <ItemsTableContent
+                itemsPreload={itemsPreload}
+                searchQuery={localDebouncedSearch}
+                onEditItem={handleEditItem}
+                onDeleteItem={handleDeleteItem}
+              />
+            )}
           </div>
         </main>
       </div>
 
       {/* Item Form Dialog (Create / Edit) */}
-      <ItemFormDialog
-        isOpen={isItemDialogOpen}
-        onClose={() => {
-          setIsItemDialogOpen(false)
-          setEditingItem(null)
-        }}
-        item={editingItem ?? undefined}
-        brandsPreload={brandsPreload}
-        categoriesPreload={categoriesPreload}
-      />
+      {brandsPreload && categoriesPreload && (
+        <ItemFormDialog
+          isOpen={isItemDialogOpen}
+          onClose={() => {
+            setIsItemDialogOpen(false)
+            setEditingItem(null)
+          }}
+          item={editingItem ?? undefined}
+          brandsPreload={brandsPreload}
+          categoriesPreload={categoriesPreload}
+        />
+      )}
 
       {/* Delete Item Dialog */}
       <DeleteItemDialog
@@ -159,6 +166,7 @@ export function ItemsPageClient({
         itemId={deletingItemId}
         itemName={deletingItemName}
       />
+      <ForceChangePasswordGate />
     </div>
   )
 }

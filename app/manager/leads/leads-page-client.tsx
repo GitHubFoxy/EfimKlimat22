@@ -1,8 +1,9 @@
 'use client'
 
-import { Preloaded, usePreloadedQuery } from 'convex/react'
+import type { Preloaded } from 'convex/react'
 import { Search } from 'lucide-react'
 import { useState } from 'react'
+import { ForceChangePasswordGate } from '@/components/Auth/ForceChangePasswordGate'
 import { AppSidebar } from '@/components/app-sidebar'
 import { Input } from '@/components/ui/input'
 import { SidebarTrigger } from '@/components/ui/sidebar'
@@ -10,7 +11,8 @@ import { api } from '@/convex/_generated/api'
 import { LeadsTableContent } from '../leads-table-content'
 
 interface LeadsPageClientProps {
-  leadsPreload: Preloaded<typeof api.manager.list_leads>
+  leadsPreload: Preloaded<typeof api.manager.list_leads> | null
+  shouldSkipLoad?: boolean
   initialParams: {
     cursor: string | null
   }
@@ -18,6 +20,7 @@ interface LeadsPageClientProps {
 
 export function LeadsPageClient({
   leadsPreload,
+  shouldSkipLoad = false,
   initialParams,
 }: LeadsPageClientProps) {
   const [searchQuery, setSearchQuery] = useState('')
@@ -53,10 +56,11 @@ export function LeadsPageClient({
             </div>
 
             {/* Leads Table */}
-            <LeadsTableContent />
+            {!shouldSkipLoad && leadsPreload && <LeadsTableContent />}
           </div>
         </main>
       </div>
+      <ForceChangePasswordGate />
     </div>
   )
 }

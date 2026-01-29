@@ -1,8 +1,9 @@
 'use client'
 
-import { Preloaded, usePreloadedQuery } from 'convex/react'
+import type { Preloaded } from 'convex/react'
 import { Search } from 'lucide-react'
 import { useState } from 'react'
+import { ForceChangePasswordGate } from '@/components/Auth/ForceChangePasswordGate'
 import { AppSidebar } from '@/components/app-sidebar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,7 +12,8 @@ import { api } from '@/convex/_generated/api'
 import { OrdersTableContent } from '../orders-table-content'
 
 interface OrdersPageClientProps {
-  ordersPreload: Preloaded<typeof api.manager.list_orders>
+  ordersPreload: Preloaded<typeof api.manager.list_orders> | null
+  shouldSkipLoad?: boolean
   initialParams: {
     cursor: string | null
   }
@@ -19,6 +21,7 @@ interface OrdersPageClientProps {
 
 export function OrdersPageClient({
   ordersPreload,
+  shouldSkipLoad = false,
   initialParams,
 }: OrdersPageClientProps) {
   const [searchQuery, setSearchQuery] = useState('')
@@ -54,10 +57,11 @@ export function OrdersPageClient({
             </div>
 
             {/* Orders Table */}
-            <OrdersTableContent />
+            {!shouldSkipLoad && ordersPreload && <OrdersTableContent />}
           </div>
         </main>
       </div>
+      <ForceChangePasswordGate />
     </div>
   )
 }

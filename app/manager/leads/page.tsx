@@ -2,7 +2,7 @@ import { convexAuthNextjsToken } from '@convex-dev/auth/nextjs/server'
 import { preloadQuery } from 'convex/nextjs'
 import { SidebarProvider } from '@/components/ui/sidebar'
 import { api } from '@/convex/_generated/api'
-import { requireManagerRole } from '@/lib/auth-server'
+import { requireManagerRoleWithTempPassword } from '@/lib/auth-server'
 import { LeadsPageClient } from './leads-page-client'
 
 interface LeadsPageProps {
@@ -10,21 +10,27 @@ interface LeadsPageProps {
 }
 
 export default async function LeadsPage({ searchParams }: LeadsPageProps) {
-  await requireManagerRole()
+  const authState = await requireManagerRoleWithTempPassword()
 
   const params = await searchParams
   const cursor = (params.cursor as string) ?? null
   const token = await convexAuthNextjsToken()
 
-  const leadsPreload = await preloadQuery(
-    api.manager.list_leads,
-    { paginationOpts: { numItems: 24, cursor } },
-    { token },
-  )
+  const leadsPreload = authState.mustChangePassword
+    ? null
+    : await preloadQuery(
+        api.manager.list_leads,
+        { paginationOpts: { numItems: 24, cursor } },
+        { token },
+      )
 
   return (
     <SidebarProvider suppressHydrationWarning>
-      <LeadsPageClient leadsPreload={leadsPreload} initialParams={{ cursor }} />
+      <LeadsPageClient
+        leadsPreload={leadsPreload}
+        shouldSkipLoad={authState.mustChangePassword}
+        initialParams={{ cursor }}
+      />
     </SidebarProvider>
   )
 }

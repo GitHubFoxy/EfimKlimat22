@@ -2,7 +2,7 @@ import { convexAuthNextjsToken } from '@convex-dev/auth/nextjs/server'
 import { preloadQuery } from 'convex/nextjs'
 import { SidebarProvider } from '@/components/ui/sidebar'
 import { api } from '@/convex/_generated/api'
-import { requireManagerRole } from '@/lib/auth-server'
+import { requireManagerRoleWithTempPassword } from '@/lib/auth-server'
 import { ItemsPageClient } from './items-page-client'
 
 interface ItemsPageProps {
@@ -10,7 +10,7 @@ interface ItemsPageProps {
 }
 
 export default async function ItemsPage({ searchParams }: ItemsPageProps) {
-  await requireManagerRole()
+  const authState = await requireManagerRoleWithTempPassword()
 
   const params = await searchParams
   const token = await convexAuthNextjsToken()
@@ -21,22 +21,25 @@ export default async function ItemsPage({ searchParams }: ItemsPageProps) {
   const sortBy = (params.sortBy as string) ?? 'createdAt'
   const sortOrder = (params.sortOrder as string) ?? 'desc'
 
-  const [itemsPreload, brandsPreload, categoriesPreload] = await Promise.all([
-    preloadQuery(
-      api.manager.list_items,
-      {
-        paginationOpts: { numItems: 24, cursor },
-        ...(brandId ? { brandId: brandId as any } : {}),
-        ...(categoryId ? { categoryId: categoryId as any } : {}),
-        ...(status ? { status: status as any } : {}),
-        sortBy: sortBy as any,
-        sortOrder: sortOrder as any,
-      },
-      { token },
-    ),
-    preloadQuery(api.manager.list_brands_all, {}, { token }),
-    preloadQuery(api.manager.list_categories_all, {}, { token }),
-  ])
+  const [itemsPreload, brandsPreload, categoriesPreload] =
+    authState.mustChangePassword
+      ? [null, null, null]
+      : await Promise.all([
+          preloadQuery(
+            api.manager.list_items,
+            {
+              paginationOpts: { numItems: 24, cursor },
+              ...(brandId ? { brandId: brandId as any } : {}),
+              ...(categoryId ? { categoryId: categoryId as any } : {}),
+              ...(status ? { status: status as any } : {}),
+              sortBy: sortBy as any,
+              sortOrder: sortOrder as any,
+            },
+            { token },
+          ),
+          preloadQuery(api.manager.list_brands_all, {}, { token }),
+          preloadQuery(api.manager.list_categories_all, {}, { token }),
+        ])
 
   return (
     <SidebarProvider suppressHydrationWarning>
@@ -44,6 +47,7 @@ export default async function ItemsPage({ searchParams }: ItemsPageProps) {
         itemsPreload={itemsPreload}
         brandsPreload={brandsPreload}
         categoriesPreload={categoriesPreload}
+        shouldSkipLoad={authState.mustChangePassword}
         initialParams={{
           cursor,
           brandId: brandId ?? null,

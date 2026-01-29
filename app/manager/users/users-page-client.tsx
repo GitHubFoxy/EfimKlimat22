@@ -1,9 +1,9 @@
 'use client'
 
-import { useAction, useQuery } from 'convex/react'
+import { useQuery } from 'convex/react'
 import { Plus, Search } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { ForceChangePasswordDialog } from '@/components/Auth/ForceChangePasswordDialog'
+import { ForceChangePasswordGate } from '@/components/Auth/ForceChangePasswordGate'
 import { AppSidebar } from '@/components/app-sidebar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,17 +17,17 @@ interface UsersPageClientProps {
   initialParams: {
     role: string
   }
+  shouldSkipLoad?: boolean
 }
 
-export function UsersPageClient({ initialParams }: UsersPageClientProps) {
+export function UsersPageClient({
+  initialParams,
+  shouldSkipLoad = false,
+}: UsersPageClientProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [localDebouncedSearch, setLocalDebouncedSearch] = useState('')
 
   const currentUser = useQuery(api.users.getCurrentUserWithTempPassword)
-  const changePassword = useAction(api.users.changePassword)
-
-  // Show password change dialog if mustChangePassword is true
-  const showPasswordChange = currentUser?.mustChangePassword ?? false
 
   // Dialog state for create/edit users
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false)
@@ -98,14 +98,16 @@ export function UsersPageClient({ initialParams }: UsersPageClientProps) {
             </div>
 
             {/* Users Table */}
-            <UsersTableContent
-              searchQuery={localDebouncedSearch}
-              onEditUser={(user) => {
-                setEditingUser(user)
-                setIsUserDialogOpen(true)
-              }}
-              onDeleteUser={handleDeleteUser}
-            />
+            {!shouldSkipLoad && (
+              <UsersTableContent
+                searchQuery={localDebouncedSearch}
+                onEditUser={(user) => {
+                  setEditingUser(user)
+                  setIsUserDialogOpen(true)
+                }}
+                onDeleteUser={handleDeleteUser}
+              />
+            )}
           </div>
         </main>
       </div>
@@ -132,13 +134,7 @@ export function UsersPageClient({ initialParams }: UsersPageClientProps) {
       />
 
       {/* Force Change Password Dialog */}
-      {showPasswordChange && (
-        <ForceChangePasswordDialog
-          onSubmit={async (newPassword) => {
-            await changePassword({ newPassword })
-          }}
-        />
-      )}
+      <ForceChangePasswordGate />
     </div>
   )
 }
