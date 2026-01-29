@@ -1,9 +1,19 @@
 'use client'
 
-import { useQuery } from 'convex/react'
-import { X } from 'lucide-react'
+import { useMutation, useQuery } from 'convex/react'
+import { Settings, X } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -38,14 +48,20 @@ export function ItemsFilterBar({
   const [parentCategoryId, setParentCategoryId] = useState<
     Id<'categories'> | undefined
   >(undefined)
+  const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false)
+  const [orderValue, setOrderValue] = useState(0)
   const brands = useQuery(api.manager.list_brands_all)
   const catHierarchy = useQuery(api.manager.list_categories_hierarchy)
+  const updateCategoryOrder = useMutation(api.manager.update_category_order)
 
   const parents = catHierarchy?.parents || []
   const childrenMap = catHierarchy?.childrenMap || {}
   const currentSubcategories = parentCategoryId
     ? childrenMap[parentCategoryId.toString()] || []
     : []
+  const selectedParent = parentCategoryId
+    ? parents.find((cat) => cat._id === parentCategoryId)
+    : undefined
 
   // When parent category changes, reset subcategory
   const handleParentCategoryChange = (parentId: string) => {
@@ -64,6 +80,30 @@ export function ItemsFilterBar({
   }
 
   const hasActiveFilters = brandId || categoryId || status
+  const canEditCategoryOrder = Boolean(parentCategoryId && selectedParent)
+
+  const handleOpenOrderDialog = () => {
+    if (!selectedParent) return
+    setOrderValue(
+      Number.isFinite(selectedParent.order) ? selectedParent.order : 0,
+    )
+    setIsOrderDialogOpen(true)
+  }
+
+  const handleSaveOrder = async () => {
+    if (!selectedParent) return
+    try {
+      await updateCategoryOrder({
+        id: selectedParent._id,
+        order: Number(orderValue),
+      })
+      toast.success('Порядок категории обновлен')
+      setIsOrderDialogOpen(false)
+    } catch (error) {
+      toast.error('Ошибка при обновлении порядка')
+      console.error(error)
+    }
+  }
 
   return (
     <div className='flex flex-wrap items-center gap-3 p-4 bg-gray-50 rounded-lg mb-4'>
@@ -88,22 +128,33 @@ export function ItemsFilterBar({
       </Select>
 
       {/* Parent Category Filter */}
-      <Select
-        value={parentCategoryId ?? '__all__'}
-        onValueChange={(value) => handleParentCategoryChange(value as string)}
-      >
-        <SelectTrigger className='w-[200px] bg-white'>
-          <SelectValue placeholder='Все категории' />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value='__all__'>Все категории</SelectItem>
-          {parents.map((cat) => (
-            <SelectItem key={cat._id} value={cat._id}>
-              {cat.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <div className='flex items-center gap-2'>
+        <Select
+          value={parentCategoryId ?? '__all__'}
+          onValueChange={(value) => handleParentCategoryChange(value as string)}
+        >
+          <SelectTrigger className='w-[200px] bg-white'>
+            <SelectValue placeholder='Все категории' />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value='__all__'>Все категории</SelectItem>
+            {parents.map((cat) => (
+              <SelectItem key={cat._id} value={cat._id}>
+                {cat.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button
+          variant='ghost'
+          size='icon'
+          onClick={handleOpenOrderDialog}
+          disabled={!canEditCategoryOrder}
+          title='Настройки категории'
+        >
+          <Settings className='w-4 h-4' />
+        </Button>
+      </div>
 
       {/* Subcategory Filter */}
       {parentCategoryId && (
@@ -161,6 +212,39 @@ export function ItemsFilterBar({
           {[brandId, categoryId, status].filter(Boolean).length}
         </span>
       )}
+
+      <Dialog open={isOrderDialogOpen} onOpenChange={setIsOrderDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Порядок категории</DialogTitle>
+          </DialogHeader>
+          <div className='space-y-3'>
+            <div className='text-sm text-gray-600'>
+              {selectedParent?.name ?? 'Категория'}
+            </div>
+            <div className='space-y-2'>
+              <Label htmlFor='category-order'>Порядок сортировки</Label>
+              <Input
+                id='category-order'
+                type='number'
+                value={orderValue}
+                onChange={(event) =>
+                  setOrderValue(Math.trunc(Number(event.target.value)))
+                }
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant='outline'
+              onClick={() => setIsOrderDialogOpen(false)}
+            >
+              Отмена
+            </Button>
+            <Button onClick={handleSaveOrder}>Сохранить</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

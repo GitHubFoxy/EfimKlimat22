@@ -826,6 +826,25 @@ export const delete_order = mutation({
   },
 })
 
+export const update_category_order = mutation({
+  args: {
+    id: v.id('categories'),
+    order: v.number(),
+  },
+  handler: async (ctx, { id, order }) => {
+    await requireRole(ctx, ['manager', 'admin'])
+    const normalizedOrder = Math.trunc(order)
+    if (!Number.isFinite(normalizedOrder) || normalizedOrder < 0) {
+      throw new Error('Order must be a non-negative number')
+    }
+    const existing = await ctx.db.get(id)
+    if (!existing) throw new Error('Category not found')
+
+    await ctx.db.patch(id, { order: normalizedOrder })
+    return { status: 200 }
+  },
+})
+
 export const list_brands_all = query({
   handler: async (ctx) => {
     return await ctx.db.query('brands').collect()
@@ -842,7 +861,13 @@ export const list_categories_hierarchy = query({
   handler: async (ctx) => {
     const categories = await ctx.db.query('categories').collect()
 
-    const parents = categories.filter((c) => !c.parentId)
+    const parents = categories
+      .filter((c) => !c.parentId)
+      .sort((a, b) => {
+        const orderDiff = a.order - b.order
+        if (orderDiff !== 0) return orderDiff
+        return a.name.localeCompare(b.name)
+      })
     const childrenMap = new Map<string, typeof categories>()
 
     categories.forEach((cat) => {
@@ -854,6 +879,15 @@ export const list_categories_hierarchy = query({
         childrenMap.get(parentId)!.push(cat)
       }
     })
+
+    for (const [parentId, children] of childrenMap.entries()) {
+      children.sort((a, b) => {
+        const orderDiff = a.order - b.order
+        if (orderDiff !== 0) return orderDiff
+        return a.name.localeCompare(b.name)
+      })
+      childrenMap.set(parentId, children)
+    }
 
     return {
       parents,
