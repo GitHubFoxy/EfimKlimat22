@@ -196,8 +196,13 @@ export function ItemsFilterBar({
   }
 
   const previewTree = useMemo(() => {
+    const getOrderForPreview = (category: CategoryNode) => {
+      const draft = orderDrafts[category._id]
+      if (!draft) return category.order
+      return draft.order
+    }
     const sortByDraft = (a: CategoryNode, b: CategoryNode) => {
-      const orderDiff = getDraftOrder(a) - getDraftOrder(b)
+      const orderDiff = getOrderForPreview(a) - getOrderForPreview(b)
       if (orderDiff !== 0) return orderDiff
       return a.name.localeCompare(b.name)
     }
@@ -323,17 +328,17 @@ export function ItemsFilterBar({
           <DialogHeader>
             <DialogTitle>Порядок категорий</DialogTitle>
           </DialogHeader>
+          {/* Search Input */}
+          <div className='relative'>
+            <Search className='absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400' />
+            <Input
+              placeholder='Поиск категорий...'
+              value={categorySearch}
+              onChange={(e) => setCategorySearch(e.target.value)}
+              className='pl-10'
+            />
+          </div>
           <div className='flex-1 min-h-0 space-y-4 overflow-y-auto pr-1'>
-            {/* Search Input */}
-            <div className='relative'>
-              <Search className='absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400' />
-              <Input
-                placeholder='Поиск категорий...'
-                value={categorySearch}
-                onChange={(e) => setCategorySearch(e.target.value)}
-                className='pl-10'
-              />
-            </div>
             <div className='space-y-2'>
               <Label>Категории и подкатегории</Label>
               <div className='space-y-3'>
@@ -401,7 +406,10 @@ export function ItemsFilterBar({
                     {children.length > 0 && (
                       <div className='space-y-1 pl-6'>
                         {children.map((child) => (
-                          <div key={child._id} className='flex items-center gap-2'>
+                          <div
+                            key={child._id}
+                            className='flex items-center gap-2'
+                          >
                             <span className='inline-flex h-5 min-w-[2rem] items-center justify-center rounded-full bg-white text-[11px] font-medium text-gray-600'>
                               {getDraftOrder(child)}
                             </span>
