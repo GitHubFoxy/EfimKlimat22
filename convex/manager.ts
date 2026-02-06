@@ -84,7 +84,9 @@ export const list_my_orders_by_status = query({
     const managerId = user._id
     return await ctx.db
       .query('orders')
-      .withIndex('by_manager', (q) => q.eq('managerId', managerId))
+      .withIndex('by_manager', (q) =>
+        q.eq('managerId', managerId).eq('status', status),
+      )
       .order('desc')
       .paginate(paginationOpts)
   },
@@ -847,18 +849,21 @@ export const update_category_order = mutation({
 
 export const list_brands_all = query({
   handler: async (ctx) => {
+    await requireRole(ctx, ['manager', 'admin'])
     return await ctx.db.query('brands').collect()
   },
 })
 
 export const list_categories_all = query({
   handler: async (ctx) => {
+    await requireRole(ctx, ['manager', 'admin'])
     return await ctx.db.query('categories').collect()
   },
 })
 
 export const list_categories_hierarchy = query({
   handler: async (ctx) => {
+    await requireRole(ctx, ['manager', 'admin'])
     const categories = await ctx.db.query('categories').collect()
 
     const parents = categories
