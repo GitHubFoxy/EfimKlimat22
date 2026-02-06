@@ -53,7 +53,6 @@ export function OrderClient({
   }
 
   const paymentLabels: Record<string, string> = {
-    card_online: 'Картой онлайн',
     cash_on_delivery: 'Наличными при получении',
     card_on_delivery: 'Картой при получении',
     b2b_invoice: 'Счет на оплату',

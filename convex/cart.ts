@@ -508,7 +508,6 @@ export const createOrder = mutation({
       }),
     ),
     paymentMethod: v.union(
-      v.literal('card_online'),
       v.literal('cash_on_delivery'),
       v.literal('card_on_delivery'),
       v.literal('b2b_invoice'),

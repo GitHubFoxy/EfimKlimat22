@@ -41,8 +41,7 @@ export default function CheckoutPage() {
     addressDetails: '',
     comment: '',
     deliveryType: 'courier' as 'pickup' | 'courier' | 'transport',
-    paymentMethod: 'card_online' as
-      | 'card_online'
+    paymentMethod: 'cash_on_delivery' as
       | 'cash_on_delivery'
       | 'card_on_delivery'
       | 'b2b_invoice',
@@ -432,12 +431,14 @@ export default function CheckoutPage() {
                   onChange={(e) =>
                     setFormData((prev) => ({
                       ...prev,
-                      paymentMethod: e.target.value as any,
+                      paymentMethod: e.target.value as
+                        | 'cash_on_delivery'
+                        | 'card_on_delivery'
+                        | 'b2b_invoice',
                     }))
                   }
                   className='mt-1 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500'
                 >
-                  <option value='card_online'>Картой онлайн (ВТБ)</option>
                   <option value='cash_on_delivery'>
                     Наличными при получении
                   </option>
@@ -446,85 +447,6 @@ export default function CheckoutPage() {
                     Счет на оплату (для юрлиц)
                   </option>
                 </select>
-              </div>
-
-              <div className='mt-2'>
-                <div className='bg-white rounded-lg border border-gray-100 p-3'>
-                  <p className='text-sm text-gray-600 mb-2'>
-                    Принимаемые способы оплаты:
-                  </p>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <span className='text-sm text-blue-700 underline cursor-pointer'>
-                        Подробнее
-                      </span>
-                    </DialogTrigger>
-                    <DialogContent className='sm:max-w-xl max-h-[80vh] overflow-y-auto'>
-                      <DialogHeader>
-                        <DialogTitle>Безопасность онлайн-платежей</DialogTitle>
-                      </DialogHeader>
-                      <div className='space-y-3 text-sm text-gray-800'>
-                        <p>
-                          После завершения оформления заказа в нашем магазине,
-                          вы будете автоматически перенаправлены на защищенную
-                          страницу платежного шлюза ПАО &quot;ВТБ&quot; для
-                          ввода данных вашей банковской карты.
-                        </p>
-                        <ul className='list-disc pl-5 space-y-1'>
-                          <li>
-                            После завершения оформления заказа в нашем магазине,
-                            вы будете автоматически перенаправлены на защищенную
-                            страницу платежного шлюза ПАО &quot;ВТБ&quot; для
-                            ввода данных вашей банковской карты.
-                          </li>
-                          <li>
-                            Соединение с платежным шлюзом и передача информации
-                            осуществляется в защищенном режиме с использованием
-                            протокола шифрования SSL/TLS.
-                          </li>
-                          <li>
-                            Все операции с вашей картой происходят на стороне
-                            банка. Наш интернет-магазин не получает, не
-                            обрабатывает и не хранит какие-либо данные вашей
-                            банковской карты.
-                          </li>
-                          <li>
-                            Введенные вами данные полностью защищены в
-                            соответствии с требованиями стандарта безопасности
-                            PCI DSS и никто, включая сотрудников нашего
-                            магазина, не может их получить.
-                          </li>
-                        </ul>
-                        <p>
-                          После завершения оплаты вы будете возвращены на наш
-                          сайт. Информация о вашем платеже может идти до нас от
-                          5 секунд до нескольких минут. В случае возникновения
-                          проблем с оплатой, пожалуйста, свяжитесь с нами.
-                        </p>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                  <div className='flex items-center gap-2 mt-6'>
-                    <div className='h-8 w-16 flex items-center justify-center rounded-full bg-white'>
-                      <Image
-                        src='/payment-logo/mir.png'
-                        alt='Оплата картами Мир'
-                        width={64}
-                        height={24}
-                        className='object-contain rounded-full bg-white'
-                      />
-                    </div>
-                    <div className='h-8 w-16 flex items-center justify-center rounded-full bg-white'>
-                      <Image
-                        src='/payment-logo/vtb.png'
-                        alt='Оплата через ВТБ'
-                        width={64}
-                        height={24}
-                        className='object-contain rounded-full bg-white'
-                      />
-                    </div>
-                  </div>
-                </div>
               </div>
 
               <Button
