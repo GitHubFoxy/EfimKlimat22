@@ -1,7 +1,6 @@
 # TODO
 
 ## Now
-- [ ] Document required env vars and deployment steps in README (Convex/Auth/URLs, prod DB usage).
 - [x] Verify prod Convex deployment is connected (env + Convex URLs) and app points to prod DB.
 - [ ] Remove/disable VTB online payments from checkout UI and backend flow.
 - [ ] Run `bun run lint` and `bun run typecheck`, fix issues.
