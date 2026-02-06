@@ -1,8 +1,8 @@
 'use client'
 
 import { useMutation, useQuery } from 'convex/react'
-import { Settings, X } from 'lucide-react'
-import { useState } from 'react'
+import { Search, Settings, X } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -59,15 +59,46 @@ export function ItemsFilterBar({
   const [orderDrafts, setOrderDrafts] = useState<
     Record<string, { order: number }>
   >({})
+  const [categorySearch, setCategorySearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const brands = useQuery(api.manager.list_brands_all)
   const catHierarchy = useQuery(api.manager.list_categories_hierarchy)
   const updateCategoryOrder = useMutation(api.manager.update_category_order)
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(categorySearch.toLowerCase().trim())
+    }, 200)
+    return () => clearTimeout(timer)
+  }, [categorySearch])
 
   const parents = catHierarchy?.parents || []
   const childrenMap = catHierarchy?.childrenMap || {}
   const currentSubcategories = parentCategoryId
     ? childrenMap[parentCategoryId.toString()] || []
     : []
+
+  // Filter parents and children based on search
+  const filteredParents = useMemo(() => {
+    if (!debouncedSearch) return parents
+    return parents.filter((parent) => {
+      const children = childrenMap[parent._id.toString()] || []
+      const matchesParent = parent.name.toLowerCase().includes(debouncedSearch)
+      const matchesChild = children.some((child) =>
+        child.name.toLowerCase().includes(debouncedSearch),
+      )
+      return matchesParent || matchesChild
+    })
+  }, [parents, childrenMap, debouncedSearch])
+
+  const getFilteredChildren = (parentId: string) => {
+    const children = childrenMap[parentId] || []
+    if (!debouncedSearch) return children
+    return children.filter((child) =>
+      child.name.toLowerCase().includes(debouncedSearch),
+    )
+  }
 
   const buildOrderDrafts = () => {
     const drafts: Record<string, { order: number }> = {}
@@ -164,11 +195,21 @@ export function ItemsFilterBar({
     }
   }
 
-  const parentPreview = [...parents].sort((a, b) => {
-    const orderDiff = getDraftOrder(a) - getDraftOrder(b)
-    if (orderDiff !== 0) return orderDiff
-    return a.name.localeCompare(b.name)
-  })
+  const previewTree = useMemo(() => {
+    const sortByDraft = (a: CategoryNode, b: CategoryNode) => {
+      const orderDiff = getDraftOrder(a) - getDraftOrder(b)
+      if (orderDiff !== 0) return orderDiff
+      return a.name.localeCompare(b.name)
+    }
+
+    return [...parents].sort(sortByDraft).map((parent) => {
+      const children = childrenMap[parent._id.toString()] || []
+      return {
+        parent,
+        children: [...children].sort(sortByDraft),
+      }
+    })
+  }, [parents, childrenMap, orderDrafts])
 
   return (
     <div className='flex flex-wrap items-center gap-3 p-4 bg-gray-50 rounded-lg mb-4'>
@@ -283,12 +324,21 @@ export function ItemsFilterBar({
             <DialogTitle>Порядок категорий</DialogTitle>
           </DialogHeader>
           <div className='flex-1 min-h-0 space-y-4 overflow-y-auto pr-1'>
+            {/* Search Input */}
+            <div className='relative'>
+              <Search className='absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400' />
+              <Input
+                placeholder='Поиск категорий...'
+                value={categorySearch}
+                onChange={(e) => setCategorySearch(e.target.value)}
+                className='pl-10'
+              />
+            </div>
             <div className='space-y-2'>
               <Label>Категории и подкатегории</Label>
               <div className='space-y-3'>
-                {parents.map((parent) => {
-                  const children =
-                    childrenMap[parent._id.toString()] || ([] as CategoryNode[])
+                {filteredParents.map((parent) => {
+                  const children = getFilteredChildren(parent._id.toString())
                   return (
                     <div key={parent._id} className='space-y-2'>
                       <div className='flex items-center gap-3'>
@@ -339,32 +389,29 @@ export function ItemsFilterBar({
             </div>
             <div className='space-y-2 rounded-md border border-gray-200 bg-gray-50 p-3'>
               <div className='text-sm font-medium text-gray-900'>Превью</div>
-              <div className='space-y-2 text-sm text-gray-700'>
-                {parentPreview.map((parent) => {
-                  const children =
-                    childrenMap[parent._id.toString()] || ([] as CategoryNode[])
-                  const childPreview = [...children].sort((a, b) => {
-                    const orderDiff = getDraftOrder(a) - getDraftOrder(b)
-                    if (orderDiff !== 0) return orderDiff
-                    return a.name.localeCompare(b.name)
-                  })
-                  return (
-                    <div key={parent._id} className='space-y-1'>
-                      <div className='font-medium'>
-                        {getDraftOrder(parent)}. {parent.name}
-                      </div>
-                      {childPreview.length > 0 && (
-                        <div className='space-y-1 pl-4'>
-                          {childPreview.map((child) => (
-                            <div key={child._id}>
-                              {getDraftOrder(child)}. {child.name}
-                            </div>
-                          ))}
-                        </div>
-                      )}
+              <div className='space-y-3 text-sm text-gray-700'>
+                {previewTree.map(({ parent, children }) => (
+                  <div key={parent._id} className='space-y-2'>
+                    <div className='flex items-center gap-2 font-medium text-gray-900'>
+                      <span className='inline-flex h-6 min-w-[2rem] items-center justify-center rounded-full bg-white text-xs font-semibold text-gray-600'>
+                        {getDraftOrder(parent)}
+                      </span>
+                      <span className='truncate'>{parent.name}</span>
                     </div>
-                  )
-                })}
+                    {children.length > 0 && (
+                      <div className='space-y-1 pl-6'>
+                        {children.map((child) => (
+                          <div key={child._id} className='flex items-center gap-2'>
+                            <span className='inline-flex h-5 min-w-[2rem] items-center justify-center rounded-full bg-white text-[11px] font-medium text-gray-600'>
+                              {getDraftOrder(child)}
+                            </span>
+                            <span className='truncate'>{child.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           </div>

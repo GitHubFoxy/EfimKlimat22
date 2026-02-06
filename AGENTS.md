@@ -11,4 +11,9 @@ Always run `bun run lint` AND `bun run typecheck` after making changes (do NOT b
 Use TypeScript strict mode - avoid `any` unless necessary
 Do not run bun dev - assume dev server is already running
 
+## Project Notes
+
+Document required environment variables (Convex/Auth/URLs) when adding or changing configuration.
+Keep manager/admin workflows explicit and documented when expanding `/app/manager` features.
+Prefer Convex-side validation for checkout/cart/order flows in addition to client checks.
 

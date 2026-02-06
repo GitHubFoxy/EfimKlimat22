@@ -106,7 +106,13 @@ export const catalog_list_all_categories = query({
       .collect()
 
     // Build hierarchy: group by parent
-    const topLevel = categories.filter((c) => !c.parentId)
+    const topLevel = categories
+      .filter((c) => !c.parentId)
+      .sort((a, b) => {
+        const orderDiff = a.order - b.order
+        if (orderDiff !== 0) return orderDiff
+        return a.name.localeCompare(b.name)
+      })
     return topLevel
   },
 })
