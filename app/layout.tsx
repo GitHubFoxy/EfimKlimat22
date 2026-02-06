@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import Script from 'next/script'
 import './globals.css'
 import { ConvexAuthNextjsServerProvider } from '@convex-dev/auth/nextjs/server'
 import { BugReportBanner } from '@/components/BugReportBanner'
@@ -31,6 +32,15 @@ export default function RootLayout({
         className={`${inter.variable} font-inter `}
         suppressHydrationWarning
       >
+        <head>
+          {process.env.NODE_ENV === 'development' && (
+            <Script
+              src='//unpkg.com/react-grab/dist/index.global.js'
+              crossOrigin='anonymous'
+              strategy='beforeInteractive'
+            />
+          )}
+        </head>
         <body className={`antialiased`} suppressHydrationWarning>
           <BugReportBanner />
           <AppProviders>{children}</AppProviders>
