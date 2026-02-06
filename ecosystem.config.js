@@ -2,18 +2,10 @@
 module.exports = {
   apps: [
     {
-      name: 'next-app-1',
+      name: 'klimat22-app',
       script: 'pnpm',
-      args: 'start',
+      args: 'exec next start -p 3000',
       env: { PORT: 3000, NODE_ENV: 'production' },
-      instances: 1,
-      exec_mode: 'fork',
-    },
-    {
-      name: 'next-app-2',
-      script: 'pnpm',
-      args: 'start',
-      env: { PORT: 3001, NODE_ENV: 'production' },
       instances: 1,
       exec_mode: 'fork',
     },

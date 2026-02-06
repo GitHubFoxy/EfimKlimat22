@@ -2,18 +2,35 @@
 
 ## Code Philosophy
 
-Write maintanalbe code, that is easy to understand, this codebase will be used again and again, so make sure code you are proposing is good.
-Simple over complex
-Modules, Components over Monolith - easy to read each file and find patterns
+- Write maintainable, easy-to-understand code. This codebase is reused frequently.
+- Prefer simple solutions over complex ones.
+- Prefer modules/components over monoliths so patterns are easy to find.
 
-Use shadcn/ui components when possible for consistency
-Always run `bun run lint` AND `bun run typecheck` after making changes (do NOT build)
-Use TypeScript strict mode - avoid `any` unless necessary
-Do not run bun dev - assume dev server is already running
-Use `scripts/clone-workdir.sh` to clone the repo with `.env.local` and install deps for testing.
+## Workflow Rules
+
+- Use shadcn/ui components when possible for consistency.
+- Always run `bun run lint` AND `bun run typecheck` after making changes (do NOT build).
+- Use TypeScript strict mode; avoid `any` unless absolutely necessary.
+- Do not run `bun dev`; assume a dev server is already running.
+- Use `scripts/clone-workdir.sh` to clone the repo with `.env.local` and install deps for testing.
+
+## Verification Workflow
+
+- Use the `agent-browser` skill for browser confirmation tasks:
+  - checkout flows
+  - UI regressions
+  - interactive validation
+- Browser automation baseline:
+  1. `agent-browser open <url>`
+  2. `agent-browser snapshot -i`
+  3. `agent-browser click @eX` / `agent-browser fill @eY "text"`
+  4. re-run `snapshot -i` after page changes
+- Store browser artifacts in `/tmp` when possible.
+- Do not leave temporary evidence files tracked in the repository.
 
 ## Project Notes
 
-Document required environment variables (Convex/Auth/URLs) when adding or changing configuration.
-Keep manager/admin workflows explicit and documented when expanding `/app/manager` features.
-Prefer Convex-side validation for checkout/cart/order flows in addition to client checks.
+- Document required environment variables (Convex/Auth/URLs) when adding or changing configuration.
+- Keep manager/admin workflows explicit and documented when expanding `/app/manager` features.
+- Prefer Convex-side validation for checkout/cart/order flows in addition to client checks.
+- When deploying to the VPS (`klimat22`), sync from this repo, install `pnpm`/`pm2` in `$HOME/.local`, build with `pnpm exec next build`, then run a single `pm2` process named `klimat22-app` on port `3000`. Host-level routing is handled via the custom Caddy service (reverse proxy `klimat22.com`/`www.klimat22.com` to `127.0.0.1:3000`, let Caddy manage TLS).
