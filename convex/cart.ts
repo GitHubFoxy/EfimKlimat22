@@ -60,18 +60,11 @@ async function findOrderByCartId(
   ctx: MutationCtx,
   cartId: Id<'carts'>,
 ): Promise<Doc<'orders'> | null> {
-  const orders = await ctx.db
+  return await ctx.db
     .query('orders')
-    .filter((q) => q.eq(q.field('cartId'), cartId))
-    .collect()
-
-  if (orders.length === 0) {
-    return null
-  }
-
-  return orders.reduce((latest, current) =>
-    current._creationTime > latest._creationTime ? current : latest,
-  )
+    .withIndex('by_cartId', (q) => q.eq('cartId', cartId))
+    .order('desc')
+    .first()
 }
 
 async function findRecoverableOrderForSession(

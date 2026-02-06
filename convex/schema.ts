@@ -263,6 +263,7 @@ const ordersTable = defineTable({
   legacyId: v.optional(v.string()),
 })
   .index('by_user', ['userId'])
+  .index('by_cartId', ['cartId'])
   .index('by_status_date', ['status'])
   .index('by_publicNumber', ['publicNumber'])
   .index('by_manager', ['managerId', 'status'])
