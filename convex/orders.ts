@@ -18,8 +18,20 @@ export const get_order_by_id = query({
       .collect()
 
     return {
-      ...order,
-      items,
+      _id: order._id,
+      publicNumber: order.publicNumber,
+      clientPhone: order.clientPhone,
+      deliveryType: order.deliveryType,
+      address: order.address,
+      paymentMethod: order.paymentMethod,
+      paymentStatus: order.paymentStatus,
+      totalAmount: order.totalAmount,
+      items: items.map((item) => ({
+        _id: item._id,
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+      })),
     }
   },
 })

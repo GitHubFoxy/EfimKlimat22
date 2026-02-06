@@ -53,6 +53,16 @@ export function validateCartQuantity(
   }
 }
 
+export function validateCartQuantityUpdate(
+  quantity: number,
+  fieldName = 'Quantity',
+): void {
+  if (quantity === 0) {
+    return
+  }
+  validateCartQuantity(quantity, fieldName)
+}
+
 export function validatePageNumber(pageNum: number): void {
   if (!Number.isInteger(pageNum) || pageNum < 1) {
     throw new Error('Page number must be a positive integer')

@@ -1,5 +1,6 @@
 import { v } from 'convex/values'
 import { query } from './_generated/server'
+import { requireRole } from './authHelpers'
 
 /**
  * Test query to debug category filter issues
@@ -10,6 +11,8 @@ export const diagnose_category_items = query({
     categorySlug: v.string(),
   },
   handler: async (ctx, { categorySlug }) => {
+    await requireRole(ctx, ['admin'])
+
     // 1. Find the category by slug
     const topLevelCategory = await ctx.db
       .query('categories')
@@ -147,6 +150,8 @@ export const get_descendant_category_ids = query({
     categoryId: v.id('categories'),
   },
   handler: async (ctx, { categoryId }) => {
+    await requireRole(ctx, ['admin'])
+
     // Fetch all categories once
     const allCategories = await ctx.db.query('categories').collect()
 

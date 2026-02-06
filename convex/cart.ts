@@ -1,10 +1,12 @@
 import { getAuthUserId } from '@convex-dev/auth/server'
 import { v } from 'convex/values'
-import { mutation, query } from './_generated/server'
+import type { Doc, Id } from './_generated/dataModel'
+import { type MutationCtx, mutation, query } from './_generated/server'
 import { verifyCartItemOwnership } from './authHelpers'
 import {
   validateAddress,
   validateCartQuantity,
+  validateCartQuantityUpdate,
   validateDeliveryPrice,
   validateEmail,
   validateMessage,
@@ -12,6 +14,104 @@ import {
   validatePhone,
   validateSessionId,
 } from './validation'
+
+type DeliveryType = 'pickup' | 'courier' | 'transport'
+
+const DELIVERY_PRICE_BY_TYPE: Record<DeliveryType, number> = {
+  pickup: 0,
+  courier: 0,
+  transport: 0,
+}
+
+const ORDER_RECOVERY_CART_STATUSES = [
+  'checkout',
+  'locked',
+  'completed',
+] as const
+const ORDER_IDEMPOTENCY_WINDOW_MS = 10 * 60 * 1000
+
+function computeDeliveryPrice(deliveryType: DeliveryType): number {
+  return DELIVERY_PRICE_BY_TYPE[deliveryType]
+}
+
+function toCreateOrderResult(order: Doc<'orders'>) {
+  return {
+    orderId: order._id,
+    publicNumber: order.publicNumber,
+    totalAmount: order.totalAmount,
+  }
+}
+
+async function getSessionCartByStatus(
+  ctx: MutationCtx,
+  sessionId: string,
+  status: Doc<'carts'>['status'],
+): Promise<Doc<'carts'> | null> {
+  return await ctx.db
+    .query('carts')
+    .withIndex('by_sessionId', (q) =>
+      q.eq('sessionId', sessionId).eq('status', status),
+    )
+    .order('desc')
+    .first()
+}
+
+async function findOrderByCartId(
+  ctx: MutationCtx,
+  cartId: Id<'carts'>,
+): Promise<Doc<'orders'> | null> {
+  const orders = await ctx.db
+    .query('orders')
+    .filter((q) => q.eq(q.field('cartId'), cartId))
+    .collect()
+
+  if (orders.length === 0) {
+    return null
+  }
+
+  return orders.reduce((latest, current) =>
+    current._creationTime > latest._creationTime ? current : latest,
+  )
+}
+
+async function findRecoverableOrderForSession(
+  ctx: MutationCtx,
+  sessionId: string,
+): Promise<Doc<'orders'> | null> {
+  for (const status of ORDER_RECOVERY_CART_STATUSES) {
+    const cart = await getSessionCartByStatus(ctx, sessionId, status)
+    if (!cart) {
+      continue
+    }
+    if (Date.now() - cart.updatedAt > ORDER_IDEMPOTENCY_WINDOW_MS) {
+      continue
+    }
+
+    const existingOrder = await findOrderByCartId(ctx, cart._id)
+    if (existingOrder) {
+      return existingOrder
+    }
+  }
+
+  return null
+}
+
+async function generatePublicOrderNumber(ctx: MutationCtx): Promise<number> {
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const candidate =
+      Date.now() * 4096 + Math.floor(Math.random() * 4096) + attempt
+    const existing = await ctx.db
+      .query('orders')
+      .withIndex('by_publicNumber', (q) => q.eq('publicNumber', candidate))
+      .first()
+
+    if (!existing) {
+      return candidate
+    }
+  }
+
+  throw new Error('Failed to generate unique order number')
+}
 
 // Get or create cart for session
 export const getOrCreateCart = mutation({
@@ -54,6 +154,17 @@ export const addItem = mutation({
     validateSessionId(sessionId)
     validateCartQuantity(quantity)
 
+    const item = await ctx.db.get(itemId)
+    if (!item) {
+      throw new Error('Item not found')
+    }
+    if (item.status !== 'active' || !item.inStock) {
+      throw new Error('Item is not orderable')
+    }
+    if (item.quantity >= 0 && quantity > item.quantity) {
+      throw new Error('Requested quantity exceeds available stock')
+    }
+
     // Get or create cart
     const cart = await ctx.db
       .query('carts')
@@ -83,8 +194,13 @@ export const addItem = mutation({
 
     if (existingCartItem) {
       // Update quantity
+      const nextQuantity = existingCartItem.quantity + quantity
+      validateCartQuantity(nextQuantity)
+      if (item.quantity >= 0 && nextQuantity > item.quantity) {
+        throw new Error('Requested quantity exceeds available stock')
+      }
       await ctx.db.patch(existingCartItem._id, {
-        quantity: existingCartItem.quantity + quantity,
+        quantity: nextQuantity,
       })
     } else {
       // Add new item
@@ -273,12 +389,7 @@ export const updateCartItemQuantity = mutation({
     sessionId: v.optional(v.string()),
   },
   handler: async (ctx, { cartItemId, quantity, sessionId }) => {
-    if (quantity < 0) {
-      throw new Error('Quantity cannot be negative')
-    }
-    if (quantity > 99) {
-      throw new Error('Quantity exceeds maximum (99)')
-    }
+    validateCartQuantityUpdate(quantity)
 
     const { cartItem, cart } = await verifyCartItemOwnership(
       ctx,
@@ -308,12 +419,7 @@ export const updateQty = mutation({
     sessionId: v.optional(v.string()),
   },
   handler: async (ctx, { cartItemId, quantity, sessionId }) => {
-    if (quantity < 0) {
-      throw new Error('Quantity cannot be negative')
-    }
-    if (quantity > 99) {
-      throw new Error('Quantity exceeds maximum (99)')
-    }
+    validateCartQuantityUpdate(quantity)
 
     const { cartItem, cart } = await verifyCartItemOwnership(
       ctx,
@@ -460,10 +566,13 @@ export const mergeSessionCartToUser = mutation({
         .first()
 
       if (existingUserItem) {
+        const mergedQuantity = existingUserItem.quantity + sessionItem.quantity
+        validateCartQuantity(mergedQuantity)
         await ctx.db.patch(existingUserItem._id, {
-          quantity: existingUserItem.quantity + sessionItem.quantity,
+          quantity: mergedQuantity,
         })
       } else {
+        validateCartQuantity(sessionItem.quantity)
         await ctx.db.insert('cartItems', {
           cartId: userCart._id,
           itemId: sessionItem.itemId,
@@ -532,7 +641,9 @@ export const createOrder = mutation({
     validateName(clientName, 'Client name')
     validatePhone(clientPhone)
     validateEmail(clientEmail)
-    validateDeliveryPrice(deliveryPrice)
+
+    // Kept for API compatibility; delivery price is computed server-side.
+    void deliveryPrice
 
     // Validate address is provided for delivery types that require it
     if (deliveryType === 'courier' || deliveryType === 'transport') {
@@ -541,111 +652,142 @@ export const createOrder = mutation({
       validateAddress(address, false)
     }
 
-    // Get active cart for this session
-    const cart = await ctx.db
-      .query('carts')
-      .withIndex('by_sessionId', (q) =>
-        q.eq('sessionId', sessionId).eq('status', 'active'),
-      )
-      .first()
+    const activeCart = await getSessionCartByStatus(ctx, sessionId, 'active')
+    if (!activeCart) {
+      const existingOrder = await findRecoverableOrderForSession(ctx, sessionId)
+      if (existingOrder) {
+        return toCreateOrderResult(existingOrder)
+      }
 
-    if (!cart) {
       throw new Error('Cart not found')
     }
+    const cart = activeCart
 
-    // Get all cart items
-    const cartItems = await ctx.db
-      .query('cartItems')
-      .withIndex('by_cart_added', (q) => q.eq('cartId', cart._id))
-      .collect()
-
-    if (cartItems.length === 0) {
-      throw new Error('Cart is empty')
-    }
-
-    // Calculate totals
-    let itemsTotal = 0
-    const orderItems: Array<{
-      itemId: string
-      name: string
-      sku: string
-      price: number
-      quantity: number
-    }> = []
-
-    for (const cartItem of cartItems) {
-      if (!cartItem.itemId) {
-        throw new Error('Cart item missing itemId')
-      }
-      const item = await ctx.db.get(cartItem.itemId)
-      if (!item) {
-        throw new Error(`Item ${cartItem.itemId} not found`)
-      }
-      if (!('name' in item) || !('price' in item) || !('sku' in item)) {
-        throw new Error(`Item ${cartItem.itemId} missing required fields`)
-      }
-
-      const itemTotal = (item.price as number) * cartItem.quantity
-      itemsTotal += itemTotal
-
-      orderItems.push({
-        itemId: String(cartItem.itemId),
-        name: item.name as string,
-        sku: item.sku as string,
-        price: item.price as number,
-        quantity: cartItem.quantity,
-      })
-    }
-
-    // Get next order number
-    const lastOrder = await ctx.db.query('orders').order('desc').first()
-    const nextPublicNumber = (lastOrder?.publicNumber ?? 0) + 1
-
-    // Get authenticated user ID if available (for order ownership)
-    const userId = await getAuthUserId(ctx)
-
-    // Create the order
-    const orderId = await ctx.db.insert('orders', {
-      cartId: cart._id,
-      userId: userId ?? undefined,
-      publicNumber: nextPublicNumber,
-      clientName,
-      clientPhone,
-      clientEmail,
-      deliveryType,
-      address,
-      paymentMethod,
-      paymentStatus: 'pending',
-      itemsTotal,
-      totalAmount: itemsTotal + deliveryPrice,
-      deliveryPrice,
-      status: 'new',
-      updatedAt: Date.now(),
-    })
-
-    // Create order items
-    for (const item of orderItems) {
-      const itemIdNum = item.itemId
-      await ctx.db.insert('orderItems', {
-        orderId,
-        itemId: itemIdNum ? (itemIdNum as any) : undefined,
-        name: item.name,
-        sku: item.sku,
-        price: item.price,
-        quantity: item.quantity,
-      })
-    }
-
-    // Mark cart as completed
+    // Mark cart as checkout to make duplicate submits return same existing order.
     await ctx.db.patch(cart._id, {
-      status: 'completed',
+      status: 'checkout',
       updatedAt: Date.now(),
     })
 
-    return {
-      orderId,
-      publicNumber: nextPublicNumber,
-      totalAmount: itemsTotal + deliveryPrice,
+    try {
+      const existingOrder = await findOrderByCartId(ctx, cart._id)
+      if (existingOrder) {
+        await ctx.db.patch(cart._id, {
+          status: 'completed',
+          updatedAt: Date.now(),
+        })
+        return toCreateOrderResult(existingOrder)
+      }
+
+      // Get all cart items
+      const cartItems = await ctx.db
+        .query('cartItems')
+        .withIndex('by_cart_added', (q) => q.eq('cartId', cart._id))
+        .collect()
+
+      if (cartItems.length === 0) {
+        throw new Error('Cart is empty')
+      }
+
+      const computedDeliveryPrice = computeDeliveryPrice(deliveryType)
+      validateDeliveryPrice(computedDeliveryPrice)
+
+      // Calculate totals
+      let itemsTotal = 0
+      const orderItems: Array<{
+        itemId: Id<'items'>
+        name: string
+        sku: string
+        price: number
+        quantity: number
+      }> = []
+
+      for (const cartItem of cartItems) {
+        if (!cartItem.itemId) {
+          throw new Error('Cart item missing itemId')
+        }
+        validateCartQuantity(cartItem.quantity, 'Cart item quantity')
+
+        const item = await ctx.db.get(cartItem.itemId)
+        if (!item) {
+          throw new Error(`Item ${cartItem.itemId} not found`)
+        }
+        if (item.status !== 'active') {
+          throw new Error(`Item ${cartItem.itemId} is not orderable`)
+        }
+        if (!item.inStock) {
+          throw new Error(`Item ${cartItem.itemId} is out of stock`)
+        }
+        if (item.quantity >= 0 && cartItem.quantity > item.quantity) {
+          throw new Error(`Item ${cartItem.itemId} exceeds available stock`)
+        }
+
+        const itemTotal = item.price * cartItem.quantity
+        itemsTotal += itemTotal
+
+        orderItems.push({
+          itemId: cartItem.itemId,
+          name: item.name,
+          sku: item.sku,
+          price: item.price,
+          quantity: cartItem.quantity,
+        })
+      }
+
+      const nextPublicNumber = await generatePublicOrderNumber(ctx)
+
+      // Get authenticated user ID if available (for order ownership)
+      const userId = await getAuthUserId(ctx)
+
+      // Create the order
+      const orderId = await ctx.db.insert('orders', {
+        cartId: cart._id,
+        userId: userId ?? undefined,
+        publicNumber: nextPublicNumber,
+        clientName,
+        clientPhone,
+        clientEmail,
+        deliveryType,
+        address,
+        paymentMethod,
+        paymentStatus: 'pending',
+        itemsTotal,
+        totalAmount: itemsTotal + computedDeliveryPrice,
+        deliveryPrice: computedDeliveryPrice,
+        status: 'new',
+        updatedAt: Date.now(),
+      })
+
+      // Create order items
+      for (const item of orderItems) {
+        await ctx.db.insert('orderItems', {
+          orderId,
+          itemId: item.itemId,
+          name: item.name,
+          sku: item.sku,
+          price: item.price,
+          quantity: item.quantity,
+        })
+      }
+
+      // Mark cart as completed
+      await ctx.db.patch(cart._id, {
+        status: 'completed',
+        updatedAt: Date.now(),
+      })
+
+      return {
+        orderId,
+        publicNumber: nextPublicNumber,
+        totalAmount: itemsTotal + computedDeliveryPrice,
+      }
+    } catch (error) {
+      const persistedOrder = await findOrderByCartId(ctx, cart._id)
+      await ctx.db.patch(cart._id, {
+        status: persistedOrder ? 'completed' : 'active',
+        updatedAt: Date.now(),
+      })
+      throw error
     }
   },
 })

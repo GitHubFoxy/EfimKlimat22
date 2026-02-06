@@ -30,6 +30,12 @@ export async function requirePermanentPassword(
     throw new ConvexError('User not found')
   }
 
+  if (user.status === 'blocked') {
+    throw new ConvexError(
+      'Your account is blocked. Please contact support for assistance.',
+    )
+  }
+
   const mustChangePassword =
     typeof user.mustChangePassword === 'boolean'
       ? user.mustChangePassword
