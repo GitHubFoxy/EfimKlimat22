@@ -104,6 +104,7 @@ export function OrdersTableContent() {
       clientEmail: order.clientEmail,
       status: order.status || 'new',
       totalAmount: order.totalAmount || 0,
+      paymentMethod: order.paymentMethod || 'cash_on_delivery',
       paymentStatus: order.paymentStatus || 'pending',
       updatedAt: order.updatedAt || 0,
     }),

@@ -296,6 +296,7 @@ export interface ConvexOrder {
   clientEmail?: string
   status: 'new' | 'confirmed' | 'processing' | 'shipping' | 'done' | 'canceled'
   totalAmount: number
+  paymentMethod: 'cash_on_delivery' | 'card_on_delivery' | 'b2b_invoice'
   paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded'
   updatedAt: number
 }
@@ -374,8 +375,34 @@ export const getOrderColumns = (handlers?: {
       },
     },
     {
-      accessorKey: 'paymentStatus',
+      accessorKey: 'paymentMethod',
       header: 'Оплата',
+      cell: ({ row }) => {
+        const paymentMethod = row.getValue('paymentMethod') as string
+        const paymentMethodMap: { [key: string]: string } = {
+          cash_on_delivery: 'Наличными при получении',
+          card_on_delivery: 'Картой при получении',
+          b2b_invoice: 'Счет B2B',
+        }
+        const paymentMethodStyles: { [key: string]: string } = {
+          cash_on_delivery: 'bg-emerald-100 text-emerald-700',
+          card_on_delivery: 'bg-sky-100 text-sky-700',
+          b2b_invoice: 'bg-amber-100 text-amber-700',
+        }
+        return (
+          <span
+            className={`px-2 py-0.5 rounded text-xs ${
+              paymentMethodStyles[paymentMethod] || 'bg-gray-100 text-gray-700'
+            }`}
+          >
+            {paymentMethodMap[paymentMethod] || paymentMethod}
+          </span>
+        )
+      },
+    },
+    {
+      accessorKey: 'paymentStatus',
+      header: 'Статус оплаты',
       cell: ({ row }) => {
         const paymentStatus = row.getValue('paymentStatus') as string
         const paymentMap: { [key: string]: string } = {
