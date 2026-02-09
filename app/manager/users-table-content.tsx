@@ -89,7 +89,7 @@ export function UsersTableContent({
           onCheckedChange={handleRoleToggle}
         />
         <Label htmlFor='show-employees' className='cursor-pointer'>
-          Show employees (managers & admins)
+          Показать сотрудников (менеджеры и админы)
         </Label>
       </div>
 

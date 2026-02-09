@@ -3,7 +3,6 @@ import { Inter } from 'next/font/google'
 import Script from 'next/script'
 import './globals.css'
 import { ConvexAuthNextjsServerProvider } from '@convex-dev/auth/nextjs/server'
-import { BugReportBanner } from '@/components/BugReportBanner'
 import { Description, Icon, Title } from '@/lib/consts'
 import { AppProviders } from './providers'
 
@@ -42,7 +41,6 @@ export default function RootLayout({
           )}
         </head>
         <body className={`antialiased`} suppressHydrationWarning>
-          <BugReportBanner />
           <AppProviders>{children}</AppProviders>
         </body>
       </html>

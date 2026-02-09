@@ -470,7 +470,31 @@ export const list_orders = query({
       .order('desc')
       .paginate(paginationOpts)
 
-    return orders
+    const ordersWithItems = await Promise.all(
+      orders.page.map(async (order) => {
+        const items = await ctx.db
+          .query('orderItems')
+          .withIndex('by_order', (q) => q.eq('orderId', order._id))
+          .collect()
+
+        return {
+          ...order,
+          items: items.map((item) => ({
+            _id: item._id,
+            itemId: item.itemId,
+            name: item.name,
+            sku: item.sku,
+            price: item.price,
+            quantity: item.quantity,
+          })),
+        }
+      }),
+    )
+
+    return {
+      ...orders,
+      page: ordersWithItems,
+    }
   },
 })
 

@@ -294,18 +294,40 @@ export interface ConvexOrder {
   clientName: string
   clientPhone: string
   clientEmail?: string
+  deliveryType?: 'pickup' | 'courier' | 'transport'
+  address?: {
+    city: string
+    street: string
+    details?: string
+  }
+  items?: Array<{
+    _id: string
+    itemId?: string
+    name: string
+    sku?: string
+    price: number
+    quantity: number
+  }>
+  deliveryPrice?: number
+  itemsTotal?: number
   status: 'new' | 'confirmed' | 'processing' | 'shipping' | 'done' | 'canceled'
   totalAmount: number
   paymentMethod: 'cash_on_delivery' | 'card_on_delivery' | 'b2b_invoice'
   paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded'
+  comment?: string
+  managerNote?: string
   updatedAt: number
 }
 
 export const getOrderColumns = (handlers?: {
-  onStatusChange?: (orderId: any, status: ConvexOrder['status']) => void
-  onDeleteOrder?: (orderId: any) => void
+  onStatusChange?: (
+    orderId: ConvexOrder['_id'],
+    status: ConvexOrder['status'],
+  ) => void
+  onDeleteOrder?: (orderId: ConvexOrder['_id']) => void
+  onOpenOrder?: (order: ConvexOrder) => void
 }): ColumnDef<ConvexOrder>[] => {
-  const { onStatusChange, onDeleteOrder } = handlers || {}
+  const { onStatusChange, onDeleteOrder, onOpenOrder } = handlers || {}
 
   return [
     {
@@ -313,7 +335,16 @@ export const getOrderColumns = (handlers?: {
       header: '№ Заказа',
       cell: ({ row }) => {
         const number = row.getValue('publicNumber') as number
-        return <div className='font-medium'>#{number}</div>
+        const order = row.original
+        return (
+          <button
+            type='button'
+            className='font-medium text-left hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-400 rounded-sm'
+            onClick={() => onOpenOrder?.(order)}
+          >
+            #{number}
+          </button>
+        )
       },
     },
     {

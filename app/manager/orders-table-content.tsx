@@ -3,7 +3,7 @@
 import { useMutation, useQuery } from 'convex/react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { api } from '@/convex/_generated/api'
@@ -11,6 +11,7 @@ import { Id } from '@/convex/_generated/dataModel'
 import { type ConvexOrder, getOrderColumns } from './columns'
 import { DataTable } from './data-table'
 import { DeleteOrderDialog } from './delete-order-dialog'
+import { OrderDetailsDialog } from './order-details-dialog'
 
 export function OrdersTableContent() {
   const router = useRouter()
@@ -36,10 +37,12 @@ export function OrdersTableContent() {
     })
   }
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [orderDialogOpen, setOrderDialogOpen] = useState(false)
   const [orderToDelete, setOrderToDelete] = useState<{
     id: Id<'orders'>
     publicNumber: number
   } | null>(null)
+  const [selectedOrder, setSelectedOrder] = useState<ConvexOrder | null>(null)
   const updateStatus = useMutation(api.manager.update_order_status)
 
   // Fetch orders data with pagination
@@ -70,16 +73,6 @@ export function OrdersTableContent() {
     setOrderToDelete(null)
   }
 
-  const orderColumns = getOrderColumns({
-    onStatusChange: handleStatusChange,
-    onDeleteOrder: (orderId) => {
-      const order = transformedOrders.find((o) => o._id === orderId)
-      if (order) {
-        handleDeleteOrder(orderId as Id<'orders'>, order.publicNumber)
-      }
-    },
-  })
-
   if (!ordersData) {
     return (
       <div className='p-4 text-center text-gray-500'>Загрузка заказов...</div>
@@ -102,13 +95,50 @@ export function OrdersTableContent() {
       clientName: order.clientName || 'Unknown',
       clientPhone: order.clientPhone || 'Unknown',
       clientEmail: order.clientEmail,
+      deliveryType: order.deliveryType,
+      address: order.address,
+      items: Array.isArray(order.items)
+        ? order.items.map((item: any) => ({
+            _id: item._id,
+            itemId: item.itemId,
+            name: item.name || 'Товар',
+            sku: item.sku,
+            price: item.price || 0,
+            quantity: item.quantity || 0,
+          }))
+        : [],
+      deliveryPrice: order.deliveryPrice || 0,
+      itemsTotal: order.itemsTotal || 0,
       status: order.status || 'new',
       totalAmount: order.totalAmount || 0,
       paymentMethod: order.paymentMethod || 'cash_on_delivery',
       paymentStatus: order.paymentStatus || 'pending',
+      comment: order.comment,
+      managerNote: order.managerNote,
       updatedAt: order.updatedAt || 0,
     }),
   )
+
+  const handleOpenOrderDialog = (order: ConvexOrder) => {
+    setSelectedOrder(order)
+    setOrderDialogOpen(true)
+  }
+
+  const handleCloseOrderDialog = () => {
+    setOrderDialogOpen(false)
+    setSelectedOrder(null)
+  }
+
+  const orderColumns = getOrderColumns({
+    onStatusChange: handleStatusChange,
+    onOpenOrder: handleOpenOrderDialog,
+    onDeleteOrder: (orderId) => {
+      const order = transformedOrders.find((o) => o._id === orderId)
+      if (order) {
+        handleDeleteOrder(orderId as Id<'orders'>, order.publicNumber)
+      }
+    },
+  })
 
   const handleNextPage = () => {
     if (ordersData.continueCursor) {
@@ -164,6 +194,11 @@ export function OrdersTableContent() {
         onClose={handleCloseDeleteDialog}
         orderId={orderToDelete?.id || null}
         orderNumber={orderToDelete?.publicNumber || 0}
+      />
+      <OrderDetailsDialog
+        isOpen={orderDialogOpen}
+        onClose={handleCloseOrderDialog}
+        order={selectedOrder}
       />
     </>
   )

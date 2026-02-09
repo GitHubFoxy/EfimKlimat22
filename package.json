@@ -3,11 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "bun run --bun dev:frontend & bun run --bun dev:backend",
+    "dev": "bun run dev:frontend & bun run dev:backend",
     "dev:frontend": "next dev --turbo",
     "dev:backend": "convex dev",
     "predev": "convex dev --until-success",
-    "build": "next build",
+    "build": "bun --bun next build",
     "start": "next start",
     "lint": "biome check",
     "format": "biome format --write",
