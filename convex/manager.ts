@@ -20,6 +20,107 @@ import {
   validateSku,
 } from './validation'
 
+const specificationValueValidator = v.union(v.string(), v.number(), v.boolean())
+const specificationsValidator = v.record(
+  v.string(),
+  specificationValueValidator,
+)
+const documentsValidator = v.array(
+  v.object({
+    name: v.string(),
+    url: v.string(),
+  }),
+)
+
+type SpecificationValue = string | number | boolean
+type SpecificationsInput = Record<string, SpecificationValue> | null | undefined
+type DocumentsInput = Array<{ name: string; url: string }> | null | undefined
+
+function normalizeOptionalString(
+  value: string | null | undefined,
+): string | null | undefined {
+  if (value === undefined || value === null) {
+    return value
+  }
+
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
+}
+
+function normalizeLabels(
+  labels: string[] | null | undefined,
+): string[] | null | undefined {
+  if (labels === undefined || labels === null) {
+    return labels
+  }
+
+  const next = labels.map((label) => label.trim()).filter(Boolean)
+  return next.length > 0 ? next : null
+}
+
+function normalizeDocuments(
+  documents: DocumentsInput,
+): Array<{ name: string; url: string }> | null | undefined {
+  if (documents === undefined || documents === null) {
+    return documents
+  }
+
+  const next = documents
+    .map((document) => ({
+      name: document.name.trim(),
+      url: document.url.trim(),
+    }))
+    .filter((document) => document.name.length > 0 && document.url.length > 0)
+
+  return next.length > 0 ? next : null
+}
+
+function normalizeSpecifications(
+  specifications: SpecificationsInput,
+): Record<string, SpecificationValue> | null | undefined {
+  if (specifications === undefined || specifications === null) {
+    return specifications
+  }
+
+  const normalized: Record<string, SpecificationValue> = {}
+
+  for (const [key, value] of Object.entries(specifications)) {
+    const normalizedKey = key.trim()
+    if (
+      normalizedKey.length === 0 ||
+      normalizedKey.toLowerCase() === 'collection'
+    ) {
+      continue
+    }
+
+    if (typeof value === 'string') {
+      const normalizedValue = value.trim()
+      if (normalizedValue.length === 0) {
+        continue
+      }
+      normalized[normalizedKey] = normalizedValue
+      continue
+    }
+
+    normalized[normalizedKey] = value
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : null
+}
+
+async function resolveImageUrls(
+  ctx: {
+    storage: { getUrl: (storageId: Id<'_storage'>) => Promise<string | null> }
+  },
+  imageStorageIds: Id<'_storage'>[],
+) {
+  const urls = await Promise.all(
+    imageStorageIds.map((storageId) => ctx.storage.getUrl(storageId)),
+  )
+
+  return urls.filter((url): url is string => typeof url === 'string')
+}
+
 // List orders for managers by status, newest first by updatedAt/_creationTime
 export const list_orders_by_status = query({
   args: {
@@ -696,7 +797,7 @@ export const create_item = mutation({
     name: v.string(),
     sku: v.string(),
     description: v.string(),
-    brandId: v.id('brands'),
+    brandId: v.optional(v.id('brands')),
     categoryId: v.id('categories'),
     price: v.number(),
     quantity: v.number(),
@@ -707,9 +808,12 @@ export const create_item = mutation({
       v.literal('preorder'),
     ),
     inStock: v.boolean(),
-    specifications: v.optional(
-      v.record(v.string(), v.union(v.string(), v.number(), v.boolean())),
-    ),
+    oldPrice: v.optional(v.number()),
+    discountAmount: v.optional(v.number()),
+    imageStorageIds: v.optional(v.array(v.id('_storage'))),
+    documents: v.optional(documentsValidator),
+    labels: v.optional(v.array(v.string())),
+    specifications: v.optional(specificationsValidator),
     collection: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -721,6 +825,10 @@ export const create_item = mutation({
     validateDescription(args.description)
     validatePrice(args.price)
     validateQuantity(args.quantity)
+    if (args.oldPrice !== undefined) validatePrice(args.oldPrice, 'Old price')
+    if (args.discountAmount !== undefined) {
+      validatePrice(args.discountAmount, 'Discount amount')
+    }
     validateCollection(args.collection)
 
     const slug = args.name
@@ -728,17 +836,69 @@ export const create_item = mutation({
       .replace(/ /g, '-')
       .replace(/[^\w-]+/g, '')
 
-    // Extract collection from specifications if not provided
-    const collection =
-      args.collection || (args.specifications?.collection as string | undefined)
+    const normalizedSpecifications = normalizeSpecifications(
+      args.specifications,
+    )
+    const normalizedDocuments = normalizeDocuments(args.documents)
+    const normalizedLabels = normalizeLabels(args.labels)
+    const normalizedCollection =
+      normalizeOptionalString(args.collection) ??
+      normalizeOptionalString(
+        typeof args.specifications?.collection === 'string'
+          ? args.specifications.collection
+          : undefined,
+      ) ??
+      undefined
+    const imageStorageIds =
+      args.imageStorageIds && args.imageStorageIds.length > 0
+        ? args.imageStorageIds
+        : undefined
+    const imagesUrl = imageStorageIds
+      ? await resolveImageUrls(ctx, imageStorageIds)
+      : undefined
 
-    const itemId = await ctx.db.insert('items', {
-      ...args,
+    const itemData: any = {
+      name: args.name,
       slug,
-      collection,
+      sku: args.sku,
+      description: args.description,
+      categoryId: args.categoryId,
+      status: args.status,
+      price: args.price,
+      quantity: args.quantity,
+      inStock: args.inStock,
       ordersCount: 0,
       searchText: `${args.name} ${args.sku}`.toLowerCase(),
-    })
+    }
+
+    if (args.brandId !== undefined) {
+      itemData.brandId = args.brandId
+    }
+
+    if (args.oldPrice !== undefined) {
+      itemData.oldPrice = args.oldPrice
+    }
+    if (args.discountAmount !== undefined) {
+      itemData.discountAmount = args.discountAmount
+    }
+    if (imageStorageIds) {
+      itemData.imageStorageIds = imageStorageIds
+      itemData.imagesUrl = imagesUrl
+    }
+    if (normalizedDocuments) {
+      itemData.documents = normalizedDocuments
+    }
+    if (normalizedLabels) {
+      itemData.labels = normalizedLabels
+    }
+    if (normalizedSpecifications) {
+      itemData.specifications = normalizedSpecifications
+    }
+    if (normalizedCollection) {
+      itemData.collection = normalizedCollection
+    }
+
+    const itemId = await ctx.db.insert('items', itemData)
 
     // Update collection group after item is created
     const newItem = await ctx.db.get(itemId)
@@ -756,7 +916,7 @@ export const update_item = mutation({
     name: v.optional(v.string()),
     sku: v.optional(v.string()),
     description: v.optional(v.string()),
-    brandId: v.optional(v.id('brands')),
+    brandId: v.optional(v.union(v.id('brands'), v.null())),
     categoryId: v.optional(v.id('categories')),
     price: v.optional(v.number()),
     quantity: v.optional(v.number()),
@@ -769,10 +929,13 @@ export const update_item = mutation({
       ),
     ),
     inStock: v.optional(v.boolean()),
-    specifications: v.optional(
-      v.record(v.string(), v.union(v.string(), v.number(), v.boolean())),
-    ),
-    collection: v.optional(v.string()),
+    oldPrice: v.optional(v.union(v.number(), v.null())),
+    discountAmount: v.optional(v.union(v.number(), v.null())),
+    imageStorageIds: v.optional(v.union(v.array(v.id('_storage')), v.null())),
+    documents: v.optional(v.union(documentsValidator, v.null())),
+    labels: v.optional(v.union(v.array(v.string()), v.null())),
+    specifications: v.optional(v.union(specificationsValidator, v.null())),
+    collection: v.optional(v.union(v.string(), v.null())),
   },
   handler: async (ctx, { id, ...args }) => {
     await requireRole(ctx, ['manager', 'admin'])
@@ -783,38 +946,126 @@ export const update_item = mutation({
     if (args.description !== undefined) validateDescription(args.description)
     if (args.price !== undefined) validatePrice(args.price)
     if (args.quantity !== undefined) validateQuantity(args.quantity)
-    validateCollection(args.collection)
+    if (args.oldPrice !== undefined && args.oldPrice !== null) {
+      validatePrice(args.oldPrice, 'Old price')
+    }
+    if (args.discountAmount !== undefined && args.discountAmount !== null) {
+      validatePrice(args.discountAmount, 'Discount amount')
+    }
+    if (args.collection !== undefined && args.collection !== null) {
+      validateCollection(args.collection)
+    }
 
     const existing = await ctx.db.get(id)
     if (!existing) throw new Error('Item not found')
 
-    const patch: any = { ...args }
-    if (args.name) {
-      patch.slug = args.name
+    const { _id, _creationTime, ...existingFields } = existing as any
+    const next: any = { ...existingFields }
+
+    if (args.name !== undefined) {
+      next.name = args.name
+      next.slug = args.name
         .toLowerCase()
         .replace(/ /g, '-')
         .replace(/[^\w-]+/g, '')
     }
+    if (args.sku !== undefined) next.sku = args.sku
+    if (args.description !== undefined) next.description = args.description
+    if (args.brandId !== undefined) {
+      if (args.brandId === null) {
+        delete next.brandId
+      } else {
+        next.brandId = args.brandId
+      }
+    }
+    if (args.categoryId !== undefined) next.categoryId = args.categoryId
+    if (args.price !== undefined) next.price = args.price
+    if (args.quantity !== undefined) next.quantity = args.quantity
+    if (args.status !== undefined) next.status = args.status
+    if (args.inStock !== undefined) next.inStock = args.inStock
 
     if (args.name || args.sku) {
       const name = args.name ?? existing.name
       const sku = args.sku ?? existing.sku
-      patch.searchText = `${name} ${sku}`.toLowerCase()
+      next.searchText = `${name} ${sku}`.toLowerCase()
     }
 
-    // Handle collection: extract from specifications if present, or use provided value
-    if (args.specifications) {
-      const collection =
-        args.collection ||
-        (args.specifications.collection as string | undefined)
-      if (collection) {
-        patch.collection = collection
+    if (args.oldPrice !== undefined) {
+      if (args.oldPrice === null) {
+        delete next.oldPrice
+      } else {
+        next.oldPrice = args.oldPrice
       }
-    } else if (args.collection !== undefined) {
-      patch.collection = args.collection
     }
 
-    await ctx.db.patch(id, patch)
+    if (args.discountAmount !== undefined) {
+      if (args.discountAmount === null) {
+        delete next.discountAmount
+      } else {
+        next.discountAmount = args.discountAmount
+      }
+    }
+
+    if (args.specifications !== undefined) {
+      const normalizedSpecifications = normalizeSpecifications(
+        args.specifications,
+      )
+      if (normalizedSpecifications === null) {
+        delete next.specifications
+      } else {
+        next.specifications = normalizedSpecifications
+      }
+    }
+
+    if (args.collection !== undefined) {
+      const normalizedCollection = normalizeOptionalString(args.collection)
+      if (normalizedCollection === null) {
+        delete next.collection
+      } else {
+        next.collection = normalizedCollection
+      }
+    } else if (
+      args.specifications !== undefined &&
+      args.specifications !== null &&
+      typeof args.specifications.collection === 'string'
+    ) {
+      const normalizedCollection = normalizeOptionalString(
+        args.specifications.collection,
+      )
+      if (normalizedCollection) {
+        next.collection = normalizedCollection
+      }
+    }
+
+    if (args.labels !== undefined) {
+      const normalizedLabels = normalizeLabels(args.labels)
+      if (normalizedLabels === null) {
+        delete next.labels
+      } else {
+        next.labels = normalizedLabels
+      }
+    }
+
+    if (args.documents !== undefined) {
+      const normalizedDocuments = normalizeDocuments(args.documents)
+      if (normalizedDocuments === null) {
+        delete next.documents
+      } else {
+        next.documents = normalizedDocuments
+      }
+    }
+
+    if (args.imageStorageIds !== undefined) {
+      if (args.imageStorageIds === null || args.imageStorageIds.length === 0) {
+        delete next.imageStorageIds
+        delete next.imagesUrl
+      } else {
+        next.imageStorageIds = args.imageStorageIds
+        next.imagesUrl = await resolveImageUrls(ctx, args.imageStorageIds)
+      }
+    }
+
+    await ctx.db.replace(id, next)
 
     // Update collection group after item is updated
     const updatedItem = await ctx.db.get(id)
@@ -837,6 +1088,14 @@ export const delete_item = mutation({
 
     // Clean up collection group if no active items remain
     await deleteCollectionGroupIfEmpty(ctx, existing)
+  },
+})
+
+export const generate_upload_url = mutation({
+  returns: v.string(),
+  handler: async (ctx) => {
+    await requireRole(ctx, ['manager', 'admin'])
+    return await ctx.storage.generateUploadUrl()
   },
 })
 

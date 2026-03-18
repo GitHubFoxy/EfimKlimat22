@@ -2,6 +2,7 @@
 
 import { ReactNode } from 'react'
 import ConvexClientProvider from '@/components/ConvexClientProvider'
+import { Toaster } from '@/components/ui/sonner'
 
 /**
  * AppProviders wraps the application with essential client-side providers.
@@ -19,5 +20,10 @@ import ConvexClientProvider from '@/components/ConvexClientProvider'
  * See: https://radix-ui.com/docs/primitives/utilities/id-provider
  */
 export function AppProviders({ children }: { children: ReactNode }) {
-  return <ConvexClientProvider>{children}</ConvexClientProvider>
+  return (
+    <ConvexClientProvider>
+      {children}
+      <Toaster />
+    </ConvexClientProvider>
+  )
 }
