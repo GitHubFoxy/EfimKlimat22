@@ -1,7 +1,14 @@
 'use client'
 
 import { useMutation, useQuery } from 'convex/react'
-import { FolderPlus, Plus, Trash2 } from 'lucide-react'
+import {
+  ChevronDown,
+  FolderPlus,
+  GripVertical,
+  Plus,
+  Trash2,
+} from 'lucide-react'
+import type { DragEvent } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -41,7 +48,6 @@ type CategoryEditorState =
   | {
       mode: 'create'
       name: string
-      order: string
       parentId: Id<'categories'> | ''
       isVisible: boolean
     }
@@ -49,10 +55,14 @@ type CategoryEditorState =
       mode: 'edit'
       id: Id<'categories'>
       name: string
-      order: string
       parentId: Id<'categories'> | ''
       isVisible: boolean
     }
+
+type DragState = {
+  draggedId: Id<'categories'>
+  parentId: Id<'categories'> | null
+}
 
 interface CategoryManagerDialogProps {
   open: boolean
@@ -64,7 +74,6 @@ function createDraftFromCategory(category: CategoryNode): CategoryEditorState {
     mode: 'edit',
     id: category._id,
     name: category.name,
-    order: String(category.order),
     parentId: category.parentId ?? '',
     isVisible: category.isVisible,
   }
@@ -76,7 +85,6 @@ function createNewDraft(
   return {
     mode: 'create',
     name: '',
-    order: '0',
     parentId,
     isVisible: true,
   }
@@ -98,9 +106,16 @@ export function CategoryManagerDialog({
   const createCategory = useMutation(api.manager.create_category)
   const updateCategory = useMutation(api.manager.update_category)
   const deleteCategory = useMutation(api.manager.delete_category)
+  const reorderCategories = useMutation(api.manager.reorder_categories)
 
   const [search, setSearch] = useState('')
   const [editor, setEditor] = useState<CategoryEditorState | null>(null)
+  const [collapsedParents, setCollapsedParents] = useState<
+    Record<string, boolean>
+  >({})
+  const [dragState, setDragState] = useState<DragState | null>(null)
+  const [dragOverId, setDragOverId] = useState<Id<'categories'> | null>(null)
+  const [isReordering, setIsReordering] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -108,6 +123,7 @@ export function CategoryManagerDialog({
   const parents = hierarchy?.parents ?? []
   const childrenMap = hierarchy?.childrenMap ?? {}
   const normalizedSearch = search.trim().toLowerCase()
+  const isReorderEnabled = normalizedSearch.length === 0
 
   const categoriesById = useMemo(() => {
     const map = new Map<Id<'categories'>, CategoryNode>()
@@ -163,12 +179,34 @@ export function CategoryManagerDialog({
     setEditor(createDraftFromCategory(category))
   }
 
+  const expandParent = (parentId: Id<'categories'>) => {
+    setCollapsedParents((current) => {
+      if (!current[parentId.toString()]) {
+        return current
+      }
+
+      const next = { ...current }
+      delete next[parentId.toString()]
+      return next
+    })
+  }
+
+  const toggleParent = (parentId: Id<'categories'>) => {
+    setCollapsedParents((current) => ({
+      ...current,
+      [parentId.toString()]: !current[parentId.toString()],
+    }))
+  }
+
   const handleCreateCategory = () => {
     setEditor(createNewDraft())
   }
 
   const handleCreateSubcategory = () => {
     const parentId = getSuggestedParentId(selectedCategory)
+    if (parentId) {
+      expandParent(parentId)
+    }
     setEditor(createNewDraft(parentId))
   }
 
@@ -176,6 +214,10 @@ export function CategoryManagerDialog({
     if (!nextOpen) {
       setSearch('')
       setEditor(null)
+      setCollapsedParents({})
+      setDragState(null)
+      setDragOverId(null)
+      setIsReordering(false)
       setIsDeleteDialogOpen(false)
       setIsSaving(false)
       setIsDeleting(false)
@@ -192,6 +234,135 @@ export function CategoryManagerDialog({
     setEditor(createDraftFromCategory(parents[0]))
   }, [editor, open, parents])
 
+  useEffect(() => {
+    if (!selectedCategory?.parentId) {
+      return
+    }
+
+    const parentId = selectedCategory.parentId.toString()
+
+    setCollapsedParents((current) => {
+      if (!current[parentId]) {
+        return current
+      }
+
+      const next = { ...current }
+      delete next[parentId]
+      return next
+    })
+  }, [selectedCategory?.parentId])
+
+  const buildReorderedIds = (
+    siblings: CategoryNode[],
+    draggedId: Id<'categories'>,
+    targetId: Id<'categories'>,
+  ) => {
+    const sourceIndex = siblings.findIndex((item) => item._id === draggedId)
+    const targetIndex = siblings.findIndex((item) => item._id === targetId)
+
+    if (
+      sourceIndex === -1 ||
+      targetIndex === -1 ||
+      sourceIndex === targetIndex
+    ) {
+      return null
+    }
+
+    const next = [...siblings]
+    const [movedItem] = next.splice(sourceIndex, 1)
+    next.splice(targetIndex, 0, movedItem)
+
+    return next.map((item) => item._id)
+  }
+
+  const handleDragStart = (
+    event: DragEvent<HTMLDivElement>,
+    draggedId: Id<'categories'>,
+    parentId: Id<'categories'> | null,
+  ) => {
+    if (!isReorderEnabled || isReordering) {
+      event.preventDefault()
+      return
+    }
+
+    event.dataTransfer.effectAllowed = 'move'
+    setDragState({ draggedId, parentId })
+    setDragOverId(draggedId)
+  }
+
+  const handleDragOver = (
+    event: DragEvent<HTMLDivElement>,
+    targetId: Id<'categories'>,
+    parentId: Id<'categories'> | null,
+  ) => {
+    if (
+      !dragState ||
+      dragState.draggedId === targetId ||
+      dragState.parentId !== parentId
+    ) {
+      return
+    }
+
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
+    setDragOverId(targetId)
+  }
+
+  const handleDragEnd = () => {
+    setDragState(null)
+    setDragOverId(null)
+  }
+
+  const handleDrop = async (
+    event: DragEvent<HTMLDivElement>,
+    targetId: Id<'categories'>,
+    parentId: Id<'categories'> | null,
+    siblings: CategoryNode[],
+  ) => {
+    event.preventDefault()
+
+    if (
+      !dragState ||
+      dragState.parentId !== parentId ||
+      dragState.draggedId === targetId
+    ) {
+      setDragState(null)
+      setDragOverId(null)
+      return
+    }
+
+    const orderedIds = buildReorderedIds(
+      siblings,
+      dragState.draggedId,
+      targetId,
+    )
+
+    setDragState(null)
+    setDragOverId(null)
+
+    if (!orderedIds) {
+      return
+    }
+
+    setIsReordering(true)
+
+    try {
+      await reorderCategories({
+        parentId,
+        orderedIds,
+      })
+      toast.success('Порядок обновлен')
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : 'Не удалось изменить порядок категорий'
+      toast.error(message)
+    } finally {
+      setIsReordering(false)
+    }
+  }
+
   const handleSave = async () => {
     if (!editor) {
       return
@@ -203,19 +374,12 @@ export function CategoryManagerDialog({
       return
     }
 
-    const parsedOrder = Number(editor.order)
-    if (!Number.isFinite(parsedOrder)) {
-      toast.error('Порядок должен быть числом')
-      return
-    }
-
     setIsSaving(true)
 
     try {
       if (editor.mode === 'create') {
         const createdId = await createCategory({
           name: trimmedName,
-          order: parsedOrder,
           parentId: editor.parentId || null,
           isVisible: editor.isVisible,
         })
@@ -228,13 +392,11 @@ export function CategoryManagerDialog({
           mode: 'edit',
           id: createdId,
           name: trimmedName,
-          order: String(Math.trunc(parsedOrder)),
         })
       } else {
         await updateCategory({
           id: editor.id,
           name: trimmedName,
-          order: parsedOrder,
           parentId: editor.parentId || null,
           isVisible: editor.isVisible,
         })
@@ -243,7 +405,6 @@ export function CategoryManagerDialog({
         setEditor({
           ...editor,
           name: trimmedName,
-          order: String(Math.trunc(parsedOrder)),
         })
       }
     } catch (error) {
@@ -333,6 +494,11 @@ export function CategoryManagerDialog({
                           Подкатегория
                         </Button>
                       </div>
+                      <p className='text-xs text-gray-500'>
+                        {isReorderEnabled
+                          ? 'Перетащите карточки, чтобы изменить порядок.'
+                          : 'Во время поиска перетаскивание отключено.'}
+                      </p>
                     </div>
                   </div>
 
@@ -347,108 +513,200 @@ export function CategoryManagerDialog({
                           const children = getFilteredChildren(
                             parent._id.toString(),
                           )
+                          const isCollapsed =
+                            normalizedSearch.length > 0
+                              ? false
+                              : collapsedParents[parent._id.toString()] === true
+                          const isSelectedParent =
+                            editor?.mode === 'edit' && editor.id === parent._id
+                          const isDraggingParent =
+                            dragState?.draggedId === parent._id
+                          const isDragOverParent =
+                            dragOverId === parent._id &&
+                            dragState?.draggedId !== parent._id
 
                           return (
                             <div key={parent._id} className='space-y-2'>
-                              <button
-                                type='button'
-                                onClick={() => selectCategory(parent)}
+                              <div
+                                draggable={isReorderEnabled && !isReordering}
+                                onDragStart={(event) =>
+                                  handleDragStart(event, parent._id, null)
+                                }
+                                onDragOver={(event) =>
+                                  handleDragOver(event, parent._id, null)
+                                }
+                                onDrop={(event) =>
+                                  handleDrop(event, parent._id, null, parents)
+                                }
+                                onDragEnd={handleDragEnd}
                                 className={cn(
-                                  'w-full rounded-2xl border bg-white px-4 py-3 text-left transition-colors',
-                                  editor?.mode === 'edit' &&
-                                    editor.id === parent._id
+                                  'flex items-stretch gap-2 rounded-2xl border p-2 transition-colors',
+                                  isDraggingParent && 'opacity-60',
+                                  isDragOverParent &&
+                                    'border-blue-500 ring-2 ring-blue-200',
+                                  isSelectedParent
                                     ? 'border-gray-900 bg-gray-900 text-white shadow-sm'
                                     : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50',
                                 )}
                               >
-                                <div className='flex items-start justify-between gap-3'>
-                                  <div className='min-w-0'>
-                                    <div className='truncate font-medium'>
-                                      {parent.name}
-                                    </div>
-                                    <div
-                                      className={cn(
-                                        'mt-1 text-xs',
-                                        editor?.mode === 'edit' &&
-                                          editor.id === parent._id
-                                          ? 'text-gray-200'
-                                          : 'text-gray-500',
-                                      )}
-                                    >
-                                      Категория · {children.length}{' '}
-                                      {children.length === 1
-                                        ? 'подкатегория'
-                                        : children.length >= 2 &&
-                                            children.length <= 4
-                                          ? 'подкатегории'
-                                          : 'подкатегорий'}
-                                    </div>
-                                  </div>
-                                  <div className='shrink-0 space-y-1 text-right'>
-                                    <span
-                                      className={cn(
-                                        'inline-flex min-w-[2.5rem] items-center justify-center rounded-full px-2 py-1 text-xs font-semibold',
-                                        editor?.mode === 'edit' &&
-                                          editor.id === parent._id
-                                          ? 'bg-white/15 text-white'
-                                          : 'bg-gray-100 text-gray-700',
-                                      )}
-                                    >
-                                      {parent.order}
-                                    </span>
-                                    {!parent.isVisible && (
+                                <div
+                                  className={cn(
+                                    'flex w-9 shrink-0 cursor-grab items-center justify-center rounded-xl',
+                                    isSelectedParent
+                                      ? 'text-gray-200'
+                                      : 'text-gray-400',
+                                    !isReorderEnabled &&
+                                      'cursor-default opacity-50',
+                                  )}
+                                >
+                                  <GripVertical className='h-4 w-4' />
+                                </div>
+                                <button
+                                  type='button'
+                                  onClick={() => selectCategory(parent)}
+                                  className='min-w-0 flex-1 rounded-xl py-1 pr-2 text-left'
+                                >
+                                  <div className='flex items-start justify-between gap-3'>
+                                    <div className='min-w-0'>
+                                      <div className='truncate font-medium'>
+                                        {parent.name}
+                                      </div>
                                       <div
                                         className={cn(
-                                          'text-[11px]',
-                                          editor?.mode === 'edit' &&
-                                            editor.id === parent._id
+                                          'mt-1 text-xs',
+                                          isSelectedParent
                                             ? 'text-gray-200'
-                                            : 'text-amber-600',
+                                            : 'text-gray-500',
                                         )}
                                       >
-                                        Скрыта
+                                        Категория · {children.length}{' '}
+                                        {children.length === 1
+                                          ? 'подкатегория'
+                                          : children.length >= 2 &&
+                                              children.length <= 4
+                                            ? 'подкатегории'
+                                            : 'подкатегорий'}
                                       </div>
-                                    )}
+                                    </div>
+                                    <div className='shrink-0 space-y-1 text-right'>
+                                      {!parent.isVisible && (
+                                        <div
+                                          className={cn(
+                                            'text-[11px]',
+                                            isSelectedParent
+                                              ? 'text-gray-200'
+                                              : 'text-amber-600',
+                                          )}
+                                        >
+                                          Скрыта
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
-                                </div>
-                              </button>
+                                </button>
 
-                              {children.length > 0 && (
+                                {children.length > 0 && (
+                                  <button
+                                    type='button'
+                                    onClick={() => toggleParent(parent._id)}
+                                    className={cn(
+                                      'flex h-10 w-10 shrink-0 items-center justify-center self-center rounded-xl border transition-colors',
+                                      isSelectedParent
+                                        ? 'border-white/15 bg-white/10 text-white hover:bg-white/15'
+                                        : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-100',
+                                    )}
+                                    aria-label={
+                                      isCollapsed
+                                        ? `Развернуть ${parent.name}`
+                                        : `Свернуть ${parent.name}`
+                                    }
+                                    aria-expanded={!isCollapsed}
+                                  >
+                                    <ChevronDown
+                                      className={cn(
+                                        'h-4 w-4 transition-transform',
+                                        isCollapsed && '-rotate-90',
+                                      )}
+                                    />
+                                  </button>
+                                )}
+                              </div>
+
+                              {children.length > 0 && !isCollapsed && (
                                 <div className='space-y-2 pl-4'>
                                   {children.map((child) => (
-                                    <button
+                                    <div
                                       key={child._id}
-                                      type='button'
-                                      onClick={() => selectCategory(child)}
+                                      draggable={
+                                        isReorderEnabled && !isReordering
+                                      }
+                                      onDragStart={(event) =>
+                                        handleDragStart(
+                                          event,
+                                          child._id,
+                                          parent._id,
+                                        )
+                                      }
+                                      onDragOver={(event) =>
+                                        handleDragOver(
+                                          event,
+                                          child._id,
+                                          parent._id,
+                                        )
+                                      }
+                                      onDrop={(event) =>
+                                        handleDrop(
+                                          event,
+                                          child._id,
+                                          parent._id,
+                                          children,
+                                        )
+                                      }
+                                      onDragEnd={handleDragEnd}
                                       className={cn(
-                                        'w-full rounded-xl border px-3 py-2 text-left transition-colors',
+                                        'flex items-center gap-2 rounded-xl border px-2 py-2 transition-colors',
+                                        dragState?.draggedId === child._id &&
+                                          'opacity-60',
+                                        dragOverId === child._id &&
+                                          dragState?.draggedId !== child._id &&
+                                          'border-blue-500 ring-2 ring-blue-200',
                                         editor?.mode === 'edit' &&
                                           editor.id === child._id
                                           ? 'border-blue-600 bg-blue-50'
                                           : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50',
                                       )}
                                     >
-                                      <div className='flex items-center justify-between gap-3'>
-                                        <div className='min-w-0'>
-                                          <div className='truncate text-sm font-medium text-gray-900'>
-                                            {child.name}
+                                      <div
+                                        className={cn(
+                                          'flex w-9 shrink-0 cursor-grab items-center justify-center rounded-lg text-gray-400',
+                                          !isReorderEnabled &&
+                                            'cursor-default opacity-50',
+                                        )}
+                                      >
+                                        <GripVertical className='h-4 w-4' />
+                                      </div>
+                                      <button
+                                        type='button'
+                                        onClick={() => selectCategory(child)}
+                                        className='flex-1 text-left'
+                                      >
+                                        <div className='flex items-center justify-between gap-3'>
+                                          <div className='min-w-0'>
+                                            <div className='truncate text-sm font-medium text-gray-900'>
+                                              {child.name}
+                                            </div>
+                                            <div className='mt-1 text-xs text-gray-500'>
+                                              Подкатегория
+                                            </div>
                                           </div>
-                                          <div className='mt-1 text-xs text-gray-500'>
-                                            Подкатегория
-                                          </div>
-                                        </div>
-                                        <div className='shrink-0 text-right'>
-                                          <span className='inline-flex min-w-[2rem] items-center justify-center rounded-full bg-gray-100 px-2 py-1 text-[11px] font-semibold text-gray-700'>
-                                            {child.order}
-                                          </span>
                                           {!child.isVisible && (
-                                            <div className='mt-1 text-[11px] text-amber-600'>
+                                            <div className='shrink-0 text-[11px] text-amber-600'>
                                               Скрыта
                                             </div>
                                           )}
                                         </div>
-                                      </div>
-                                    </button>
+                                      </button>
+                                    </div>
                                   ))}
                                 </div>
                               )}
@@ -476,8 +734,8 @@ export function CategoryManagerDialog({
                               : 'Редактирование категории'}
                         </h3>
                         <p className='mt-1 text-sm text-gray-500'>
-                          Измените название, порядок и видимость. Для
-                          подкатегорий можно выбрать родительскую категорию.
+                          Измените название и видимость. Для подкатегорий можно
+                          выбрать родительскую категорию.
                         </p>
                       </div>
                       <span className='rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600'>
@@ -500,23 +758,6 @@ export function CategoryManagerDialog({
                               )
                             }
                             placeholder='Например: Газовые настенные'
-                          />
-                        </div>
-
-                        <div className='space-y-2'>
-                          <Label htmlFor='category-order'>Порядок</Label>
-                          <Input
-                            id='category-order'
-                            type='number'
-                            value={editor.order}
-                            onChange={(event) =>
-                              setEditor((current) =>
-                                current
-                                  ? { ...current, order: event.target.value }
-                                  : current,
-                              )
-                            }
-                            placeholder='0'
                           />
                         </div>
 

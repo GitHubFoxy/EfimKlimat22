@@ -193,6 +193,89 @@ async function resolveCategoryParent(
   return parent
 }
 
+function sortCategoriesForOrder(a: Doc<'categories'>, b: Doc<'categories'>) {
+  const orderDiff = a.order - b.order
+  if (orderDiff !== 0) {
+    return orderDiff
+  }
+
+  const nameDiff = a.name.localeCompare(b.name, 'ru')
+  if (nameDiff !== 0) {
+    return nameDiff
+  }
+
+  return a._creationTime - b._creationTime
+}
+
+function getCategoryInsertIndex(order: number, siblingCount: number) {
+  return Math.max(0, Math.min(Math.trunc(order) - 1, siblingCount))
+}
+
+async function listCategorySiblings(ctx: any, parentId?: Id<'categories'>) {
+  const categories = (await ctx.db
+    .query('categories')
+    .collect()) as Doc<'categories'>[]
+
+  return categories
+    .filter((category) => category.parentId === parentId)
+    .sort(sortCategoriesForOrder)
+}
+
+async function assignSequentialCategoryOrders(
+  ctx: any,
+  categories: Doc<'categories'>[],
+) {
+  await Promise.all(
+    categories.map((category, index) => {
+      const nextOrder = index + 1
+
+      if (category.order === nextOrder) {
+        return Promise.resolve()
+      }
+
+      return ctx.db.patch(category._id, { order: nextOrder })
+    }),
+  )
+}
+
+async function normalizeCategorySiblingOrders(
+  ctx: any,
+  parentId?: Id<'categories'>,
+) {
+  const siblings = await listCategorySiblings(ctx, parentId)
+  await assignSequentialCategoryOrders(ctx, siblings)
+}
+
+async function getNextCategoryOrder(ctx: any, parentId?: Id<'categories'>) {
+  const siblings = await listCategorySiblings(ctx, parentId)
+  return siblings.length + 1
+}
+
+async function moveCategoryToOrder(
+  ctx: any,
+  parentId: Id<'categories'> | undefined,
+  categoryId: Id<'categories'>,
+  order: number,
+) {
+  const siblings = await listCategorySiblings(ctx, parentId)
+  const currentIndex = siblings.findIndex(
+    (category) => category._id === categoryId,
+  )
+
+  if (currentIndex === -1) {
+    throw new Error('Категория не найдена в своей группе')
+  }
+
+  const [movingCategory] = siblings.splice(currentIndex, 1)
+  siblings.splice(
+    getCategoryInsertIndex(order, siblings.length),
+    0,
+    movingCategory,
+  )
+
+  await assignSequentialCategoryOrders(ctx, siblings)
+}
+
 // List orders for managers by status, newest first by updatedAt/_creationTime
 export const list_orders_by_status = query({
   args: {
@@ -1190,14 +1273,11 @@ export const update_category_order = mutation({
   },
   handler: async (ctx, { id, order }) => {
     await requireRole(ctx, ['manager', 'admin'])
-    const normalizedOrder = Math.trunc(order)
-    if (!Number.isFinite(normalizedOrder) || normalizedOrder < 0) {
-      throw new Error('Order must be a non-negative number')
-    }
-    const existing = await ctx.db.get(id)
+    const normalizedOrder = normalizeCategoryOrder(order)
+    const existing = (await ctx.db.get(id)) as Doc<'categories'> | null
     if (!existing) throw new Error('Category not found')
 
-    await ctx.db.patch(id, { order: normalizedOrder })
+    await moveCategoryToOrder(ctx, existing.parentId, id, normalizedOrder)
     return { status: 200 }
   },
 })
@@ -1205,7 +1285,7 @@ export const update_category_order = mutation({
 export const create_category = mutation({
   args: {
     name: v.string(),
-    order: v.number(),
+    order: v.optional(v.number()),
     parentId: v.optional(v.union(v.id('categories'), v.null())),
     isVisible: v.optional(v.boolean()),
   },
@@ -1214,11 +1294,14 @@ export const create_category = mutation({
 
     const trimmedName = name.trim()
     validateName(trimmedName, 'Название категории')
-    const normalizedOrder = normalizeCategoryOrder(order)
     const parent = await resolveCategoryParent(ctx, parentId)
+    const normalizedOrder =
+      order === undefined
+        ? await getNextCategoryOrder(ctx, parent?._id)
+        : normalizeCategoryOrder(order)
     const slug = await buildUniqueCategorySlug(ctx, trimmedName)
 
-    return await ctx.db.insert('categories', {
+    const createdId = await ctx.db.insert('categories', {
       name: trimmedName,
       slug,
       order: normalizedOrder,
@@ -1226,6 +1309,10 @@ export const create_category = mutation({
       isVisible: isVisible ?? true,
       ...(parent ? { parentId: parent._id } : {}),
     })
+
+    await moveCategoryToOrder(ctx, parent?._id, createdId, normalizedOrder)
+
+    return createdId
   },
 })
 
@@ -1233,7 +1320,7 @@ export const update_category = mutation({
   args: {
     id: v.id('categories'),
     name: v.string(),
-    order: v.number(),
+    order: v.optional(v.number()),
     parentId: v.optional(v.union(v.id('categories'), v.null())),
     isVisible: v.boolean(),
   },
@@ -1247,7 +1334,7 @@ export const update_category = mutation({
 
     const trimmedName = name.trim()
     validateName(trimmedName, 'Название категории')
-    const normalizedOrder = normalizeCategoryOrder(order)
+    const previousParentId = existing.parentId
     const nextParentId = parentId === null ? undefined : parentId
 
     if (nextParentId === id) {
@@ -1265,6 +1352,13 @@ export const update_category = mutation({
         'Нельзя сделать подкатегорией категорию, у которой есть подкатегории',
       )
     }
+
+    const normalizedOrder =
+      order === undefined
+        ? previousParentId === nextParentId
+          ? existing.order
+          : await getNextCategoryOrder(ctx, nextParentId)
+        : normalizeCategoryOrder(order)
 
     const slug =
       existing.name.trim() === trimmedName
@@ -1288,7 +1382,50 @@ export const update_category = mutation({
     }
 
     await ctx.db.replace(id, next)
+    if (previousParentId !== nextParentId) {
+      await normalizeCategorySiblingOrders(ctx, previousParentId)
+    }
+    await moveCategoryToOrder(ctx, nextParentId, id, normalizedOrder)
+
     return id
+  },
+})
+
+export const reorder_categories = mutation({
+  args: {
+    parentId: v.optional(v.union(v.id('categories'), v.null())),
+    orderedIds: v.array(v.id('categories')),
+  },
+  handler: async (ctx, { parentId, orderedIds }) => {
+    await requireRole(ctx, ['manager', 'admin'])
+
+    const normalizedParentId = parentId ?? undefined
+    const siblings = await listCategorySiblings(ctx, normalizedParentId)
+
+    if (siblings.length !== orderedIds.length) {
+      throw new Error('Неполный список категорий для изменения порядка')
+    }
+
+    const uniqueIds = new Set(orderedIds.map((id) => id.toString()))
+    if (uniqueIds.size !== orderedIds.length) {
+      throw new Error('Список категорий содержит дубликаты')
+    }
+
+    const siblingsById = new Map(
+      siblings.map((category) => [category._id.toString(), category] as const),
+    )
+    const orderedCategories = orderedIds.map((id) => {
+      const category = siblingsById.get(id.toString())
+      if (!category) {
+        throw new Error('Найдена категория из другой группы')
+      }
+
+      return category
+    })
+
+    await assignSequentialCategoryOrders(ctx, orderedCategories)
+
+    return { status: 200 }
   },
 })
 
@@ -1334,6 +1471,8 @@ export const delete_category = mutation({
     }
 
     await ctx.db.delete(id)
+    await normalizeCategorySiblingOrders(ctx, existing.parentId)
+
     return { status: 200 }
   },
 })
