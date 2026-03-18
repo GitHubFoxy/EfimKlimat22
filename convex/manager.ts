@@ -143,6 +143,19 @@ function slugifyCategoryName(name: string) {
   return baseSlug || 'category'
 }
 
+function slugifyBrandName(name: string) {
+  const baseSlug = name
+    .trim()
+    .toLowerCase()
+    .replace(/ё/g, 'e')
+    .replace(/\s+/g, '-')
+    .replace(/[^a-zа-я0-9-]/gi, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+
+  return baseSlug || 'brand'
+}
+
 async function buildUniqueCategorySlug(
   ctx: any,
   name: string,
@@ -160,6 +173,34 @@ async function buildUniqueCategorySlug(
 
     const hasConflict = existing.some(
       (category: Doc<'categories'>) => category._id !== excludeId,
+    )
+
+    if (!hasConflict) {
+      return slug
+    }
+
+    slug = `${baseSlug}-${counter}`
+    counter += 1
+  }
+}
+
+async function buildUniqueBrandSlug(
+  ctx: any,
+  name: string,
+  excludeId?: Id<'brands'>,
+) {
+  const baseSlug = slugifyBrandName(name)
+  let slug = baseSlug
+  let counter = 2
+
+  while (true) {
+    const existing = await ctx.db
+      .query('brands')
+      .withIndex('by_slug', (q: any) => q.eq('slug', slug))
+      .collect()
+
+    const hasConflict = existing.some(
+      (brand: Doc<'brands'>) => brand._id !== excludeId,
     )
 
     if (!hasConflict) {
@@ -1477,10 +1518,127 @@ export const delete_category = mutation({
   },
 })
 
+export const create_brand = mutation({
+  args: {
+    name: v.string(),
+    country: v.optional(v.union(v.string(), v.null())),
+    status: v.optional(v.union(v.literal('active'), v.literal('hidden'))),
+  },
+  handler: async (ctx, { name, country, status }) => {
+    await requireRole(ctx, ['manager', 'admin'])
+
+    const trimmedName = name.trim()
+    validateName(trimmedName, 'Название бренда')
+    const slug = await buildUniqueBrandSlug(ctx, trimmedName)
+    const normalizedCountry = normalizeOptionalString(country)
+
+    return await ctx.db.insert('brands', {
+      name: trimmedName,
+      slug,
+      status: status ?? 'active',
+      ...(normalizedCountry ? { country: normalizedCountry } : {}),
+    })
+  },
+})
+
+export const update_brand = mutation({
+  args: {
+    id: v.id('brands'),
+    name: v.string(),
+    country: v.optional(v.union(v.string(), v.null())),
+    status: v.union(v.literal('active'), v.literal('hidden')),
+  },
+  handler: async (ctx, { id, name, country, status }) => {
+    await requireRole(ctx, ['manager', 'admin'])
+
+    const existing = (await ctx.db.get(id)) as Doc<'brands'> | null
+    if (!existing) {
+      throw new Error('Бренд не найден')
+    }
+
+    const trimmedName = name.trim()
+    validateName(trimmedName, 'Название бренда')
+    const normalizedCountry = normalizeOptionalString(country)
+    const slug =
+      existing.name.trim() === trimmedName
+        ? existing.slug
+        : await buildUniqueBrandSlug(ctx, trimmedName, id)
+
+    const { _id, _creationTime, ...existingFields } = existing
+    const next: Doc<'brands'> | any = {
+      ...existingFields,
+      name: trimmedName,
+      slug,
+      status,
+    }
+
+    if (normalizedCountry) {
+      next.country = normalizedCountry
+    } else {
+      delete next.country
+    }
+
+    await ctx.db.replace(id, next)
+    return id
+  },
+})
+
+export const delete_brand = mutation({
+  args: {
+    id: v.id('brands'),
+  },
+  handler: async (ctx, { id }) => {
+    await requireRole(ctx, ['manager', 'admin'])
+
+    const existing = (await ctx.db.get(id)) as Doc<'brands'> | null
+    if (!existing) {
+      throw new Error('Бренд не найден')
+    }
+
+    const attachedItem = await ctx.db
+      .query('items')
+      .withIndex('by_brand_no_status', (q: any) => q.eq('brandId', id))
+      .first()
+
+    if (attachedItem) {
+      throw new Error('Нельзя удалить бренд, к которому привязаны товары')
+    }
+
+    const attachedCollectionGroup = (await ctx.db
+      .query('collectionGroups')
+      .collect()) as Doc<'collectionGroups'>[]
+
+    if (attachedCollectionGroup.some((group) => group.brandId === id)) {
+      throw new Error(
+        'Нельзя удалить бренд, пока для него существуют группы вариантов',
+      )
+    }
+
+    await ctx.db.delete(id)
+    return { status: 200 }
+  },
+})
+
 export const list_brands_all = query({
   handler: async (ctx) => {
     await requireRole(ctx, ['manager', 'admin'])
-    return await ctx.db.query('brands').collect()
+    return (await ctx.db.query('brands').collect()).sort((a, b) => {
+      const sortOrderA =
+        typeof a.sortOrder === 'number' && Number.isFinite(a.sortOrder)
+          ? a.sortOrder
+          : Number.MAX_SAFE_INTEGER
+      const sortOrderB =
+        typeof b.sortOrder === 'number' && Number.isFinite(b.sortOrder)
+          ? b.sortOrder
+          : Number.MAX_SAFE_INTEGER
+
+      const sortDiff = sortOrderA - sortOrderB
+      if (sortDiff !== 0) {
+        return sortDiff
+      }
+
+      return a.name.localeCompare(b.name, 'ru')
+    })
   },
 })
 

@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select'
 import { api } from '@/convex/_generated/api'
 import type { Id } from '@/convex/_generated/dataModel'
+import { BrandManagerDialog } from './brand-manager-dialog'
 import { CategoryManagerDialog } from './category-manager-dialog'
 
 type ItemStatus = 'active' | 'draft' | 'preorder'
@@ -43,6 +44,7 @@ export function ItemsFilterBar({
   onStatusChange,
   onClearFilters,
 }: ItemsFilterBarProps) {
+  const [isBrandManagerOpen, setIsBrandManagerOpen] = useState(false)
   const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false)
   const brands = useQuery(api.manager.list_brands_all)
   const catHierarchy = useQuery(api.manager.list_categories_hierarchy)
@@ -102,22 +104,33 @@ export function ItemsFilterBar({
       <div className='mb-4 flex flex-wrap items-center gap-3 rounded-lg bg-gray-50 p-4'>
         <span className='text-sm font-medium text-gray-700'>Фильтры:</span>
 
-        <Select
-          value={brandId ?? '__all__'}
-          onValueChange={(value) => onBrandChange(value as string)}
-        >
-          <SelectTrigger className='w-[180px] bg-white'>
-            <SelectValue placeholder='Все бренды' />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value='__all__'>Все бренды</SelectItem>
-            {brands?.map((brand) => (
-              <SelectItem key={brand._id} value={brand._id}>
-                {brand.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className='flex items-center gap-2'>
+          <Select
+            value={brandId ?? '__all__'}
+            onValueChange={(value) => onBrandChange(value as string)}
+          >
+            <SelectTrigger className='w-[180px] bg-white'>
+              <SelectValue placeholder='Все бренды' />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value='__all__'>Все бренды</SelectItem>
+              {brands?.map((brand) => (
+                <SelectItem key={brand._id} value={brand._id}>
+                  {brand.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Button
+            variant='ghost'
+            size='icon'
+            onClick={() => setIsBrandManagerOpen(true)}
+            title='Управление брендами'
+          >
+            <Settings className='h-4 w-4' />
+          </Button>
+        </div>
 
         <div className='flex items-center gap-2'>
           <Select
@@ -203,6 +216,10 @@ export function ItemsFilterBar({
         )}
       </div>
 
+      <BrandManagerDialog
+        open={isBrandManagerOpen}
+        onOpenChange={setIsBrandManagerOpen}
+      />
       <CategoryManagerDialog
         open={isCategoryManagerOpen}
         onOpenChange={setIsCategoryManagerOpen}
