@@ -2,6 +2,7 @@
 
 import { ColumnDef } from '@tanstack/react-table'
 import { MoreHorizontal } from 'lucide-react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import {
@@ -107,6 +108,7 @@ export interface Item {
   brand: string // This can be brand name or ID
   quantity: number
   price: number
+  imagesUrl?: string[]
   slug?: string
   sku?: string
 }
@@ -125,23 +127,44 @@ export const getItemColumns = (handlers?: {
       cell: ({ row }) => {
         const name = row.getValue('name') as string
         const item = row.original as Item
+        const previewSrc = Array.isArray(item.imagesUrl)
+          ? item.imagesUrl[0]
+          : undefined
+
         return (
-          <div>
-            {item.slug ? (
-              <Link
-                href={`/catalog/${item.slug}`}
-                target='_blank'
-                rel='noopener noreferrer'
-                className='font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 rounded-sm'
-              >
-                {name}
-              </Link>
+          <div className='flex items-center gap-3'>
+            {previewSrc ? (
+              <Image
+                src={previewSrc}
+                alt={name}
+                width={48}
+                height={48}
+                className='h-12 w-12 shrink-0 rounded-md border border-gray-200 object-cover bg-gray-50'
+              />
             ) : (
-              <div className='font-medium'>{name}</div>
+              <div
+                aria-hidden='true'
+                className='h-12 w-12 shrink-0 rounded-md border border-dashed border-gray-200 bg-gray-50'
+              />
             )}
-            {item.sku && (
-              <div className='text-xs text-gray-500'>{item.sku}</div>
-            )}
+
+            <div className='min-w-0'>
+              {item.slug ? (
+                <Link
+                  href={`/catalog/${item.slug}`}
+                  target='_blank'
+                  rel='noopener noreferrer'
+                  className='block font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 rounded-sm line-clamp-2'
+                >
+                  {name}
+                </Link>
+              ) : (
+                <div className='font-medium line-clamp-2'>{name}</div>
+              )}
+              {item.sku && (
+                <div className='text-xs text-gray-500'>{item.sku}</div>
+              )}
+            </div>
           </div>
         )
       },
