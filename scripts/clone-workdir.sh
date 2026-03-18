@@ -32,4 +32,4 @@ if [[ ! -f "$target_dir/.env.local" ]]; then
 fi
 
 cd "$target_dir"
-bun install
+pnpm install

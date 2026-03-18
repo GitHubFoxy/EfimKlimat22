@@ -120,15 +120,15 @@ This project also reflects cross-functional ownership beyond coding:
 ## 8) Local Development
 
 ## Prerequisites
-- Bun (or compatible Node runtime setup)
+- Node.js and pnpm
 - Convex CLI configured
 - `.env.local` configured for your environment
 
 ## Run locally
 
 ```bash
-bun install
-bun run dev
+pnpm install
+pnpm run dev
 ```
 
 This starts frontend + backend dev processes.
@@ -136,8 +136,8 @@ This starts frontend + backend dev processes.
 ## Quality checks
 
 ```bash
-bun run lint
-bun run typecheck
+pnpm run lint
+pnpm run typecheck
 ```
 
 ---
