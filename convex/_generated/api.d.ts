@@ -24,6 +24,7 @@ import type * as main from "../main.js";
 import type * as manager from "../manager.js";
 import type * as migrations from "../migrations.js";
 import type * as migrations_backfill_collection_field from "../migrations/backfill_collection_field.js";
+import type * as migrations_backfill_unique_item_slugs from "../migrations/backfill_unique_item_slugs.js";
 import type * as migrations_convert_power_to_segments from "../migrations/convert_power_to_segments.js";
 import type * as migrations_init_collection_groups from "../migrations/init_collection_groups.js";
 import type * as orders from "../orders.js";
@@ -54,6 +55,7 @@ declare const fullApi: ApiFromModules<{
   manager: typeof manager;
   migrations: typeof migrations;
   "migrations/backfill_collection_field": typeof migrations_backfill_collection_field;
+  "migrations/backfill_unique_item_slugs": typeof migrations_backfill_unique_item_slugs;
   "migrations/convert_power_to_segments": typeof migrations_convert_power_to_segments;
   "migrations/init_collection_groups": typeof migrations_init_collection_groups;
   orders: typeof orders;

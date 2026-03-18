@@ -156,6 +156,19 @@ function slugifyBrandName(name: string) {
   return baseSlug || 'brand'
 }
 
+function slugifyItemName(name: string) {
+  const baseSlug = name
+    .trim()
+    .toLowerCase()
+    .replace(/ё/g, 'e')
+    .replace(/\s+/g, '-')
+    .replace(/[^a-zа-я0-9-]/gi, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+
+  return baseSlug || 'item'
+}
+
 async function buildUniqueCategorySlug(
   ctx: any,
   name: string,
@@ -201,6 +214,34 @@ async function buildUniqueBrandSlug(
 
     const hasConflict = existing.some(
       (brand: Doc<'brands'>) => brand._id !== excludeId,
+    )
+
+    if (!hasConflict) {
+      return slug
+    }
+
+    slug = `${baseSlug}-${counter}`
+    counter += 1
+  }
+}
+
+async function buildUniqueItemSlug(
+  ctx: any,
+  name: string,
+  excludeId?: Id<'items'>,
+) {
+  const baseSlug = slugifyItemName(name)
+  let slug = baseSlug
+  let counter = 2
+
+  while (true) {
+    const existing = await ctx.db
+      .query('items')
+      .withIndex('by_slug', (q: any) => q.eq('slug', slug))
+      .collect()
+
+    const hasConflict = existing.some(
+      (item: Doc<'items'>) => item._id !== excludeId,
     )
 
     if (!hasConflict) {
@@ -452,6 +493,87 @@ async function getDescendantCategoryIds(
   return Array.from(descendants)
 }
 
+type ManagerItemSortBy =
+  | 'name'
+  | 'price'
+  | 'quantity'
+  | 'ordersCount'
+  | 'createdAt'
+type ManagerItemSortOrder = 'asc' | 'desc'
+
+function parsePaginationCursor(cursor: string | null | undefined) {
+  if (cursor === null || cursor === undefined) {
+    return 0
+  }
+
+  const offset = Number(cursor)
+  if (!Number.isInteger(offset) || offset < 0) {
+    throw new Error('Invalid pagination cursor')
+  }
+
+  return offset
+}
+
+function compareManagerItems(
+  a: Doc<'items'>,
+  b: Doc<'items'>,
+  sortBy: ManagerItemSortBy,
+  sortOrder: ManagerItemSortOrder,
+) {
+  let primaryDiff = 0
+
+  switch (sortBy) {
+    case 'name':
+      primaryDiff = a.name.localeCompare(b.name, 'ru')
+      break
+    case 'price':
+      primaryDiff = a.price - b.price
+      break
+    case 'quantity':
+      primaryDiff = a.quantity - b.quantity
+      break
+    case 'ordersCount':
+      primaryDiff = a.ordersCount - b.ordersCount
+      break
+    case 'createdAt':
+      primaryDiff = a._creationTime - b._creationTime
+      break
+  }
+
+  if (primaryDiff !== 0) {
+    return sortOrder === 'asc' ? primaryDiff : -primaryDiff
+  }
+
+  const nameDiff = a.name.localeCompare(b.name, 'ru')
+  if (nameDiff !== 0) {
+    return nameDiff
+  }
+
+  const createdDiff = a._creationTime - b._creationTime
+  if (createdDiff !== 0) {
+    return createdDiff
+  }
+
+  return a._id.localeCompare(b._id)
+}
+
+async function enrichItemsWithDetails(ctx: any, items: Doc<'items'>[]) {
+  return await Promise.all(
+    items.map(async (item) => {
+      const [brand, category] = await Promise.all([
+        item.brandId ? ctx.db.get(item.brandId) : null,
+        item.categoryId ? ctx.db.get(item.categoryId) : null,
+      ])
+
+      return {
+        ...item,
+        brandName: (brand as any)?.name || 'Неизвестно',
+        categoryName: (category as any)?.name || 'Без категории',
+      }
+    }),
+  )
+}
+
 // List all items for inventory management
 export const list_items = query({
   args: {
@@ -485,103 +607,45 @@ export const list_items = query({
     },
   ) => {
     await requireRole(ctx, ['manager', 'admin'])
-    let itemsQuery
-    const hasCategoryFilter = Boolean(categoryId)
-
-    if (hasCategoryFilter) {
-      const categoryIds = await getDescendantCategoryIds(
-        ctx,
-        categoryId as Id<'categories'>,
-      )
-      const items = await ctx.db
-        .query('items')
-        .filter((q) => {
-          const conditions = [q.neq(q.field('status'), 'archived')]
-          const categoryConditions = categoryIds.map((catId) =>
-            q.eq(q.field('categoryId'), catId),
-          )
-
-          if (categoryConditions.length === 1) {
-            conditions.push(categoryConditions[0])
-          } else if (categoryConditions.length > 1) {
-            conditions.push(q.or(...categoryConditions))
-          }
-
-          if (brandId) {
-            conditions.push(q.eq(q.field('brandId'), brandId))
-          }
-
-          if (status) {
-            conditions.push(q.eq(q.field('status'), status))
-          }
-
-          return q.and(...conditions)
-        })
-        .order(sortOrder === 'asc' ? 'asc' : 'desc')
-        .paginate(paginationOpts)
-
-      itemsQuery = items
-    } else {
-      // Choose index based on filters - prioritize composite indexes for better performance
-      if (brandId && status) {
-        itemsQuery = ctx.db
-          .query('items')
-          .withIndex('by_brand_status', (q) =>
-            q.eq('status', status).eq('brandId', brandId),
-          )
-      } else if (brandId) {
-        itemsQuery = ctx.db
-          .query('items')
-          .withIndex('by_brand_no_status', (q) => q.eq('brandId', brandId))
-          .filter((q) => q.neq(q.field('status'), 'archived'))
-      } else if (status) {
-        itemsQuery = ctx.db
-          .query('items')
-          .withIndex('by_status', (q) => q.eq('status', status))
-      } else {
-        itemsQuery = ctx.db
-          .query('items')
-          .filter((q) => q.neq(q.field('status'), 'archived'))
-      }
-    }
-
-    const items =
-      'page' in itemsQuery
-        ? itemsQuery
-        : await (sortOrder === 'asc'
-            ? itemsQuery.order('asc')
-            : itemsQuery.order('desc')
-          ).paginate(paginationOpts)
-
-    // Enrich with brand and category names
-    const itemsWithDetails = await Promise.all(
-      items.page.map(async (item: any) => {
-        const [brand, category] = await Promise.all([
-          ctx.db.get(item.brandId),
-          ctx.db.get(item.categoryId),
-        ])
-        return {
-          ...item,
-          brandName: (brand as any)?.name || 'Неизвестно',
-          categoryName: (category as any)?.name || 'Без категории',
+    const categoryIds = categoryId
+      ? new Set(
+          await getDescendantCategoryIds(ctx, categoryId as Id<'categories'>),
+        )
+      : null
+    const allItems = (await ctx.db.query('items').collect()) as Doc<'items'>[]
+    const filteredItems = allItems.filter((item) => {
+      if (status) {
+        if (item.status !== status) {
+          return false
         }
-      }),
-    )
+      } else if (item.status === 'archived') {
+        return false
+      }
 
-    let page = itemsWithDetails
-    if (sortBy !== 'createdAt') {
-      page = [...itemsWithDetails].sort((a, b) => {
-        const aVal = a[sortBy]
-        const bVal = b[sortBy]
-        if (aVal === bVal) return 0
-        const comparison = aVal < bVal ? -1 : 1
-        return sortOrder === 'asc' ? comparison : -comparison
-      })
-    }
+      if (brandId && item.brandId !== brandId) {
+        return false
+      }
+
+      if (categoryIds) {
+        if (!item.categoryId || !categoryIds.has(item.categoryId)) {
+          return false
+        }
+      }
+
+      return true
+    })
+    const sortedItems = [...filteredItems].sort((a, b) =>
+      compareManagerItems(a, b, sortBy, sortOrder),
+    )
+    const startIndex = parsePaginationCursor(paginationOpts.cursor)
+    const endIndex = startIndex + paginationOpts.numItems
+    const pageItems = sortedItems.slice(startIndex, endIndex)
+    const page = await enrichItemsWithDetails(ctx, pageItems)
 
     return {
-      ...items,
       page,
+      isDone: endIndex >= sortedItems.length,
+      continueCursor: endIndex >= sortedItems.length ? null : String(endIndex),
     }
   },
 })
@@ -695,34 +759,15 @@ export const search_items = query({
 
       return true
     })
-
-    let sortedResults = filteredResults
-    if (sortBy !== 'createdAt') {
-      sortedResults = [...filteredResults].sort((a, b) => {
-        const aVal = a[sortBy]
-        const bVal = b[sortBy]
-        if (aVal === bVal) return 0
-        const comparison = aVal < bVal ? -1 : 1
-        return sortOrder === 'asc' ? comparison : -comparison
-      })
-    }
-
-    const startIndex = paginationOpts.cursor ? Number(paginationOpts.cursor) : 0
+    const sortedResults = [...filteredResults].sort((a, b) =>
+      compareManagerItems(a, b, sortBy, sortOrder),
+    )
+    const startIndex = parsePaginationCursor(paginationOpts.cursor)
     const endIndex = startIndex + paginationOpts.numItems
     const pagedResults = sortedResults.slice(startIndex, endIndex)
-
-    const itemsWithDetails = await Promise.all(
-      pagedResults.map(async (item) => {
-        const [brand, category] = await Promise.all([
-          item.brandId ? ctx.db.get(item.brandId) : null,
-          item.categoryId ? ctx.db.get(item.categoryId) : null,
-        ])
-        return {
-          ...item,
-          brandName: (brand as any)?.name || 'Неизвестно',
-          categoryName: (category as any)?.name || 'Без категории',
-        }
-      }),
+    const itemsWithDetails = await enrichItemsWithDetails(
+      ctx,
+      pagedResults as Doc<'items'>[],
     )
 
     return {
@@ -1027,10 +1072,7 @@ export const create_item = mutation({
     }
     validateCollection(args.collection)
 
-    const slug = args.name
-      .toLowerCase()
-      .replace(/ /g, '-')
-      .replace(/[^\w-]+/g, '')
+    const slug = await buildUniqueItemSlug(ctx, args.name)
 
     const normalizedSpecifications = normalizeSpecifications(
       args.specifications,
@@ -1160,10 +1202,10 @@ export const update_item = mutation({
 
     if (args.name !== undefined) {
       next.name = args.name
-      next.slug = args.name
-        .toLowerCase()
-        .replace(/ /g, '-')
-        .replace(/[^\w-]+/g, '')
+      next.slug =
+        args.name.trim() === existing.name.trim()
+          ? existing.slug
+          : await buildUniqueItemSlug(ctx, args.name, id)
     }
     if (args.sku !== undefined) next.sku = args.sku
     if (args.description !== undefined) next.description = args.description
