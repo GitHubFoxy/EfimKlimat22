@@ -2,6 +2,7 @@
 
 import { ColumnDef } from '@tanstack/react-table'
 import { MoreHorizontal } from 'lucide-react'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -106,6 +107,8 @@ export interface Item {
   brand: string // This can be brand name or ID
   quantity: number
   price: number
+  slug?: string
+  sku?: string
 }
 
 // Provide a factory to create item columns so parent components can pass handlers
@@ -121,11 +124,24 @@ export const getItemColumns = (handlers?: {
       header: 'Товар',
       cell: ({ row }) => {
         const name = row.getValue('name') as string
-        const sku = row.original as any
+        const item = row.original as Item
         return (
           <div>
-            <div className='font-medium'>{name}</div>
-            {sku.sku && <div className='text-xs text-gray-500'>{sku.sku}</div>}
+            {item.slug ? (
+              <Link
+                href={`/catalog/${item.slug}`}
+                target='_blank'
+                rel='noopener noreferrer'
+                className='font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 rounded-sm'
+              >
+                {name}
+              </Link>
+            ) : (
+              <div className='font-medium'>{name}</div>
+            )}
+            {item.sku && (
+              <div className='text-xs text-gray-500'>{item.sku}</div>
+            )}
           </div>
         )
       },
