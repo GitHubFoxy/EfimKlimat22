@@ -52,9 +52,6 @@ export function ItemsFilterBar({
   onStatusChange,
   onClearFilters,
 }: ItemsFilterBarProps) {
-  const [parentCategoryId, setParentCategoryId] = useState<
-    Id<'categories'> | undefined
-  >(undefined)
   const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false)
   const [orderDrafts, setOrderDrafts] = useState<
     Record<string, { order: number }>
@@ -75,9 +72,28 @@ export function ItemsFilterBar({
 
   const parents = catHierarchy?.parents || []
   const childrenMap = catHierarchy?.childrenMap || {}
-  const currentSubcategories = parentCategoryId
-    ? childrenMap[parentCategoryId.toString()] || []
+  const selectedParentCategoryId = useMemo(() => {
+    if (!categoryId) return undefined
+
+    if (parents.some((parent) => parent._id === categoryId)) {
+      return categoryId
+    }
+
+    return parents.find((parent) =>
+      (childrenMap[parent._id.toString()] || []).some(
+        (child) => child._id === categoryId,
+      ),
+    )?._id
+  }, [categoryId, parents, childrenMap])
+
+  const currentSubcategories = selectedParentCategoryId
+    ? childrenMap[selectedParentCategoryId.toString()] || []
     : []
+  const selectedSubcategoryId =
+    categoryId &&
+    currentSubcategories.some((subcategory) => subcategory._id === categoryId)
+      ? categoryId
+      : '__all__'
 
   // Filter parents and children based on search
   const filteredParents = useMemo(() => {
@@ -125,16 +141,19 @@ export function ItemsFilterBar({
   // When parent category changes, reset subcategory
   const handleParentCategoryChange = (parentId: string) => {
     if (parentId === '__all__') {
-      setParentCategoryId(undefined)
       onCategoryChange('__all__')
     } else {
-      setParentCategoryId(parentId as Id<'categories'>)
-      onCategoryChange('__all__')
+      onCategoryChange(parentId)
     }
   }
 
   // When subcategory changes
   const handleSubcategoryChange = (subcatId: string) => {
+    if (subcatId === '__all__') {
+      onCategoryChange(selectedParentCategoryId ?? '__all__')
+      return
+    }
+
     onCategoryChange(subcatId)
   }
 
@@ -241,7 +260,7 @@ export function ItemsFilterBar({
       {/* Parent Category Filter */}
       <div className='flex items-center gap-2'>
         <Select
-          value={parentCategoryId ?? '__all__'}
+          value={selectedParentCategoryId ?? '__all__'}
           onValueChange={(value) => handleParentCategoryChange(value as string)}
         >
           <SelectTrigger className='w-[200px] bg-white'>
@@ -267,9 +286,9 @@ export function ItemsFilterBar({
       </div>
 
       {/* Subcategory Filter */}
-      {parentCategoryId && (
+      {selectedParentCategoryId && (
         <Select
-          value={categoryId ?? '__all__'}
+          value={selectedSubcategoryId}
           onValueChange={(value) => handleSubcategoryChange(value as string)}
         >
           <SelectTrigger className='w-[200px] bg-white'>
