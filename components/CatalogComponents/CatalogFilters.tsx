@@ -34,9 +34,6 @@ interface CatalogFiltersProps {
   priceSort: 'asc' | 'desc' | null
   onPriceSortChange: (sort: 'asc' | 'desc' | null) => void
 
-  variantSort?: 'asc' | 'desc' | null
-  onVariantSortChange?: (sort: 'asc' | 'desc' | null) => void
-
   onClearAll?: () => void
 }
 
@@ -54,8 +51,6 @@ export default function CatalogFilters({
   onBrandChange,
   priceSort,
   onPriceSortChange,
-  variantSort,
-  onVariantSortChange,
   onClearAll,
 }: CatalogFiltersProps) {
   const filters = ['Хиты продаж', 'Новинки', 'Со скидкой'] as const
@@ -65,7 +60,6 @@ export default function CatalogFilters({
     selectedSubcategory ||
     selectedBrand ||
     priceSort ||
-    variantSort ||
     selectedFilter !== 'Хиты продаж'
 
   const clearAll = () => {
@@ -76,7 +70,6 @@ export default function CatalogFilters({
       onSubcategoryChange(null)
       onBrandChange(null)
       onPriceSortChange(null)
-      onVariantSortChange?.(null)
       onFilterChange('Хиты продаж')
     }
   }
@@ -176,7 +169,7 @@ export default function CatalogFilters({
           <Label className='text-xs font-medium text-muted-foreground'>
             Сортировка
           </Label>
-          <div className='grid grid-cols-2 gap-2'>
+          <div className='grid grid-cols-1 gap-2'>
             <Select
               key={`price-${priceSort}`}
               value={priceSort ?? 'none'}
@@ -185,7 +178,6 @@ export default function CatalogFilters({
                   onPriceSortChange(null)
                 } else {
                   onPriceSortChange(val as 'asc' | 'desc')
-                  onVariantSortChange?.(null)
                 }
               }}
             >
@@ -194,28 +186,6 @@ export default function CatalogFilters({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value='none'>Цена</SelectItem>
-                <SelectItem value='asc'>По возрастанию</SelectItem>
-                <SelectItem value='desc'>По убыванию</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select
-              key={`variant-${variantSort}`}
-              value={variantSort ?? 'none'}
-              onValueChange={(val) => {
-                if (val === 'none') {
-                  onVariantSortChange?.(null)
-                } else {
-                  onVariantSortChange?.(val as 'asc' | 'desc')
-                  onPriceSortChange(null)
-                }
-              }}
-            >
-              <SelectTrigger className='w-full'>
-                <SelectValue placeholder='Мощность' />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value='none'>Мощность</SelectItem>
                 <SelectItem value='asc'>По возрастанию</SelectItem>
                 <SelectItem value='desc'>По убыванию</SelectItem>
               </SelectContent>

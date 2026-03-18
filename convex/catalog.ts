@@ -509,7 +509,7 @@ export const show_items_by_brand_and_collection = query({
       query = query.filter((q) => q.eq(q.field('collection'), collection))
     }
 
-    const relatedItems = await query.take(8)
+    const relatedItems = await query.collect()
     return relatedItems
   },
 })

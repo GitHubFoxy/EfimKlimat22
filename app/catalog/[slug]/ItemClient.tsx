@@ -15,15 +15,148 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { api } from '@/convex/_generated/api'
 import { Doc } from '@/convex/_generated/dataModel'
-import { formatPrice, getRenderableSpecifications } from '@/lib/utils'
+import {
+  cn,
+  formatPrice,
+  getRenderableSpecifications,
+  getRussianPlural,
+  type SpecificationsMap,
+  type SpecificationValue,
+} from '@/lib/utils'
+
+type VariantItem = Doc<'items'> & {
+  brandName?: string
+  variantsCount?: number
+}
+
+const SECTION_VARIANT_KEYS = ['segments', 'sections', 'sectioncount'] as const
+const POWER_VARIANT_KEYS = [
+  'power',
+  'powerkw',
+  'moshchnost',
+  'capacity',
+] as const
+const PREFERRED_VARIANT_KEYS = [
+  ...SECTION_VARIANT_KEYS,
+  ...POWER_VARIANT_KEYS,
+] as const
+
+function normalizeSpecificationKey(key: string) {
+  return key
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, '')
+}
+
+function getVariantSpecificationMap(specifications?: SpecificationsMap) {
+  return new Map(
+    getRenderableSpecifications(specifications).map(([key, value]) => [
+      normalizeSpecificationKey(key),
+      { key, value },
+    ]),
+  )
+}
+
+function formatVariantSpecificationValue(
+  key: string,
+  value: SpecificationValue,
+): string {
+  if (typeof value === 'boolean') {
+    return `${key}: ${value ? 'Да' : 'Нет'}`
+  }
+
+  const raw = String(value).trim()
+  const normalizedKey = normalizeSpecificationKey(key)
+  const normalizedNumber = raw.replace(',', '.')
+  const parsedNumber = Number(normalizedNumber)
+  const isNumeric = raw.length > 0 && !Number.isNaN(parsedNumber)
+
+  if (!isNumeric) {
+    return raw
+  }
+
+  if (
+    SECTION_VARIANT_KEYS.includes(
+      normalizedKey as (typeof SECTION_VARIANT_KEYS)[number],
+    )
+  ) {
+    if (Number.isInteger(parsedNumber)) {
+      return getRussianPlural(parsedNumber, 'секция', 'секции', 'секций')
+    }
+    return `${raw} секций`
+  }
+
+  if (
+    POWER_VARIANT_KEYS.includes(
+      normalizedKey as (typeof POWER_VARIANT_KEYS)[number],
+    )
+  ) {
+    return `${raw} кВт`
+  }
+
+  return raw
+}
+
+function getDifferingSpecificationKeys(items: VariantItem[]) {
+  const specificationMaps = items.map((variant) =>
+    getVariantSpecificationMap(variant.specifications),
+  )
+  const allKeys = new Set<string>()
+
+  for (const map of specificationMaps) {
+    for (const key of map.keys()) {
+      allKeys.add(key)
+    }
+  }
+
+  const differingKeys = new Set<string>()
+
+  for (const key of allKeys) {
+    const values = new Set(
+      specificationMaps.map((map) => {
+        const entry = map.get(key)
+        return entry ? String(entry.value).trim() : '__missing__'
+      }),
+    )
+
+    if (values.size > 1) {
+      differingKeys.add(key)
+    }
+  }
+
+  return differingKeys
+}
+
+function getVariantLabel(item: VariantItem, differingKeys: Set<string>) {
+  const specificationMap = getVariantSpecificationMap(item.specifications)
+
+  for (const key of PREFERRED_VARIANT_KEYS) {
+    if (!differingKeys.has(key)) {
+      continue
+    }
+
+    const entry = specificationMap.get(key)
+    if (entry) {
+      return formatVariantSpecificationValue(entry.key, entry.value)
+    }
+  }
+
+  for (const [key, entry] of specificationMap.entries()) {
+    if (!differingKeys.has(key)) {
+      continue
+    }
+
+    return formatVariantSpecificationValue(entry.key, entry.value)
+  }
+
+  if (item.sku?.trim()) {
+    return item.sku.trim()
+  }
+
+  return item.name
+}
 
 export function ItemClient({
   preloadedItem,
@@ -38,7 +171,7 @@ export function ItemClient({
   // Fetch related items by brand, category, and collection (client-side for reactivity)
   const relatedItems = useQuery(
     api.catalog.show_items_by_brand_and_collection,
-    item && item.brandId && item.categoryId
+    item && item.brandId && item.categoryId && item.collection
       ? {
           itemId: item._id,
           brandId: item.brandId,
@@ -46,10 +179,16 @@ export function ItemClient({
           collection: item.collection,
         }
       : 'skip',
-  ) as Doc<'items'>[] | undefined
+  ) as VariantItem[] | undefined
   const visibleSpecifications = getRenderableSpecifications(
     item?.specifications,
   )
+  const variantItems =
+    item !== null && item !== undefined
+      ? ([item, ...(relatedItems ?? [])] as VariantItem[])
+      : []
+  const differingVariantKeys = getDifferingSpecificationKeys(variantItems)
+  const showVariantSelector = variantItems.length > 1
 
   return (
     <div className='px-6 py-6 md:px-12 lg:px-28 xl:max-w-7xl xl:mx-auto'>
@@ -108,63 +247,97 @@ export function ItemClient({
               </div>
 
               {/* Related Items Section */}
-              {relatedItems && relatedItems.length > 0 && (
+              {showVariantSelector && item && (
                 <div className='bg-white rounded-3xl p-4 shadow-sm border border-gray-100'>
-                  <TooltipProvider>
-                    <h2 className='text-xl font-semibold mb-4'>
-                      Товары из коллекции
-                    </h2>
-                    <div className='grid grid-cols-4 gap-3 overflow-x-auto'>
-                      {relatedItems.map((relatedItem) => (
-                        <Tooltip key={relatedItem._id}>
-                          <TooltipTrigger asChild>
-                            <Link
-                              href={`/catalog/${relatedItem.slug}`}
-                              className='block min-w-20'
-                            >
-                              <div className='relative aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200 hover:border-gray-300 transition-colors'>
-                                <Image
-                                  src={item.imagesUrl?.[0] || '/not-found.jpg'}
-                                  alt={relatedItem.name}
-                                  fill
-                                  className='object-cover'
-                                />
-                              </div>
-                            </Link>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <div className='space-y-1'>
-                              <p className='font-medium'>{relatedItem.name}</p>
-                              {getRenderableSpecifications(
-                                relatedItem.specifications,
-                              )
-                                .filter(([key]) =>
-                                  [
-                                    'power',
-                                    'powerKW',
-                                    'capacity',
-                                    'volume',
-                                    'efficiency',
-                                  ].includes(key),
-                                )
-                                .slice(0, 2)
-                                .map(([key, value]) => (
-                                  <p
-                                    key={key}
-                                    className='text-sm text-gray-600'
-                                  >
-                                    {key}: {value}
-                                  </p>
-                                ))}
-                              <p className='text-sm font-medium text-amber-600'>
-                                {formatPrice(relatedItem.price)} руб.
-                              </p>
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      ))}
+                  <div className='mb-4 flex items-start justify-between gap-3'>
+                    <div>
+                      <h2 className='text-xl font-semibold'>
+                        Варианты этой модели
+                      </h2>
+                      <p className='mt-1 text-sm text-gray-500'>
+                        Выберите вариант. На карточках показано главное отличие
+                        между ними.
+                      </p>
                     </div>
-                  </TooltipProvider>
+                    <span className='rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600'>
+                      {getRussianPlural(
+                        variantItems.length,
+                        'вариант',
+                        'варианта',
+                        'вариантов',
+                      )}
+                    </span>
+                  </div>
+
+                  <div className='grid grid-cols-2 gap-3 xl:grid-cols-3'>
+                    {variantItems.map((variant) => {
+                      const variantLabel = getVariantLabel(
+                        variant,
+                        differingVariantKeys,
+                      )
+                      const isCurrentVariant = variant._id === item._id
+                      const variantImage =
+                        variant.imagesUrl?.[0] || '/not-found.jpg'
+
+                      const cardContent = (
+                        <div
+                          className={cn(
+                            'rounded-2xl border p-3 transition-colors',
+                            isCurrentVariant
+                              ? 'border-slate-900 bg-slate-50 shadow-sm'
+                              : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50',
+                          )}
+                        >
+                          <div className='relative aspect-square overflow-hidden rounded-xl border border-gray-100 bg-gray-50'>
+                            <Image
+                              src={variantImage}
+                              alt={variant.name}
+                              fill
+                              className='object-cover'
+                              unoptimized={variantImage === '/not-found.jpg'}
+                            />
+                          </div>
+
+                          <div className='mt-3 flex items-start justify-between gap-2'>
+                            <div className='min-w-0'>
+                              <p className='text-sm font-semibold text-gray-900'>
+                                {variantLabel}
+                              </p>
+                              {variantLabel !== variant.name && (
+                                <p className='mt-1 line-clamp-2 text-xs text-gray-500'>
+                                  {variant.name}
+                                </p>
+                              )}
+                            </div>
+
+                            {isCurrentVariant && (
+                              <span className='shrink-0 rounded-full bg-slate-900 px-2 py-1 text-[10px] font-medium text-white'>
+                                Выбрано
+                              </span>
+                            )}
+                          </div>
+
+                          <p className='mt-2 text-sm font-medium text-amber-600'>
+                            {formatPrice(variant.price)} руб.
+                          </p>
+                        </div>
+                      )
+
+                      if (isCurrentVariant) {
+                        return <div key={variant._id}>{cardContent}</div>
+                      }
+
+                      return (
+                        <Link
+                          key={variant._id}
+                          href={`/catalog/${variant.slug}`}
+                          className='block'
+                        >
+                          {cardContent}
+                        </Link>
+                      )
+                    })}
+                  </div>
                 </div>
               )}
             </div>

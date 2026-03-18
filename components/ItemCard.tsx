@@ -9,14 +9,9 @@ import { toast } from 'sonner'
 import { api } from '@/convex/_generated/api'
 import { Doc } from '@/convex/_generated/dataModel'
 import { useCartSessionId } from '@/hooks/useCartSession'
-import {
-  formatPrice,
-  getRenderableSpecifications,
-  getRussianPlural,
-} from '@/lib/utils'
+import { formatPrice, getRussianPlural } from '@/lib/utils'
 import Stars from './stars'
 import { Button } from './ui/button'
-import { Card, CardContent } from './ui/card'
 import {
   Carousel,
   CarouselContent,
@@ -24,50 +19,6 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from './ui/carousel'
-
-// Helper to get specification summary
-const getSpecificationSummary = (
-  specifications?: Record<string, string | number | boolean>,
-) => {
-  const visibleEntries = getRenderableSpecifications(specifications)
-  if (visibleEntries.length === 0) return ''
-
-  const visibleSpecifications = Object.fromEntries(visibleEntries) as Record<
-    string,
-    string | number | boolean
-  >
-
-  // Try to find common specifications
-  const power =
-    visibleSpecifications.power ||
-    visibleSpecifications.powerKW ||
-    visibleSpecifications.moshchnost ||
-    visibleSpecifications.capacity
-  if (power) return `${power}`
-
-  // Return first specification if available
-  const firstEntry = visibleEntries[0]
-  if (firstEntry) {
-    return `${firstEntry[1]}`
-  }
-
-  return ''
-}
-
-// Helper for Russian pluralization of "вариант/варианта/вариантов"
-const getPluralVariants = (count: number): string => {
-  if (count % 10 === 1 && count % 100 !== 11) {
-    return 'вариант'
-  } else if (
-    (count % 10 === 2 || count % 10 === 3 || count % 10 === 4) &&
-    count % 100 !== 12 &&
-    count % 100 !== 13 &&
-    count % 100 !== 14
-  ) {
-    return 'варианта'
-  }
-  return 'вариантов'
-}
 
 // Strong type for catalog item documents
 type Item = Doc<'items'> & {
@@ -95,7 +46,6 @@ export const ItemCard = ({ e, variantCount }: ItemCardProps) => {
   const sessionId = useCartSessionId()
   const addItem = useMutation(api.cart.addItem)
   const updateQty = useMutation(api.cart.updateQty)
-  const removeItem = useMutation(api.cart.removeItem)
   const router = useRouter()
 
   // Get cart items to find current item (only if sessionId is available)
@@ -238,11 +188,7 @@ export const ItemCard = ({ e, variantCount }: ItemCardProps) => {
               {e.brandName}
             </p>
           )}
-          <p className='text-base leading-6 line-clamp-2'>
-            {e.name}
-            {getSpecificationSummary(e.specifications) &&
-              ` ${getSpecificationSummary(e.specifications)}`}
-          </p>
+          <p className='text-base leading-6 line-clamp-2'>{e.name}</p>
           <p className='font-medium mt-auto w-full text-right'>
             {e.priceRange ? (
               <>
