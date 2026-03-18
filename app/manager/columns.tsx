@@ -109,8 +109,21 @@ export interface Item {
   quantity: number
   price: number
   imagesUrl?: string[]
+  specifications?: Record<string, string | number | boolean>
   slug?: string
   sku?: string
+}
+
+const formatSpecifications = (
+  specifications?: Record<string, string | number | boolean>,
+) => {
+  if (!specifications || Object.keys(specifications).length === 0) {
+    return '—'
+  }
+
+  return Object.entries(specifications)
+    .map(([key, value]) => `${key}: ${String(value)}`)
+    .join(', ')
 }
 
 // Provide a factory to create item columns so parent components can pass handlers
@@ -175,6 +188,19 @@ export const getItemColumns = (handlers?: {
       cell: ({ row }) => {
         const brand = row.getValue('brand') as string
         return <div>{brand}</div>
+      },
+    },
+    {
+      id: 'specifications',
+      header: 'Характеристики',
+      cell: ({ row }) => {
+        const item = row.original as Item
+
+        return (
+          <div className='max-w-[280px] text-sm text-gray-600 line-clamp-3'>
+            {formatSpecifications(item.specifications)}
+          </div>
+        )
       },
     },
     {
