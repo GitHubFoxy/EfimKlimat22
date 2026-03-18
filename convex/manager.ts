@@ -1,7 +1,7 @@
 import { paginationOptsValidator } from 'convex/server'
 import { ConvexError, v } from 'convex/values'
 import { api } from './_generated/api'
-import type { Id } from './_generated/dataModel'
+import type { Doc, Id } from './_generated/dataModel'
 import { mutation, query } from './_generated/server'
 import { requirePermanentPassword, requireRole } from './authHelpers'
 import {
@@ -119,6 +119,78 @@ async function resolveImageUrls(
   )
 
   return urls.filter((url): url is string => typeof url === 'string')
+}
+
+function normalizeCategoryOrder(order: number) {
+  const normalizedOrder = Math.trunc(order)
+  if (!Number.isFinite(normalizedOrder) || normalizedOrder < 0) {
+    throw new Error('Порядок должен быть неотрицательным числом')
+  }
+
+  return normalizedOrder
+}
+
+function slugifyCategoryName(name: string) {
+  const baseSlug = name
+    .trim()
+    .toLowerCase()
+    .replace(/ё/g, 'e')
+    .replace(/\s+/g, '-')
+    .replace(/[^a-zа-я0-9-]/gi, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+
+  return baseSlug || 'category'
+}
+
+async function buildUniqueCategorySlug(
+  ctx: any,
+  name: string,
+  excludeId?: Id<'categories'>,
+) {
+  const baseSlug = slugifyCategoryName(name)
+  let slug = baseSlug
+  let counter = 2
+
+  while (true) {
+    const existing = await ctx.db
+      .query('categories')
+      .withIndex('by_slug', (q: any) => q.eq('slug', slug))
+      .collect()
+
+    const hasConflict = existing.some(
+      (category: Doc<'categories'>) => category._id !== excludeId,
+    )
+
+    if (!hasConflict) {
+      return slug
+    }
+
+    slug = `${baseSlug}-${counter}`
+    counter += 1
+  }
+}
+
+async function resolveCategoryParent(
+  ctx: any,
+  parentId?: Id<'categories'> | null,
+) {
+  if (!parentId) {
+    return null
+  }
+
+  const parent = (await ctx.db.get(parentId)) as Doc<'categories'> | null
+  if (!parent) {
+    throw new Error('Родительская категория не найдена')
+  }
+
+  if (parent.parentId) {
+    throw new Error(
+      'Подкатегории можно создавать только внутри верхней категории',
+    )
+  }
+
+  return parent
 }
 
 // List orders for managers by status, newest first by updatedAt/_creationTime
@@ -1126,6 +1198,142 @@ export const update_category_order = mutation({
     if (!existing) throw new Error('Category not found')
 
     await ctx.db.patch(id, { order: normalizedOrder })
+    return { status: 200 }
+  },
+})
+
+export const create_category = mutation({
+  args: {
+    name: v.string(),
+    order: v.number(),
+    parentId: v.optional(v.union(v.id('categories'), v.null())),
+    isVisible: v.optional(v.boolean()),
+  },
+  handler: async (ctx, { name, order, parentId, isVisible }) => {
+    await requireRole(ctx, ['manager', 'admin'])
+
+    const trimmedName = name.trim()
+    validateName(trimmedName, 'Название категории')
+    const normalizedOrder = normalizeCategoryOrder(order)
+    const parent = await resolveCategoryParent(ctx, parentId)
+    const slug = await buildUniqueCategorySlug(ctx, trimmedName)
+
+    return await ctx.db.insert('categories', {
+      name: trimmedName,
+      slug,
+      order: normalizedOrder,
+      level: parent ? parent.level + 1 : 0,
+      isVisible: isVisible ?? true,
+      ...(parent ? { parentId: parent._id } : {}),
+    })
+  },
+})
+
+export const update_category = mutation({
+  args: {
+    id: v.id('categories'),
+    name: v.string(),
+    order: v.number(),
+    parentId: v.optional(v.union(v.id('categories'), v.null())),
+    isVisible: v.boolean(),
+  },
+  handler: async (ctx, { id, name, order, parentId, isVisible }) => {
+    await requireRole(ctx, ['manager', 'admin'])
+
+    const existing = (await ctx.db.get(id)) as Doc<'categories'> | null
+    if (!existing) {
+      throw new Error('Категория не найдена')
+    }
+
+    const trimmedName = name.trim()
+    validateName(trimmedName, 'Название категории')
+    const normalizedOrder = normalizeCategoryOrder(order)
+    const nextParentId = parentId === null ? undefined : parentId
+
+    if (nextParentId === id) {
+      throw new Error('Категория не может быть родителем самой себя')
+    }
+
+    const parent = await resolveCategoryParent(ctx, nextParentId)
+    const hasChildren = await ctx.db
+      .query('categories')
+      .withIndex('by_parent_order', (q: any) => q.eq('parentId', id))
+      .first()
+
+    if (parent && hasChildren) {
+      throw new Error(
+        'Нельзя сделать подкатегорией категорию, у которой есть подкатегории',
+      )
+    }
+
+    const slug =
+      existing.name.trim() === trimmedName
+        ? existing.slug
+        : await buildUniqueCategorySlug(ctx, trimmedName, id)
+
+    const { _id, _creationTime, ...existingFields } = existing
+    const next: Doc<'categories'> | any = {
+      ...existingFields,
+      name: trimmedName,
+      slug,
+      order: normalizedOrder,
+      level: parent ? parent.level + 1 : 0,
+      isVisible,
+    }
+
+    if (parent) {
+      next.parentId = parent._id
+    } else {
+      delete next.parentId
+    }
+
+    await ctx.db.replace(id, next)
+    return id
+  },
+})
+
+export const delete_category = mutation({
+  args: {
+    id: v.id('categories'),
+  },
+  handler: async (ctx, { id }) => {
+    await requireRole(ctx, ['manager', 'admin'])
+
+    const existing = (await ctx.db.get(id)) as Doc<'categories'> | null
+    if (!existing) {
+      throw new Error('Категория не найдена')
+    }
+
+    const childCategory = await ctx.db
+      .query('categories')
+      .withIndex('by_parent_order', (q: any) => q.eq('parentId', id))
+      .first()
+
+    if (childCategory) {
+      throw new Error('Нельзя удалить категорию, пока у нее есть подкатегории')
+    }
+
+    const attachedItem = await ctx.db
+      .query('items')
+      .withIndex('by_category_no_status', (q: any) => q.eq('categoryId', id))
+      .first()
+
+    if (attachedItem) {
+      throw new Error('Нельзя удалить категорию, к которой привязаны товары')
+    }
+
+    const attachedCollectionGroup = await ctx.db
+      .query('collectionGroups')
+      .withIndex('by_category', (q: any) => q.eq('categoryId', id))
+      .first()
+
+    if (attachedCollectionGroup) {
+      throw new Error(
+        'Нельзя удалить категорию, пока для нее существуют группы вариантов',
+      )
+    }
+
+    await ctx.db.delete(id)
     return { status: 200 }
   },
 })
