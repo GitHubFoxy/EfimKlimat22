@@ -13,6 +13,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  getRenderableSpecifications,
+  type SpecificationsMap,
+} from '@/lib/utils'
 
 export interface Order {
   _id: string
@@ -109,21 +113,18 @@ export interface Item {
   quantity: number
   price: number
   imagesUrl?: string[]
-  specifications?: Record<string, string | number | boolean>
+  specifications?: SpecificationsMap
   slug?: string
   sku?: string
 }
 
-const formatSpecifications = (
-  specifications?: Record<string, string | number | boolean>,
-) => {
-  if (!specifications || Object.keys(specifications).length === 0) {
+const formatSpecificationValues = (specifications?: SpecificationsMap) => {
+  const entries = getRenderableSpecifications(specifications)
+  if (entries.length === 0) {
     return '—'
   }
 
-  return Object.entries(specifications)
-    .map(([key, value]) => `${key}: ${String(value)}`)
-    .join(', ')
+  return entries.map(([, value]) => String(value)).join(', ')
 }
 
 // Provide a factory to create item columns so parent components can pass handlers
@@ -198,7 +199,7 @@ export const getItemColumns = (handlers?: {
 
         return (
           <div className='max-w-[280px] text-sm text-gray-600 line-clamp-3'>
-            {formatSpecifications(item.specifications)}
+            {formatSpecificationValues(item.specifications)}
           </div>
         )
       },

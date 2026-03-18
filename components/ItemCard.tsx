@@ -9,7 +9,11 @@ import { toast } from 'sonner'
 import { api } from '@/convex/_generated/api'
 import { Doc } from '@/convex/_generated/dataModel'
 import { useCartSessionId } from '@/hooks/useCartSession'
-import { formatPrice, getRussianPlural } from '@/lib/utils'
+import {
+  formatPrice,
+  getRenderableSpecifications,
+  getRussianPlural,
+} from '@/lib/utils'
 import Stars from './stars'
 import { Button } from './ui/button'
 import { Card, CardContent } from './ui/card'
@@ -25,21 +29,26 @@ import {
 const getSpecificationSummary = (
   specifications?: Record<string, string | number | boolean>,
 ) => {
-  if (!specifications) return ''
+  const visibleEntries = getRenderableSpecifications(specifications)
+  if (visibleEntries.length === 0) return ''
+
+  const visibleSpecifications = Object.fromEntries(visibleEntries) as Record<
+    string,
+    string | number | boolean
+  >
 
   // Try to find common specifications
   const power =
-    specifications.power || specifications.moshchnost || specifications.capacity
+    visibleSpecifications.power ||
+    visibleSpecifications.powerKW ||
+    visibleSpecifications.moshchnost ||
+    visibleSpecifications.capacity
   if (power) return `${power}`
 
   // Return first specification if available
-  const keys = Object.keys(specifications)
-  if (keys.length > 0) {
-    const firstKey = keys[0]
-    const value = specifications[firstKey]
-    if (value !== undefined && value !== null) {
-      return `${value}`
-    }
+  const firstEntry = visibleEntries[0]
+  if (firstEntry) {
+    return `${firstEntry[1]}`
   }
 
   return ''

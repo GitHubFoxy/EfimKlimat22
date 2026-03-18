@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/tooltip'
 import { api } from '@/convex/_generated/api'
 import { Doc } from '@/convex/_generated/dataModel'
-import { formatPrice } from '@/lib/utils'
+import { formatPrice, getRenderableSpecifications } from '@/lib/utils'
 
 export function ItemClient({
   preloadedItem,
@@ -47,6 +47,9 @@ export function ItemClient({
         }
       : 'skip',
   ) as Doc<'items'>[] | undefined
+  const visibleSpecifications = getRenderableSpecifications(
+    item?.specifications,
+  )
 
   return (
     <div className='px-6 py-6 md:px-12 lg:px-28 xl:max-w-7xl xl:mx-auto'>
@@ -132,26 +135,27 @@ export function ItemClient({
                           <TooltipContent>
                             <div className='space-y-1'>
                               <p className='font-medium'>{relatedItem.name}</p>
-                              {relatedItem.specifications &&
-                                Object.entries(relatedItem.specifications)
-                                  .filter(([key]) =>
-                                    [
-                                      'power',
-                                      'powerKW',
-                                      'capacity',
-                                      'volume',
-                                      'efficiency',
-                                    ].includes(key),
-                                  )
-                                  .slice(0, 2)
-                                  .map(([key, value]) => (
-                                    <p
-                                      key={key}
-                                      className='text-sm text-gray-600'
-                                    >
-                                      {key}: {value}
-                                    </p>
-                                  ))}
+                              {getRenderableSpecifications(
+                                relatedItem.specifications,
+                              )
+                                .filter(([key]) =>
+                                  [
+                                    'power',
+                                    'powerKW',
+                                    'capacity',
+                                    'volume',
+                                    'efficiency',
+                                  ].includes(key),
+                                )
+                                .slice(0, 2)
+                                .map(([key, value]) => (
+                                  <p
+                                    key={key}
+                                    className='text-sm text-gray-600'
+                                  >
+                                    {key}: {value}
+                                  </p>
+                                ))}
                               <p className='text-sm font-medium text-amber-600'>
                                 {formatPrice(relatedItem.price)} руб.
                               </p>
@@ -183,29 +187,26 @@ export function ItemClient({
               </div>
 
               {/* Specifications Table */}
-              {item.specifications &&
-                Object.keys(item.specifications).length > 0 && (
-                  <div className='mt-6'>
-                    <h3 className='text-sm font-semibold text-gray-900 mb-3 border-b pb-2'>
-                      Характеристики
-                    </h3>
-                    <div className='space-y-2'>
-                      {Object.entries(item.specifications).map(
-                        ([key, value]) => (
-                          <div
-                            key={key}
-                            className='flex justify-between text-sm py-1 border-b border-gray-50 last:border-0'
-                          >
-                            <span className='text-gray-500'>{key}</span>
-                            <span className='font-medium text-gray-900'>
-                              {String(value)}
-                            </span>
-                          </div>
-                        ),
-                      )}
-                    </div>
+              {visibleSpecifications.length > 0 && (
+                <div className='mt-6'>
+                  <h3 className='text-sm font-semibold text-gray-900 mb-3 border-b pb-2'>
+                    Характеристики
+                  </h3>
+                  <div className='space-y-2'>
+                    {visibleSpecifications.map(([key, value]) => (
+                      <div
+                        key={key}
+                        className='flex justify-between text-sm py-1 border-b border-gray-50 last:border-0'
+                      >
+                        <span className='text-gray-500'>{key}</span>
+                        <span className='font-medium text-gray-900'>
+                          {String(value)}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                )}
+                </div>
+              )}
 
               {item.discountAmount ? (
                 <span className='text-sm text-red-600 font-medium'>

@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { api } from '@/convex/_generated/api'
+import { getRenderableSpecifications } from '@/lib/utils'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 
@@ -50,6 +51,9 @@ export default function HeaderSearch({ className }: { className?: string }) {
           <ul className='divide-y'>
             {results.map((item: any) => {
               const slug = item.slug || ''
+              const visibleSpecifications = getRenderableSpecifications(
+                item.specifications,
+              )
               return (
                 <li
                   key={item._id}
@@ -88,27 +92,26 @@ export default function HeaderSearch({ className }: { className?: string }) {
                         <span>{item.name}</span>
                       </div>
                       {/* Specification (power, etc) */}
-                      {item.specifications &&
-                        Object.keys(item.specifications).length > 0 && (
-                          <div className='text-xs text-gray-500 line-clamp-1'>
-                            {Object.entries(item.specifications)
-                              .filter(([key]) => {
-                                const lowerKey = key.toLowerCase()
-                                return (
-                                  lowerKey.includes('power') ||
-                                  lowerKey.includes('мощность') ||
-                                  lowerKey.includes('kw')
-                                )
-                              })
+                      {visibleSpecifications.length > 0 && (
+                        <div className='text-xs text-gray-500 line-clamp-1'>
+                          {visibleSpecifications
+                            .filter(([key]) => {
+                              const lowerKey = key.toLowerCase()
+                              return (
+                                lowerKey.includes('power') ||
+                                lowerKey.includes('мощность') ||
+                                lowerKey.includes('kw')
+                              )
+                            })
+                            .slice(0, 1)
+                            .map(([key, value]) => `${value}`)
+                            .join(', ') ||
+                            visibleSpecifications
                               .slice(0, 1)
                               .map(([key, value]) => `${value}`)
-                              .join(', ') ||
-                              Object.entries(item.specifications)
-                                .slice(0, 1)
-                                .map(([key, value]) => `${value}`)
-                                .join(', ')}
-                          </div>
-                        )}
+                              .join(', ')}
+                        </div>
+                      )}
                       {/* Price */}
                       {typeof item.price === 'number' && (
                         <div className='text-xs text-gray-600 font-medium'>

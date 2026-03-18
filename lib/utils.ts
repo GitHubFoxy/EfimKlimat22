@@ -68,3 +68,31 @@ export function getRussianPlural(
   }
   return `${count} ${many}`
 }
+
+export type SpecificationValue = string | number | boolean
+export type SpecificationsMap = Record<string, SpecificationValue>
+
+const IGNORED_SPECIFICATION_KEYS = new Set(['collection'])
+
+export function getRenderableSpecifications(
+  specifications?: SpecificationsMap,
+): Array<[string, SpecificationValue]> {
+  if (!specifications) {
+    return []
+  }
+
+  return Object.entries(specifications).filter(
+    ([key]) => !IGNORED_SPECIFICATION_KEYS.has(key.trim().toLowerCase()),
+  )
+}
+
+export function formatSpecificationsList(
+  specifications?: SpecificationsMap,
+): string {
+  const entries = getRenderableSpecifications(specifications)
+  if (entries.length === 0) {
+    return '—'
+  }
+
+  return entries.map(([key, value]) => `${key}: ${String(value)}`).join(', ')
+}
