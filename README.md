@@ -1,189 +1,64 @@
-# Scalable E-Commerce Platform (Self-Hosted Architecture)
+# Klimat22 heating equipment store
 
-Production-oriented e-commerce platform engineered end-to-end with **Next.js + Convex**, including storefront, checkout, order pipeline, and role-based manager/admin operations.
+A commissioned e-commerce project for a heating equipment store. I was the
+only developer. A designer was involved separately.
 
-> This repository is positioned as a **technical case study**: not just “a website”, but an example of **platform engineering, product ownership, and self-hosted infrastructure**.
+**Project activity:** September 2025 to March 2026
 
----
+**Current status:** Klimat22 is currently unavailable and has no live demo.
 
-## 1) Executive Summary
+## What I built
 
-This project demonstrates senior-level ownership across the full lifecycle:
-- product architecture and domain modeling;
-- backend and frontend implementation;
-- operational backoffice tooling;
-- production deployment and runtime management.
+- Product catalog with categories, brands, filters, search, variants, and
+  grouped items.
+- Catalog browsing, guest cart, checkout, and order creation.
+- Customer requests.
+- Manager panel for catalog items, orders, leads, users, categories, and
+  brands.
+- Convex schema and backend functions for the commerce domain.
+- Role checks for users, managers, and admins.
+- Server-side input validation and cart/order ownership checks.
+- Order item snapshots and protection against creating the same order twice
+  from one cart.
+- Data migration using a Convex export, local transformation, and import.
 
-### Core outcomes
-- Built a full commerce flow: catalog → cart → checkout → order lifecycle.
-- Implemented role-aware operational console for managers/admins.
-- Established self-hosted deployment model with process/runtime control.
-- Added reliability and security hardening patterns in critical flows.
+Online payments are not integrated. The checkout stores a payment method and
+status, but it does not process card payments.
 
----
-
-## 2) Architecture
-
-## High-level system flow
+## Architecture
 
 ```mermaid
 flowchart LR
-    U[Users / Clients] --> CADDY[Caddy Reverse Proxy + Auto HTTPS]
-    CADDY --> PM2[PM2 Process Manager]
-    PM2 --> NEXT[Next.js App Router Frontend]
-    NEXT <--> CONVEX[Convex Backend / Functions / DB]
-
-    subgraph Linux VPS
-      CADDY
-      PM2
-      NEXT
-      CONVEX
-    end
+    B[Browser] --> N[Next.js App Router]
+    N <--> C[Convex functions and database]
+    N --> M[Manager panel]
 ```
 
-### Components
-- **Next.js (App Router):** storefront, checkout UX, manager/admin UI.
-- **Convex:** typed backend functions, schema, business logic, queries/mutations.
-- **PM2:** production process supervision for the Next.js service.
-- **Caddy:** reverse proxy + automatic TLS/HTTPS termination.
+- **Frontend:** Next.js App Router, React, TypeScript.
+- **Backend and data:** Convex functions, schema, queries, and mutations.
+- **UI:** Radix UI components and Tailwind CSS utilities.
+- **Operations:** A historical frontend/backend deployment used PM2 and a
+  Linux VPS. The self-hosting configuration is incomplete and a fresh run has
+  not been verified.
+- **Tooling:** pnpm, Biome, and TypeScript.
 
----
+## Local setup
 
-## 3) Senior Engineering Scope (Technical Case Study)
+The repository expects Node.js, pnpm, the Convex CLI, and environment
+configuration such as `.env.local`. Existing scripts cover development,
+Biome checks, TypeScript checks, and builds. A fresh install and run have not
+been verified. Automated tests are not available yet.
 
-## Infrastructure & Operations
-- **Self-hosted on Linux for 100% data control and cost optimization.**
-- **Security hardening via UFW and SSH key management.**
-- **Zero-downtime deployment strategy using PM2 and Caddy auto-HTTPS.**
+## Scope and limitations
 
-## Platform Engineering
-- Domain-driven schema design for commerce and operations.
-- Backend workflows for cart integrity, order creation, and admin workflows.
-- Search/filter/query paths for catalog and manager dashboards.
+- Cart merging after sign-in is unfinished.
+- The self-hosting files are configuration notes, not a verified deployment
+  recipe.
 
-## Reliability & Security Patterns
-- Server-side validation for checkout/orderability.
-- Duplicate order prevention / idempotency strategy in checkout flow.
-- Role-aware access boundaries for manager/admin capabilities.
-- Blocked-user handling in shared auth helpers.
+## Repository areas
 
----
-
-## 4) Managerial / Product Leadership Scope
-
-This project also reflects cross-functional ownership beyond coding:
-
-- **Managed UI/UX design process, hiring and directing external designers to align with system architecture.**
-- Translated business requirements into implementation-ready technical backlog.
-- Iterated UX and internal ops flows (orders, leads, inventory-related actions).
-- Balanced product speed with maintainability and deployment constraints.
-
----
-
-## 5) Feature Surface
-
-## Customer-facing
-- Catalog browsing with categories/brands/filtering.
-- Product details and variant/grouped listing behavior.
-- Cart lifecycle (guest/session/user scenarios).
-- Checkout and order placement.
-
-## Manager/Admin-facing
-- Item management (create/update/delete paths).
-- Order workflow (status/processing operations).
-- Lead and user management workflows.
-- Internal search and operational dashboard views.
-
----
-
-## 6) Repository Structure
-
-- `app/` — Next.js app routes (storefront + manager areas)
-- `components/` — reusable UI and feature components
-- `convex/` — backend schema/functions (catalog/cart/orders/users/manager/etc.)
-- `backend/` — self-hosting assets (Convex docker-compose template)
-- `ecosystem.config.js` — PM2 process definition
-
----
-
-## 7) Tech Stack
-
-- **Language:** TypeScript
-- **Frontend:** Next.js, React
-- **Backend/Data:** Convex
-- **UI:** Radix UI, Tailwind-based utility stack
-- **Ops:** PM2, Caddy, Linux VPS
-- **Tooling:** Biome, TypeScript checks
-
----
-
-## 8) Local Development
-
-## Prerequisites
-- Node.js and pnpm
-- Convex CLI configured
-- `.env.local` configured for your environment
-
-## Run locally
-
-```bash
-pnpm install
-pnpm run dev
-```
-
-This starts frontend + backend dev processes.
-
-## Quality checks
-
-```bash
-pnpm run lint
-pnpm run typecheck
-```
-
----
-
-## 9) Deployment Notes (Self-Hosted)
-
-Current production-style setup uses:
-- Next.js app process managed with PM2 (`ecosystem.config.js`)
-- Caddy reverse proxy + HTTPS
-- Convex backend in self-hosted mode (see `backend/docker-compose.yml.convex`)
-
-Suggested production checklist:
-- enforce env validation for critical secrets/URLs;
-- lock down exposed debug/test surfaces;
-- maintain backup + rollback procedure;
-- add monitoring/alerting and smoke checks after deploy.
-
----
-
-## 10) ACH-Style Impact Bullets (for CV / interviews)
-
-Use these as a baseline and adapt with your real metrics:
-
-1. **Architected** and shipped a production e-commerce platform using Next.js + Convex, **enabling** end-to-end ownership from storefront to operations.
-2. **Designed** multi-entity commerce schema and backend workflows, **improving** consistency across catalog, cart, and order lifecycles.
-3. **Implemented** role-based manager/admin tooling, **reducing** operational friction for order/lead/user management.
-4. **Hardened** checkout pipeline with server-side validation and idempotency protections, **preventing** duplicate/invalid order scenarios.
-5. **Established** self-hosted runtime with PM2 + Caddy, **improving** deployment control, reliability, and infrastructure cost efficiency.
-6. **Led** cross-functional UI/UX execution with external designers, **aligning** interface quality with technical architecture and delivery timelines.
-
----
-
-## 11) Why this project is a Senior-level portfolio artifact
-
-Because it demonstrates:
-- technical depth (architecture + backend + frontend);
-- operational maturity (deployment/runtime/security);
-- product delivery ownership (from zero to production);
-- leadership behavior (cross-functional coordination and execution).
-
----
-
-## Contact / Discussion
-
-If you want a walkthrough, I can share a structured review covering:
-1. architecture decisions,
-2. trade-offs,
-3. production constraints,
-4. future scaling roadmap.
+- `app/`: storefront, checkout, order pages, and manager routes
+- `components/`: shared UI and feature components
+- `convex/`: schema, queries, mutations, auth helpers, and migrations
+- `backend/`: self-hosting configuration template
+- `ecosystem.config.js`: PM2 process definition
